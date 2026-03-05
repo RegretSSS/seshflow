@@ -2,7 +2,7 @@
 
 > 跨对话任务序列器 - 专为 AI 辅助开发设计的任务管理工具
 
-[![npm version](https://badge.fury.io/js/%40seshflow%2Fcli.svg)](https://www.npmjs.com/package/@seshflow/cli)
+[![npm version](https://badge.fury.io/js/seshflow.svg)](https://www.npmjs.com/package/seshflow)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org)
 
@@ -19,22 +19,24 @@
 ### 使用 npm
 
 ```bash
-npm install -g @seshflow/cli
+npm install -g seshflow
 ```
 
 ### 使用 pnpm（推荐）
 
 ```bash
-pnpm install -g @seshflow/cli
+pnpm install -g seshflow
 ```
 
 ### 使用 yarn
 
 ```bash
-yarn global add @seshflow/cli
+yarn global add seshflow
 ```
 
 ## 🚀 快速开始
+
+Legacy package name is still available: `@seshflow/cli`
 
 ### 1. 初始化项目
 
@@ -143,7 +145,7 @@ MIT License
 
 ## 🔗 相关链接
 
-- [npm 包](https://www.npmjs.com/package/@seshflow/cli)
+- [npm 包](https://www.npmjs.com/package/seshflow)
 - [GitHub 仓库](https://github.com/RegretSSS/seshflow)
 
 ---

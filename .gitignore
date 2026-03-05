@@ -47,6 +47,8 @@ create-github-repo.sh
 seshflow
 seshflow.bat
 seshflow.js
+!packages/seshflow/
+!packages/seshflow/**
 
 # Test files
 *-test.md

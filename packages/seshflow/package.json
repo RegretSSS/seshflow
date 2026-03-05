@@ -1,0 +1,33 @@
+{
+  "name": "seshflow",
+  "version": "1.1.0",
+  "description": "Seshflow CLI launcher package",
+  "author": "Seshflow Contributors",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RegretSSS/seshflow.git"
+  },
+  "homepage": "https://github.com/RegretSSS/seshflow#readme",
+  "bugs": {
+    "url": "https://github.com/RegretSSS/seshflow/issues"
+  },
+  "keywords": [
+    "task-manager",
+    "ai-assistant",
+    "workflow",
+    "cli"
+  ],
+  "bin": {
+    "seshflow": "./bin/seshflow.js"
+  },
+  "files": [
+    "bin"
+  ],
+  "dependencies": {
+    "@seshflow/cli": "1.1.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
