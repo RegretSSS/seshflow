@@ -170,3 +170,14 @@ Environment behavior:
 - Non-interactive / piped output: defaults to `compact`
 - Override globally with env var: `SESHFLOW_OUTPUT=compact` or `SESHFLOW_OUTPUT=pretty`
 
+## AI Quick Usage
+
+Prefer JSON output in AI workflows:
+
+```bash
+seshflow ncfr --json
+seshflow next --json
+seshflow show <task-id> --json
+seshflow query --priority P0 --json
+```
+

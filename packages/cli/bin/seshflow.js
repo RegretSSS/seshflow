@@ -18,6 +18,8 @@ import { edit } from '../src/commands/edit.js';
 import { magic, magicList } from '../src/commands/magic.js';
 import { exportTasks } from '../src/commands/export.js';
 import { validateMarkdown } from '../src/commands/validate.js';
+import { start } from '../src/commands/start.js';
+import { skip } from '../src/commands/skip.js';
 
 const program = new Command();
 
@@ -82,6 +84,25 @@ program
   .option('-h, --hours <number>', 'Advanced: hours spent')
   .option('-n, --note <text>', 'Completion notes')
   .action(completeTask);
+
+// Start specific task
+program
+  .command('start <taskId>')
+  .description('Start a specific task (set in-progress)')
+  .option('-f, --force', 'Force start even with active session or unmet dependencies')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
+  .action(start);
+
+// Skip current task
+program
+  .command('skip')
+  .description('Skip current task and mark it blocked')
+  .option('-r, --reason <text>', 'Reason for skipping')
+  .option('-n, --note <text>', 'Alias for --reason')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
+  .action(skip);
 
 // Import command
 program
