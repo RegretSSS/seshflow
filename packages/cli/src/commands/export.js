@@ -21,6 +21,7 @@ function filterTasks(tasks, options = {}) {
 
 function toMarkdown(tasks) {
   const grouped = new Map();
+  const taskById = new Map(tasks.map(task => [task.id, task]));
 
   tasks.forEach(task => {
     const key = task.status || 'backlog';
@@ -42,7 +43,9 @@ function toMarkdown(tasks) {
       const hours = task.estimatedHours > 0 ? ` [${task.estimatedHours}h]` : '';
       const assignee = task.assignee ? ` [@${task.assignee}]` : '';
       const deps = (task.dependencies || []).length
-        ? ` [dependency:${task.dependencies.join(',')}]`
+        ? ` [依赖:${task.dependencies
+          .map(depId => taskById.get(depId)?.title || depId)
+          .join(',')}]`
         : '';
 
       sections.push(`- [${done}] ${task.title} [${task.priority}]${tags}${hours}${assignee}${deps}`);

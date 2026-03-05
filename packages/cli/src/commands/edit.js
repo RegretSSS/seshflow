@@ -27,12 +27,13 @@ export async function edit(taskId, options = {}) {
     spinner.stop();
 
     const description = options.description ?? options.desc;
+    const estimatedHours = options.hours ?? options.estimate;
     const hasDirectOptions =
       options.title !== undefined ||
       options.priority !== undefined ||
       options.status !== undefined ||
       description !== undefined ||
-      options.estimate !== undefined ||
+      estimatedHours !== undefined ||
       options.assignee !== undefined ||
       options.branch !== undefined ||
       options.tags !== undefined ||
@@ -45,7 +46,7 @@ export async function edit(taskId, options = {}) {
       if (options.priority) task.priority = options.priority;
       if (options.status) task.status = options.status;
       if (description !== undefined) task.description = description;
-      if (options.estimate) task.estimatedHours = parseFloat(options.estimate);
+      if (estimatedHours !== undefined) task.estimatedHours = parseFloat(estimatedHours);
       if (options.assignee) task.assignee = options.assignee;
       if (options.branch) task.gitBranch = options.branch;
       if (options.tags !== undefined || options.tag !== undefined) {

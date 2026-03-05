@@ -63,7 +63,7 @@ export async function add(title, options = {}) {
       priority,
       tags,
       dependencies,
-      estimatedHours: options.estimate ? parseFloat(options.estimate) : 0,
+      estimatedHours: (options.hours ?? options.estimate) ? parseFloat(options.hours ?? options.estimate) : 0,
       assignee: options.assignee || null,
       branch: options.branch || null
     });
