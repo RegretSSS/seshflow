@@ -6,6 +6,7 @@ import { init } from '../src/commands/init.js';
 import { add } from '../src/commands/add.js';
 import { next } from '../src/commands/next.js';
 import { done, completeTask } from '../src/commands/done.js';
+import { newchatfirstround } from '../src/commands/newchatfirstround.js';
 
 const program = new Command();
 
@@ -62,6 +63,14 @@ program
   .option('-h, --hours <number>', 'Hours spent')
   .option('-n, --note <text>', 'Completion notes')
   .action(completeTask);
+
+// New chat first round command
+program
+  .command('newchatfirstround')
+  .alias('ncfr')
+  .description('Show project context for new AI chat session')
+  .option('--show-paths', 'Show full file paths')
+  .action(newchatfirstround);
 
 // Parse arguments
 program.parse();
