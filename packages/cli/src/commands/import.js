@@ -6,6 +6,9 @@ import { Storage } from '../core/storage.js';
 import crypto from 'crypto';
 
 const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
+const TAG_PREFIX_RE = /^(\u6807\u7b7e|tags?)\s*[:\uff1a]\s*/i;
+const PRIORITY_PREFIX_RE = /^(\u4f18\u5148\u7ea7|priority)\s*[:\uff1a]\s*/i;
+const ESTIMATE_PREFIX_RE = /^(\u9884\u4f30|estimate)\s*[:\uff1a]\s*/i;
 
 /**
  * Generate task hash for deduplication
@@ -102,6 +105,91 @@ function parseDependencyToken(content) {
     .filter(Boolean);
 }
 
+function mapHeadingToStatus(heading = '') {
+  const normalized = String(heading).trim().toLowerCase();
+  const mappings = [
+    { pattern: /^(待办池|backlog)/i, status: 'backlog' },
+    { pattern: /^(准备做|待办|todo)/i, status: 'todo' },
+    { pattern: /^(进行中|in[-\s]?progress)/i, status: 'in-progress' },
+    { pattern: /^(审核|review)/i, status: 'review' },
+    { pattern: /^(完成|done)/i, status: 'done' },
+    { pattern: /^(阻塞|blocked)/i, status: 'blocked' },
+  ];
+  const hit = mappings.find(item => item.pattern.test(normalized));
+  return hit ? hit.status : null;
+}
+
+function parsePriorityValue(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+
+  if (/^P[0-3]$/i.test(raw)) {
+    return raw.toUpperCase();
+  }
+
+  const mappings = {
+    '紧急': 'P0',
+    '高': 'P0',
+    '高优先级': 'P0',
+    '中': 'P1',
+    '中等': 'P1',
+    '普通': 'P2',
+    '低': 'P3',
+    '低优先级': 'P3',
+  };
+
+  return mappings[raw] || null;
+}
+
+function parseEstimateValue(value) {
+  const raw = String(value || '').trim();
+  if (!raw) return null;
+
+  const match = raw.match(/(\d+(?:\.\d+)?)\s*h?/i);
+  if (!match) return null;
+  return Number.parseFloat(match[1]);
+}
+
+function applyMetadataLine(task, content) {
+  if (!content) return false;
+
+  const dependencies = parseDependencyToken(content);
+  if (dependencies.length > 0) {
+    task.dependencies = [...new Set([...(task.dependencies || []), ...dependencies])];
+    return true;
+  }
+
+  if (TAG_PREFIX_RE.test(content)) {
+    const tags = content
+      .replace(TAG_PREFIX_RE, '')
+      .split(/[,\uff0c]/)
+      .map(tag => tag.trim())
+      .filter(Boolean);
+    task.tags = [...new Set([...(task.tags || []), ...tags])];
+    return true;
+  }
+
+  if (PRIORITY_PREFIX_RE.test(content)) {
+    const value = content.replace(PRIORITY_PREFIX_RE, '').trim();
+    const parsed = parsePriorityValue(value);
+    if (parsed) {
+      task.priority = parsed;
+    }
+    return true;
+  }
+
+  if (ESTIMATE_PREFIX_RE.test(content)) {
+    const value = content.replace(ESTIMATE_PREFIX_RE, '').trim();
+    const parsed = parseEstimateValue(value);
+    if (parsed !== null && !Number.isNaN(parsed)) {
+      task.estimatedHours = parsed;
+    }
+    return true;
+  }
+
+  return false;
+}
+
 /**
  * Parse markdown file and extract tasks
  */
@@ -111,6 +199,7 @@ async function parseMarkdownFile(filePath) {
 
   const tasks = [];
   let currentPhase = '';
+  let currentStatus = null;
   let currentTask = null;
 
   for (let i = 0; i < lines.length; i++) {
@@ -123,6 +212,7 @@ async function parseMarkdownFile(filePath) {
     // Check for phase/group heading (## or ###)
     if (line.startsWith('##')) {
       currentPhase = line.replace(/^#+\s*/, '').trim();
+      currentStatus = mapHeadingToStatus(currentPhase);
       continue;
     }
 
@@ -169,10 +259,8 @@ async function parseMarkdownFile(filePath) {
     const isIndented = /^\s+/.test(rawLine);
     if (isIndented && currentTask) {
       const normalized = line.replace(/^[-*]\s*/, '');
-      const dependencies = parseDependencyToken(normalized);
-      if (dependencies.length > 0) {
-        currentTask.dependencies = [...new Set([...(currentTask.dependencies || []), ...dependencies])];
-      } else {
+      const isMetadata = applyMetadataLine(currentTask, normalized);
+      if (!isMetadata) {
         currentTask.description = (currentTask.description || '') + normalized + '\n';
       }
       continue;
@@ -187,8 +275,12 @@ async function parseMarkdownFile(filePath) {
         // Initialize subtasks array
         task.subtasks = [];
 
-        // Add phase as a tag if present
-        if (currentPhase && !task.tags.includes(currentPhase)) {
+        if (!isCompleted && currentStatus) {
+          task.status = currentStatus;
+        }
+
+        // Add non-status section heading as a tag
+        if (currentPhase && !currentStatus && !task.tags.includes(currentPhase)) {
           task.tags.push(currentPhase);
         }
 

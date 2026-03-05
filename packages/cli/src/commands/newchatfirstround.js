@@ -20,6 +20,7 @@ export async function newchatfirstround(options = {}) {
     if (isJSONMode(options)) {
       const workspacePath = process.cwd();
       const projectName = path.basename(workspacePath);
+      const gitBranch = await manager.storage.getGitBranch();
       const currentTask = manager.getCurrentTask();
       const nextTask = currentTask ? null : manager.getNextTask();
       const task = currentTask || nextTask;
@@ -55,7 +56,7 @@ export async function newchatfirstround(options = {}) {
         project: {
           name: projectName,
           path: workspacePath,
-          gitBranch: manager.storage.getGitBranch() || 'unknown',
+          gitBranch: gitBranch || 'unknown',
         },
         statistics: stats,
         currentTask: task ? formatTaskJSON(task) : null,
@@ -108,7 +109,7 @@ export async function newchatfirstround(options = {}) {
 
     // Git 信息
     try {
-      const gitBranch = manager.storage.getGitBranch();
+      const gitBranch = await manager.storage.getGitBranch();
       if (gitBranch) {
         console.log(chalk.gray(`   Git: ${gitBranch}`));
       }

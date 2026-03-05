@@ -94,8 +94,9 @@ export async function completeTask(taskId, options = {}) {
 
     const task = manager.getTask(taskId);
     if (!task) {
-      spinner.fail('Task not found');
-      console.error(chalk.red(`\nTask not found: ${taskId}`));
+      spinner.stop();
+      console.error(chalk.red(`\n✖ Task not found: ${taskId}`));
+      console.error(chalk.gray(`   Use 'seshflow list' to see all tasks`));
       process.exit(1);
     }
 

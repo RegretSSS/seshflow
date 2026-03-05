@@ -86,6 +86,15 @@ export async function query(options = {}) {
       );
     }
 
+    // Limit results
+    if (options.limit !== undefined) {
+      const limit = Number.parseInt(options.limit, 10);
+      if (Number.isNaN(limit) || limit <= 0) {
+        throw new Error('Invalid --limit value, expected a positive integer');
+      }
+      filteredTasks = filteredTasks.slice(0, limit);
+    }
+
     spinner.stop();
 
     // JSON mode
@@ -98,6 +107,7 @@ export async function query(options = {}) {
           status: options.status || null,
           tags: options.tags || null,
           assignee: options.assignee || null,
+          limit: options.limit ? Number.parseInt(options.limit, 10) : null,
         },
       }));
       return;
@@ -121,6 +131,7 @@ export async function query(options = {}) {
     if (options.status) activeFilters.push(`status: ${options.status}`);
     if (options.tags) activeFilters.push(`tags: ${options.tags}`);
     if (options.assignee) activeFilters.push(`assignee: ${options.assignee}`);
+    if (options.limit) activeFilters.push(`limit: ${options.limit}`);
 
     if (activeFilters.length > 0) {
       console.log(chalk.gray(`Filters: ${activeFilters.join(', ')}\n`));

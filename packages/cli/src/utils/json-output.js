@@ -32,7 +32,8 @@ export function formatWorkspaceJSON(storage, taskCount = 0) {
   return {
     path: workspacePath,
     name: workspacePath.split(/[/\\]/).pop() || '',
-    gitBranch: storage.getGitBranch ? (storage.getGitBranch() || '') : '',
+    // getGitBranch is async; keep this field stable for synchronous callers.
+    gitBranch: '',
     totalTasks: taskCount,
     seshflowDir: storage.getSeshflowDir(),
   };

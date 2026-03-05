@@ -223,7 +223,12 @@ seshflow next
 ### 1. 创建任务文件
 
 \`\`\`bash
-# 复制模板
+# 复制模板（按你的终端选择）
+# PowerShell:
+Copy-Item .seshflow/TASKS.template.md my-tasks.md
+# CMD:
+copy .seshflow\TASKS.template.md my-tasks.md
+# bash/zsh:
 cp .seshflow/TASKS.template.md my-tasks.md
 
 # 使用 AI 生成（推荐）
@@ -295,8 +300,14 @@ seshflow ncfr
 
 ## 更多文档
 
-- 查看完整格式规范: \`cat .seshflow/TASKS_TEMPLATE_SPEC.md\`
-- 查看快速导入指南: \`cat .seshflow/MARKDOWN_IMPORT_GUIDE.md\`
+- 查看完整格式规范:
+  - PowerShell: \`Get-Content .seshflow/TASKS_TEMPLATE_SPEC.md\`
+  - CMD: \`type .seshflow\TASKS_TEMPLATE_SPEC.md\`
+  - bash/zsh: \`cat .seshflow/TASKS_TEMPLATE_SPEC.md\`
+- 查看快速导入指南:
+  - PowerShell: \`Get-Content .seshflow/MARKDOWN_IMPORT_GUIDE.md\`
+  - CMD: \`type .seshflow\MARKDOWN_IMPORT_GUIDE.md\`
+  - bash/zsh: \`cat .seshflow/MARKDOWN_IMPORT_GUIDE.md\`
 
 ---
 
@@ -317,14 +328,17 @@ async function copyTemplateFiles(seshflowDir) {
     {
       source: path.join(projectRoot, 'TASKS.template.md'),
       target: path.join(seshflowDir, 'TASKS.template.md'),
+      fallback: getDefaultTaskTemplate(),
     },
     {
       source: path.join(projectRoot, 'TASKS_TEMPLATE_SPEC.md'),
       target: path.join(seshflowDir, 'TASKS_TEMPLATE_SPEC.md'),
+      fallback: '# TASKS Template Spec\n\nUse `seshflow validate <file>` before import.\n',
     },
     {
       source: path.join(projectRoot, 'MARKDOWN_IMPORT_GUIDE.md'),
       target: path.join(seshflowDir, 'MARKDOWN_IMPORT_GUIDE.md'),
+      fallback: '# Markdown Import Guide\n\n1. Write tasks in Markdown.\n2. Run `seshflow validate <file>`.\n3. Run `seshflow import <file>`.\n',
     },
   ];
 
@@ -332,10 +346,11 @@ async function copyTemplateFiles(seshflowDir) {
     try {
       if (await fs.pathExists(template.source)) {
         await fs.copy(template.source, template.target);
+      } else if (!(await fs.pathExists(template.target))) {
+        await fs.writeFile(template.target, template.fallback, 'utf-8');
       }
     } catch (error) {
-      // Skip if source doesn't exist
-      console.log(chalk.yellow('  ⚠ Skipping ' + path.basename(template.source)));
+      console.log(chalk.yellow('  ⚠ Failed to prepare ' + path.basename(template.target)));
     }
   }
 }
@@ -380,14 +395,14 @@ function getShellHints() {
  * Initialize seshflow workspace
  */
 export async function init(options = {}) {
-  const spinner = ora('Initializing Seshflow workspace').start();
+  const spinner = process.stderr.isTTY ? ora('Initializing Seshflow workspace').start() : null;
 
   try {
     const storage = new Storage();
 
     // Check if already initialized
     if (storage.isInitialized() && !options.force) {
-      spinner.warn('Seshflow already initialized');
+      if (spinner) spinner.warn('Seshflow already initialized');
       console.log(chalk.yellow('\nUse --force to reinitialize'));
       return;
     }
@@ -400,10 +415,10 @@ export async function init(options = {}) {
     await manager.init();
 
     // Copy template files to .seshflow directory
-    spinner.text = 'Copying template files...';
+    if (spinner) spinner.text = 'Copying template files...';
     await copyTemplateFiles(storage.getSeshflowDir());
 
-    spinner.succeed('Seshflow workspace initialized');
+    if (spinner) spinner.succeed('Seshflow workspace initialized');
 
     // Print summary
     console.log(chalk.green('\n✓ Workspace ready!'));
@@ -437,7 +452,7 @@ export async function init(options = {}) {
     console.log(chalk.gray(`  # ${shellHints.altShellLabel}`));
     console.log(chalk.gray(`  ${shellHints.altViewCmd}`));
   } catch (error) {
-    spinner.fail('Initialization failed');
+    if (spinner) spinner.fail('Initialization failed');
     console.error(chalk.red('\nError: ' + error.message));
     process.exit(1);
   }
