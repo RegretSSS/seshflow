@@ -158,3 +158,15 @@ MIT License
 - Install guide: [docs/skills/INSTALL.md](docs/skills/INSTALL.md)
 - Note: npm/pnpm installs the CLI only; install the skill from GitHub per guide.
 
+## Output Modes
+
+- `--json`: structured output for programmatic use
+- `--compact`: low-noise text output for AI terminals
+- `--pretty`: human-friendly output
+
+Environment behavior:
+
+- Interactive terminal (TTY): defaults to `pretty`
+- Non-interactive / piped output: defaults to `compact`
+- Override globally with env var: `SESHFLOW_OUTPUT=compact` or `SESHFLOW_OUTPUT=pretty`
+

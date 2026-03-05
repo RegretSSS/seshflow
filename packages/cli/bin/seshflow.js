@@ -71,6 +71,8 @@ program
   .description('Complete current task')
   .option('-h, --hours <number>', 'Advanced: hours spent')
   .option('-n, --note <text>', 'Completion notes')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
   .action(done);
 
 // Complete specific task
@@ -88,6 +90,7 @@ program
   .option('--dry-run', 'Preview tasks without importing')
   .option('-f, --force', 'Force create duplicate tasks')
   .option('-u, --update', 'Update existing tasks instead of skipping')
+  .option('--verbose', 'Show full imported task details')
   .action(importTasks);
 
 // New chat first round command
@@ -107,6 +110,8 @@ program
   .description('Show task dependencies')
   .argument('[taskId]', 'Task ID (optional)')
   .option('--graph', 'Show dependency graph as Mermaid')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
   .action(deps);
 
@@ -120,6 +125,8 @@ program
   .option('--tag <tags>', 'Alias for --tags')
   .option('-a, --assignee <name>', 'Filter by assignee')
   .option('-l, --limit <number>', 'Limit number of tasks displayed')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
   .action(query);
 
