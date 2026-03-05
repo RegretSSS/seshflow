@@ -144,7 +144,7 @@ MIT License
 ## 🔗 相关链接
 
 - [npm 包](https://www.npmjs.com/package/@seshflow/cli)
-- [GitHub 仓库](https://github.com/your-username/seshflow)
+- [GitHub 仓库](https://github.com/RegretSSS/seshflow)
 
 ---
 

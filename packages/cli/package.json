@@ -7,11 +7,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-username/seshflow.git"
+    "url": "https://github.com/RegretSSS/seshflow.git"
   },
-  "homepage": "https://github.com/your-username/seshflow#readme",
+  "homepage": "https://github.com/RegretSSS/seshflow#readme",
   "bugs": {
-    "url": "https://github.com/your-username/seshflow/issues"
+    "url": "https://github.com/RegretSSS/seshflow/issues"
   },
   "keywords": [
     "task-manager",
