@@ -1,0 +1,29 @@
+workspace:
+  name: seshflow-workspace
+  type: linux
+  path: D:\000-自制软件\seshflow
+network:
+  port: 5423
+  webPort: 5424
+  discovery:
+    enabled: true
+    methods:
+      - broadcast
+      - file
+  peers: []
+sync:
+  autoSync: true
+  interval: 3000
+  strategy: last-write-wins
+git:
+  autoHook: true
+  commitTemplate: "feat({taskId}): {message}"
+ui:
+  defaultView: board
+  columns:
+    - backlog
+    - todo
+    - in-progress
+    - review
+    - done
+    - blocked
