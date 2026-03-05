@@ -218,7 +218,8 @@ export async function magicList() {
 }
 
 export async function magic(skillName, ...args) {
-  const skill = SKILLS[skillName];
+  const normalizedName = String(skillName || '').replace(/-/g, '_');
+  const skill = SKILLS[skillName] || SKILLS[normalizedName];
   if (!skill) {
     console.error(chalk.red(`\nUnknown skill: ${skillName}`));
     console.error(chalk.gray("Use 'seshflow magic --list' to see available skills\n"));
