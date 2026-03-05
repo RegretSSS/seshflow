@@ -56,6 +56,26 @@ function toCompactLine(task) {
   return `${task.id} | ${task.status} | ${task.priority} | ${task.title}`;
 }
 
+function compactTaskContext(task, manager) {
+  if (task.description) {
+    console.log(`desc=${truncate(task.description.replace(/\s+/g, ' '), 140)}`);
+  }
+  if (task.subtasks?.length) {
+    const preview = task.subtasks
+      .slice(0, 5)
+      .map(st => `${st.completed ? '[x]' : '[ ]'} ${truncate(st.title, 40)}`)
+      .join(' ; ');
+    console.log(`subtasks=${preview}`);
+  }
+  if (task.dependencies?.length) {
+    console.log(`deps=${task.dependencies.join(',')}`);
+  }
+  const dependents = manager.getTasks().filter(t => (t.dependencies || []).includes(task.id));
+  if (dependents.length > 0) {
+    console.log(`unlocks=${dependents.map(t => t.id).join(',')}`);
+  }
+}
+
 export async function next(options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
@@ -110,6 +130,7 @@ export async function next(options = {}) {
       spinner?.stop();
       if (compactMode) {
         console.log(`ACTIVE | ${toCompactLine(currentTask)}`);
+        compactTaskContext(currentTask, manager);
       } else {
         console.log(chalk.yellow('\nYou have an active session:'));
         displayTask(currentTask, true);
@@ -169,6 +190,7 @@ export async function next(options = {}) {
         ? ` | subtasks=${nextTask.subtasks.filter(st => st.completed).length}/${nextTask.subtasks.length}`
         : '';
       console.log(`NEXT | ${toCompactLine(nextTask)}${subtaskInfo}`);
+      compactTaskContext(nextTask, manager);
     } else {
       displayTask(nextTask, true);
     }

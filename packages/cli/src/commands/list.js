@@ -63,6 +63,9 @@ export async function list(options = {}) {
     await manager.init();
 
     let tasks = manager.getTasks();
+    const hasExplicitFilter = Boolean(
+      options.status || options.priority || options.tag || options.assignee
+    );
 
     if (options.status) {
       const statuses = options.status.split(',');
@@ -83,12 +86,27 @@ export async function list(options = {}) {
       tasks = tasks.filter(task => task.assignee === options.assignee);
     }
 
+    if (!options.all && !hasExplicitFilter) {
+      tasks = tasks.filter(task => task.status === 'in-progress' || task.status === 'todo' || task.status === 'backlog');
+    }
+
+    let offset = 0;
+    if (options.offset !== undefined) {
+      offset = Number.parseInt(options.offset, 10);
+      if (Number.isNaN(offset) || offset < 0) {
+        throw new Error('Invalid --offset value, expected a non-negative integer');
+      }
+    }
+
+    let limit = null;
     if (options.limit !== undefined) {
-      const limit = Number.parseInt(options.limit, 10);
-      if (Number.isNaN(limit) || limit <= 0) {
+      const parsedLimit = Number.parseInt(options.limit, 10);
+      if (Number.isNaN(parsedLimit) || parsedLimit <= 0) {
         throw new Error('Invalid --limit value, expected a positive integer');
       }
-      tasks = tasks.slice(0, limit);
+      limit = parsedLimit;
+    } else if (!options.all) {
+      limit = 20;
     }
 
     const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
@@ -98,6 +116,14 @@ export async function list(options = {}) {
       }
       return new Date(a.createdAt) - new Date(b.createdAt);
     });
+
+    const totalBeforePaging = tasks.length;
+    if (offset > 0) {
+      tasks = tasks.slice(offset);
+    }
+    if (limit !== null) {
+      tasks = tasks.slice(0, limit);
+    }
 
     spinner?.stop();
 
@@ -134,6 +160,9 @@ export async function list(options = {}) {
     }
 
     if (compactMode) {
+      if (!options.all && !hasExplicitFilter && totalBeforePaging > tasks.length) {
+        console.log(`SHOWING | ${tasks.length}/${totalBeforePaging} (use --all or --limit/--offset)`);
+      }
       tasks.forEach(displayCompactTask);
       return;
     }
@@ -142,12 +171,19 @@ export async function list(options = {}) {
     tasks.forEach(displayPrettyTask);
     displayPrettyFooter(tasks.length);
 
-    if (options.status || options.priority || options.tag || options.limit) {
+    if (!options.all && !hasExplicitFilter && totalBeforePaging > tasks.length) {
+      console.log(chalk.blue(`Showing ${tasks.length}/${totalBeforePaging} tasks (use --all or --limit/--offset)`));
+      console.log('');
+    }
+
+    if (options.status || options.priority || options.tag || options.limit || options.offset || options.all) {
       console.log(chalk.blue('Filters applied:'));
       if (options.status) console.log(chalk.gray(`  Status: ${options.status}`));
       if (options.priority) console.log(chalk.gray(`  Priority: ${options.priority}`));
       if (options.tag) console.log(chalk.gray(`  Tags: ${options.tag}`));
       if (options.limit) console.log(chalk.gray(`  Limit: ${options.limit}`));
+      if (options.offset) console.log(chalk.gray(`  Offset: ${options.offset}`));
+      if (options.all) console.log(chalk.gray('  All: true'));
       console.log('');
     }
   } catch (error) {

@@ -156,7 +156,15 @@ export async function completeTask(taskId, options = {}) {
     await manager.saveData();
 
     spinner?.succeed('Task completed');
-    console.log(chalk.green(`\n${task.title}`));
+    console.log(chalk.green(`\nTask completed: ${task.title}`));
+    console.log(chalk.gray(`  ID: ${task.id}`));
+    console.log(chalk.gray(`  Status: done`));
+    if (options.hours) {
+      console.log(chalk.gray(`  Time: ${options.hours}h`));
+    }
+    if (options.note) {
+      console.log(chalk.gray(`  Note: ${options.note}`));
+    }
   } catch (error) {
     spinner?.fail('Failed to complete task');
     console.error(chalk.red(`\nError: ${error.message}`));

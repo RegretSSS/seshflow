@@ -23,6 +23,16 @@ function displayCompact(task, blockers = []) {
   const tags = task.tags?.length ? ` | tags=${task.tags.join(',')}` : '';
   const sub = progress.total > 0 ? ` | subtasks=${progress.done}/${progress.total}` : '';
   console.log(`${task.id} | ${task.status} | ${task.priority} | ${task.title}${sub}${tags}`);
+  if (task.description) {
+    console.log(`desc=${truncate(task.description.replace(/\s+/g, ' '), 160)}`);
+  }
+  if (task.subtasks?.length) {
+    const preview = task.subtasks
+      .slice(0, 8)
+      .map(st => `${st.completed ? '[x]' : '[ ]'} ${truncate(st.title, 36)}`)
+      .join(' ; ');
+    console.log(`subtasks=${preview}`);
+  }
   if (task.dependencies?.length) {
     console.log(`deps=${task.dependencies.join(',')}`);
   }
