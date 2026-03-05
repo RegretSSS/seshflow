@@ -7,6 +7,7 @@ import { add } from '../src/commands/add.js';
 import { next } from '../src/commands/next.js';
 import { done, completeTask } from '../src/commands/done.js';
 import { newchatfirstround } from '../src/commands/newchatfirstround.js';
+import { deps } from '../src/commands/deps.js';
 import { importTasks } from '../src/commands/import.js';
 
 const program = new Command();
@@ -81,6 +82,10 @@ program
   .description('Show project context for new AI chat session')
   .option('--show-paths', 'Show full file paths')
   .action(newchatfirstround);
+
+
+// Dependencies command
+program  .command('deps')  .description('Show task dependencies')  .argument('[taskId]', 'Task ID (optional)')  .option('--graph', 'Show dependency graph as Mermaid')  .option('--json', 'Output as JSON')  .action(deps);
 
 // Parse arguments
 program.parse();
