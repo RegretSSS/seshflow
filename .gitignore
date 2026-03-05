@@ -39,6 +39,7 @@ debug.log
 # Seshflow workspace data (keep template, ignore actual data)
 .seshflow/tasks.json
 .seshflow/sessions.json
+.seshflow/config.yaml
 
 # Scripts (development only)
 scripts/
