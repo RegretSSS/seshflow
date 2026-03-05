@@ -1,12 +1,48 @@
-﻿import chalk from 'chalk';
+import chalk from 'chalk';
 import ora from 'ora';
 import fs from 'fs-extra';
 
-const TASK_LINE_RE = /^-\s*\[[ x]\]\s+(.+)$/i;
-const DEPENDENCY_TOKEN_RE = /\[(dependency|depends|dep|\u4f9d\u8d56)\s*:\s*([^\]]+)\]/ig;
+const MAIN_TASK_LINE_RE = /^-\s*\[[ x]\]\s+(.+)$/i;
+const SUBTASK_LINE_RE = /^\s+[-*]\s*\[[ x]\]\s+(.+)$/i;
+const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
+const TAG_PREFIX_RE = /^(\u6807\u7b7e|tags?)\s*[:\uff1a]\s*/i;
+const PRIORITY_PREFIX_RE = /^(\u4f18\u5148\u7ea7|priority)\s*[:\uff1a]\s*/i;
+const ESTIMATE_PREFIX_RE = /^(\u9884\u4f30|estimate)\s*[:\uff1a]\s*/i;
 
-function parseTaskTitle(line) {
-  const match = line.match(TASK_LINE_RE);
+function parseInlineTokens(text) {
+  const result = {
+    hasPriority: false,
+    hasEstimate: false,
+    dependencies: [],
+  };
+
+  const matches = [...String(text).matchAll(/\[([^\]]+)\]/g)];
+  matches.forEach(match => {
+    const token = match[1].trim();
+    if (/^P[0-3]$/i.test(token)) {
+      result.hasPriority = true;
+      return;
+    }
+    if (/^-?\d+(\.\d+)?h$/i.test(token)) {
+      result.hasEstimate = true;
+      return;
+    }
+    if (DEPENDENCY_PREFIX_RE.test(token)) {
+      result.dependencies.push(
+        ...token
+          .replace(DEPENDENCY_PREFIX_RE, '')
+          .split(',')
+          .map(dep => dep.trim())
+          .filter(Boolean)
+      );
+    }
+  });
+
+  return result;
+}
+
+function parseMainTaskTitle(rawLine) {
+  const match = rawLine.match(MAIN_TASK_LINE_RE);
   if (!match) return null;
   return match[1].replace(/\[[^\]]+\]/g, '').trim();
 }
@@ -28,59 +64,102 @@ export async function validateMarkdown(filePath) {
     const warnings = [];
     const tasks = [];
 
-    lines.forEach((rawLine, idx) => {
+    let currentTask = null;
+
+    for (let i = 0; i < lines.length; i++) {
+      const rawLine = lines[i];
       const line = rawLine.trim();
-      if (!line) return;
+      if (!line || line.startsWith('```')) continue;
 
-      const title = parseTaskTitle(line);
-      if (!title) return;
-
-      const lineNo = idx + 1;
-      tasks.push({ title, lineNo });
-
-      const priorityMatches = [...line.matchAll(/\[(P[0-3])\]/g)];
-      if (priorityMatches.length === 0) {
-        warnings.push(`Line ${lineNo}: missing priority [P0-P3]`);
-      }
-      if (priorityMatches.length > 1) {
-        errors.push(`Line ${lineNo}: duplicated priority token`);
+      if (SUBTASK_LINE_RE.test(rawLine)) {
+        continue;
       }
 
-      const invalidHours = [...line.matchAll(/\[(-?\d+(?:\.\d+)?)h\]/ig)]
-        .map(match => Number.parseFloat(match[1]))
-        .find(hours => Number.isNaN(hours) || hours < 0);
-      if (invalidHours !== undefined) {
-        errors.push(`Line ${lineNo}: invalid hour token`);
+      const mainTitle = parseMainTaskTitle(rawLine);
+      if (mainTitle) {
+        const lineNo = i + 1;
+        const tokenInfo = parseInlineTokens(rawLine);
+        currentTask = {
+          title: mainTitle,
+          lineNo,
+          hasPriority: tokenInfo.hasPriority,
+          hasEstimate: tokenInfo.hasEstimate,
+          dependencies: [...tokenInfo.dependencies],
+        };
+        tasks.push(currentTask);
+        continue;
       }
-    });
+
+      if (!currentTask) continue;
+
+      const normalized = line.replace(/^[-*]\s*/, '');
+
+      if (PRIORITY_PREFIX_RE.test(normalized)) {
+        const value = normalized.replace(PRIORITY_PREFIX_RE, '').trim();
+        if (/^P[0-3]$/i.test(value) || /^(高|中|低|紧急)$/i.test(value)) {
+          currentTask.hasPriority = true;
+        } else {
+          warnings.push(`Line ${i + 1}: unrecognized priority value "${value}"`);
+        }
+        continue;
+      }
+
+      if (ESTIMATE_PREFIX_RE.test(normalized)) {
+        const value = normalized.replace(ESTIMATE_PREFIX_RE, '').trim();
+        const hoursMatch = value.match(/^-?\d+(\.\d+)?h?$/i);
+        if (!hoursMatch) {
+          errors.push(`Line ${i + 1}: invalid estimate value "${value}"`);
+        } else if (parseFloat(value) < 0) {
+          errors.push(`Line ${i + 1}: estimate cannot be negative`);
+        } else {
+          currentTask.hasEstimate = true;
+        }
+        continue;
+      }
+
+      if (DEPENDENCY_PREFIX_RE.test(normalized)) {
+        currentTask.dependencies.push(
+          ...normalized
+            .replace(DEPENDENCY_PREFIX_RE, '')
+            .split(',')
+            .map(dep => dep.trim())
+            .filter(Boolean)
+        );
+        continue;
+      }
+
+      if (TAG_PREFIX_RE.test(normalized)) {
+        // Tags are optional and free-form, no warning needed.
+        continue;
+      }
+    }
 
     if (tasks.length === 0) {
       errors.push('No task lines found');
     }
 
-    lines.forEach((rawLine, idx) => {
-      const line = rawLine.trim();
-      if (!TASK_LINE_RE.test(line)) return;
-
-      let match;
-      while ((match = DEPENDENCY_TOKEN_RE.exec(line)) !== null) {
-        const refs = match[2]
-          .split(',')
-          .map(dep => dep.trim())
-          .filter(Boolean);
-
-        refs.forEach(ref => {
-          const numericIndex = Number.parseInt(ref, 10);
-          const byIndex = Number.isInteger(numericIndex) && numericIndex > 0 && numericIndex <= tasks.length;
-          const byTitle = tasks.some(task => task.title === ref);
-          const looksLikeTaskId = /^task_[a-z0-9_]+$/i.test(ref);
-
-          if (!byIndex && !byTitle && !looksLikeTaskId) {
-            warnings.push(`Line ${idx + 1}: unresolved dependency "${ref}"`);
-          }
-        });
+    tasks.forEach(task => {
+      if (!task.title) {
+        errors.push(`Line ${task.lineNo}: missing task title`);
       }
-      DEPENDENCY_TOKEN_RE.lastIndex = 0;
+      if (!task.hasPriority) {
+        warnings.push(`Line ${task.lineNo}: missing priority [P0-P3] or "优先级: 高/中/低"`);
+      }
+    });
+
+    const taskTitles = new Set(tasks.map(task => task.title));
+    const taskLineCount = tasks.length;
+
+    tasks.forEach(task => {
+      task.dependencies.forEach(dep => {
+        const numericIndex = Number.parseInt(dep, 10);
+        const byIndex = Number.isInteger(numericIndex) && numericIndex > 0 && numericIndex <= taskLineCount;
+        const byTitle = taskTitles.has(dep);
+        const byTaskId = /^task_[a-z0-9_]+$/i.test(dep);
+        if (!byIndex && !byTitle && !byTaskId) {
+          warnings.push(`Line ${task.lineNo}: unresolved dependency "${dep}"`);
+        }
+      });
     });
 
     if (errors.length > 0) {

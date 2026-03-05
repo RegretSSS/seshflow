@@ -42,7 +42,7 @@ program
   .description('Add a new task')
   .option('-d, --description <description>', 'Task description (Markdown supported)')
   .option('--desc <description>', 'Alias for --description')
-  .option('-p, --priority <P0|P1|P2|P3>', 'Task priority', 'P2')
+  .option('-p, --priority <P0|P1|P2|P3>', 'Task priority')
   .option('-t, --tags <tags>', 'Comma-separated tags')
   .option('--tag <tags>', 'Alias for --tags')
   .option('--depends <tasks>', 'Comma-separated task IDs this task depends on')

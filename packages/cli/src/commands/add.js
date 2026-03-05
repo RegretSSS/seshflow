@@ -4,6 +4,59 @@ import inquirer from 'inquirer';
 import { TaskManager } from '../core/task-manager.js';
 import { isValidPriority, truncate } from '../utils/helpers.js';
 
+const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
+
+function parseInlineMetadataFromTitle(rawTitle = '') {
+  let cleanTitle = String(rawTitle);
+  let priority = null;
+  let estimatedHours = null;
+  const tags = [];
+  const dependencies = [];
+
+  const matches = [...cleanTitle.matchAll(/\[([^\]]+)\]/g)];
+  matches.forEach(match => {
+    const token = match[1].trim();
+
+    if (/^P[0-3]$/i.test(token)) {
+      priority = token.toUpperCase();
+      return;
+    }
+
+    if (/^\d+(\.\d+)?h$/i.test(token)) {
+      estimatedHours = parseFloat(token);
+      return;
+    }
+
+    if (DEPENDENCY_PREFIX_RE.test(token)) {
+      dependencies.push(
+        ...token
+          .replace(DEPENDENCY_PREFIX_RE, '')
+          .split(',')
+          .map(dep => dep.trim())
+          .filter(Boolean)
+      );
+      return;
+    }
+
+    tags.push(
+      ...token
+        .split(/[,\uff0c]/)
+        .map(tag => tag.trim())
+        .filter(Boolean)
+    );
+  });
+
+  cleanTitle = cleanTitle.replace(/\[[^\]]+\]/g, '').replace(/\s+/g, ' ').trim();
+
+  return {
+    title: cleanTitle || rawTitle,
+    priority,
+    estimatedHours,
+    tags: [...new Set(tags)],
+    dependencies: [...new Set(dependencies)],
+  };
+}
+
 /**
  * Add a new task
  */
@@ -12,6 +65,8 @@ export async function add(title, options = {}) {
     const manager = new TaskManager();
     await manager.init();
 
+    const parsed = parseInlineMetadataFromTitle(title);
+    const normalizedTitle = parsed.title;
     let description = options.description ?? options.desc ?? '';
 
     // Interactive description input if not provided
@@ -28,18 +83,20 @@ export async function add(title, options = {}) {
     }
 
     // Parse tags
-    const tags = options.tags
+    const cliTags = options.tags
       ? options.tags.split(',').map(t => t.trim()).filter(Boolean)
       : [];
+    const tags = [...new Set([...parsed.tags, ...cliTags])];
 
     // Parse dependencies
-    const dependencies = options.depends
+    const cliDependencies = options.depends
       ? options.depends.split(',').map(d => d.trim()).filter(Boolean)
       : [];
+    const dependencies = [...new Set([...parsed.dependencies, ...cliDependencies])];
 
     // Validate priority
-    const priority = isValidPriority(options.priority)
-      ? options.priority
+    const priority = isValidPriority(options.priority || parsed.priority)
+      ? (options.priority || parsed.priority)
       : 'P2';
 
     // Validate dependencies
@@ -58,12 +115,14 @@ export async function add(title, options = {}) {
     const spinner = ora('Creating task').start();
 
     const task = manager.createTask({
-      title,
+      title: normalizedTitle,
       description,
       priority,
       tags,
       dependencies,
-      estimatedHours: (options.hours ?? options.estimate) ? parseFloat(options.hours ?? options.estimate) : 0,
+      estimatedHours: (options.hours ?? options.estimate ?? parsed.estimatedHours)
+        ? parseFloat(options.hours ?? options.estimate ?? parsed.estimatedHours)
+        : 0,
       assignee: options.assignee || null,
       branch: options.branch || null
     });

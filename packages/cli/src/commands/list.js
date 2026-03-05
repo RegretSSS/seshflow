@@ -12,6 +12,7 @@ function displayTaskSummary(task, index) {
     'backlog': '📋',
     'todo': '📝',
     'in-progress': '🔄',
+    'review': '👀',
     'done': '✅',
     'blocked': '🚫'
   };
@@ -20,6 +21,7 @@ function displayTaskSummary(task, index) {
     'backlog': chalk.gray,
     'todo': chalk.blue,
     'in-progress': chalk.yellow,
+    'review': chalk.magenta,
     'done': chalk.green,
     'blocked': chalk.red
   };
@@ -42,7 +44,8 @@ function displayTaskSummary(task, index) {
   // Truncate title if too long
   const title = truncate(task.title, 50);
 
-  const line = `${emoji} ${statusColor[task.status](statusText)} ${chalk.bold(task.id.padEnd(28))} ${chalk.white.bold(task.priority.padEnd(3))}  ${title}${subtaskInfo} ${hoursInfo}`;
+  const colorFn = statusColor[task.status] || chalk.white;
+  const line = `${emoji} ${colorFn(statusText)} ${chalk.bold(task.id.padEnd(28))} ${chalk.white.bold(task.priority.padEnd(3))}  ${title}${subtaskInfo} ${hoursInfo}`;
 
   console.log(line);
 }
