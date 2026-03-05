@@ -3,79 +3,67 @@ import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { truncate } from '../utils/helpers.js';
 import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON } from '../utils/json-output.js';
+import { resolveOutputMode } from '../utils/output-mode.js';
 
-/**
- * Display task summary line
- */
-function displayTaskSummary(task, index) {
+function subtaskProgress(task) {
+  if (!task.subtasks || task.subtasks.length === 0) {
+    return '';
+  }
+  const completed = task.subtasks.filter(st => st.completed).length;
+  return ` [${completed}/${task.subtasks.length}]`;
+}
+
+function displayCompactTask(task) {
+  console.log(`${task.id} | ${task.status} | ${task.priority} | ${truncate(task.title, 72)}${subtaskProgress(task)}`);
+}
+
+function displayPrettyTask(task) {
   const statusEmoji = {
-    'backlog': '📋',
-    'todo': '📝',
-    'in-progress': '🔄',
-    'review': '👀',
-    'done': '✅',
-    'blocked': '🚫'
+    backlog: 'B',
+    todo: 'T',
+    'in-progress': 'I',
+    review: 'R',
+    done: 'D',
+    blocked: 'X'
   };
 
   const statusColor = {
-    'backlog': chalk.gray,
-    'todo': chalk.blue,
+    backlog: chalk.gray,
+    todo: chalk.blue,
     'in-progress': chalk.yellow,
-    'review': chalk.magenta,
-    'done': chalk.green,
-    'blocked': chalk.red
+    review: chalk.magenta,
+    done: chalk.green,
+    blocked: chalk.red
   };
 
-  const emoji = statusEmoji[task.status] || '📋';
-  const statusText = task.status.padEnd(12);
-
-  // Format subtasks if present
-  let subtaskInfo = '';
-  if (task.subtasks && task.subtasks.length > 0) {
-    const completedCount = task.subtasks.filter(st => st.completed).length;
-    subtaskInfo = chalk.cyan(` [${completedCount}/${task.subtasks.length}]`);
-  }
-
-  // Truncate title if too long
-  const title = truncate(task.title, 50);
-
+  const symbol = statusEmoji[task.status] || 'B';
   const colorFn = statusColor[task.status] || chalk.white;
-  const line = `${emoji} ${colorFn(statusText)} ${chalk.bold(task.id.padEnd(28))} ${chalk.white.bold(task.priority.padEnd(3))}  ${title}${subtaskInfo}`;
-
+  const line = `${symbol} ${colorFn(task.status.padEnd(12))} ${chalk.bold(task.id.padEnd(28))} ${chalk.white.bold(task.priority.padEnd(3))}  ${truncate(task.title, 50)}${chalk.cyan(subtaskProgress(task))}`;
   console.log(line);
 }
 
-/**
- * Display table header
- */
-function displayHeader() {
-  console.log(chalk.cyan('\n' + '═'.repeat(120)));
-  console.log(chalk.cyan.bold('  STATUS           ID                            PRI  TITLE'));
-  console.log(chalk.cyan('═'.repeat(120)));
+function displayPrettyHeader() {
+  console.log(chalk.cyan('\n' + '='.repeat(100)));
+  console.log(chalk.cyan.bold('  STATUS       ID                            PRI  TITLE'));
+  console.log(chalk.cyan('='.repeat(100)));
 }
 
-/**
- * Display table footer
- */
-function displayFooter(taskCount) {
-  console.log(chalk.cyan('═'.repeat(120)));
+function displayPrettyFooter(taskCount) {
+  console.log(chalk.cyan('='.repeat(100)));
   console.log(chalk.gray(`\n  Total: ${taskCount} tasks\n`));
 }
 
-/**
- * List tasks
- */
 export async function list(options = {}) {
-  const spinner = ora('Loading tasks').start();
+  const mode = resolveOutputMode(options);
+  const compactMode = mode === 'compact';
+  const spinner = compactMode ? null : ora('Loading tasks').start();
 
   try {
     const manager = new TaskManager();
     await manager.init();
 
-    // Get all tasks
     let tasks = manager.getTasks();
 
-    // Apply filters
     if (options.status) {
       const statuses = options.status.split(',');
       tasks = tasks.filter(task => statuses.includes(task.status));
@@ -88,22 +76,22 @@ export async function list(options = {}) {
 
     if (options.tag) {
       const tags = options.tag.split(',');
-      tasks = tasks.filter(task =>
-        task.tags.some(taskTag => tags.includes(taskTag))
-      );
+      tasks = tasks.filter(task => task.tags.some(taskTag => tags.includes(taskTag)));
     }
 
     if (options.assignee) {
       tasks = tasks.filter(task => task.assignee === options.assignee);
     }
 
-    // Apply limit
-    if (options.limit && tasks.length > parseInt(options.limit)) {
-      tasks = tasks.slice(0, parseInt(options.limit));
+    if (options.limit !== undefined) {
+      const limit = Number.parseInt(options.limit, 10);
+      if (Number.isNaN(limit) || limit <= 0) {
+        throw new Error('Invalid --limit value, expected a positive integer');
+      }
+      tasks = tasks.slice(0, limit);
     }
 
-    // Sort by priority and creation date
-    const priorityOrder = { 'P0': 0, 'P1': 1, 'P2': 2, 'P3': 3 };
+    const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };
     tasks.sort((a, b) => {
       if (priorityOrder[a.priority] !== priorityOrder[b.priority]) {
         return priorityOrder[a.priority] - priorityOrder[b.priority];
@@ -111,9 +99,8 @@ export async function list(options = {}) {
       return new Date(a.createdAt) - new Date(b.createdAt);
     });
 
-    spinner.stop();
+    spinner?.stop();
 
-    // JSON mode
     if (isJSONMode(options)) {
       const formattedTasks = tasks.map(task => ({
         id: task.id,
@@ -136,31 +123,35 @@ export async function list(options = {}) {
       return;
     }
 
-    // Display mode
     if (tasks.length === 0) {
-      console.log(chalk.yellow('\n📭 No tasks found'));
-      console.log(chalk.gray('   Try adjusting filters or add new tasks'));
+      if (compactMode) {
+        console.log('NO_TASKS');
+      } else {
+        console.log(chalk.yellow('\nNo tasks found.'));
+        console.log(chalk.gray('  Try adjusting filters or add new tasks'));
+      }
       return;
     }
 
-    displayHeader();
-    tasks.forEach((task, index) => {
-      displayTaskSummary(task, index);
-    });
-    displayFooter(tasks.length);
-
-    // Show filter info if any
-    if (options.status || options.priority || options.tag || options.limit) {
-      console.log(chalk.blue('📊 Filters applied:'));
-      if (options.status) console.log(chalk.gray(`   Status: ${options.status}`));
-      if (options.priority) console.log(chalk.gray(`   Priority: ${options.priority}`));
-      if (options.tag) console.log(chalk.gray(`   Tags: ${options.tag}`));
-      if (options.limit) console.log(chalk.gray(`   Limit: ${options.limit}`));
-      console.log('');
+    if (compactMode) {
+      tasks.forEach(displayCompactTask);
+      return;
     }
 
+    displayPrettyHeader();
+    tasks.forEach(displayPrettyTask);
+    displayPrettyFooter(tasks.length);
+
+    if (options.status || options.priority || options.tag || options.limit) {
+      console.log(chalk.blue('Filters applied:'));
+      if (options.status) console.log(chalk.gray(`  Status: ${options.status}`));
+      if (options.priority) console.log(chalk.gray(`  Priority: ${options.priority}`));
+      if (options.tag) console.log(chalk.gray(`  Tags: ${options.tag}`));
+      if (options.limit) console.log(chalk.gray(`  Limit: ${options.limit}`));
+      console.log('');
+    }
   } catch (error) {
-    spinner.fail('Failed to list tasks');
+    spinner?.fail('Failed to list tasks');
     console.error(chalk.red(`\nError: ${error.message}`));
     process.exit(1);
   }

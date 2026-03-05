@@ -60,6 +60,8 @@ program
   .option('-t, --tag <tag>', 'Filter by tag')
   .option('-a, --assignee <name>', 'Filter by assignee')
   .option('--git', 'Switch git branch automatically')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
   .action(next);
 
@@ -94,6 +96,8 @@ program
   .alias('ncfr')
   .description('Show project context for new AI chat session')
   .option('--show-paths', 'Show full file paths')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
   .action(newchatfirstround);
 
@@ -137,6 +141,8 @@ program
   .option('-t, --tag <tag>', 'Filter by tag')
   .option('-a, --assignee <name>', 'Filter by assignee')
   .option('-l, --limit <number>', 'Limit number of tasks displayed')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
   .action(list);
 

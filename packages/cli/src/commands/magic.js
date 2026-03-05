@@ -98,8 +98,8 @@ const SKILLS = {
     category: 'workflow',
     async execute() {
       console.log(chalk.cyan('\nSync\n'));
-      await newchatfirstround({});
-      await next({});
+      await newchatfirstround({ compact: true });
+      await next({ compact: true });
       console.log(chalk.green('\nSync complete.\n'));
     }
   },
@@ -226,12 +226,12 @@ export async function magic(skillName, ...args) {
     process.exit(1);
   }
 
-  const spinner = ora(`Executing ${skill.name}...`).start();
+  const spinner = process.stdout.isTTY ? ora(`Executing ${skill.name}...`).start() : null;
   try {
     await skill.execute(...args);
-    spinner.succeed(`Magic complete: ${skill.name}`);
+    spinner?.succeed(`Magic complete: ${skill.name}`);
   } catch (error) {
-    spinner.fail(`Magic failed: ${skill.name}`);
+    spinner?.fail(`Magic failed: ${skill.name}`);
     console.error(chalk.red(`\nError: ${error.message}`));
     process.exit(1);
   }

@@ -4,91 +4,71 @@ import ora from 'ora';
 import simpleGit from 'simple-git';
 import { TaskManager } from '../core/task-manager.js';
 import { truncate } from '../utils/helpers.js';
+import { resolveOutputMode } from '../utils/output-mode.js';
 
-/**
- * Display task details
- */
 function displayTask(task, showFull = false) {
-  console.log(chalk.bold.cyan(`\n┌─ ${task.title}`));
-  console.log(chalk.cyan('├' + '─'.repeat(task.title.length + 2) + '┐'));
-  console.log(chalk.cyan(`│ ID: ${task.id}`));
-  console.log(chalk.cyan(`│ Priority: ${task.priority}`));
-  console.log(chalk.cyan(`│ Status: ${task.status}`));
+  console.log(chalk.bold.cyan(`\n- ${task.title}`));
+  console.log(chalk.cyan(`  ID: ${task.id}`));
+  console.log(chalk.cyan(`  Priority: ${task.priority}`));
+  console.log(chalk.cyan(`  Status: ${task.status}`));
 
   if (task.actualHours > 0) {
-    console.log(chalk.cyan(`│ Actual: ${task.actualHours}h`));
+    console.log(chalk.cyan(`  Actual: ${task.actualHours}h`));
   }
 
   if (task.tags.length > 0) {
-    console.log(chalk.cyan(`│ Tags: ${task.tags.join(', ')}`));
+    console.log(chalk.cyan(`  Tags: ${task.tags.join(', ')}`));
   }
 
   if (task.description) {
-    console.log(chalk.cyan('│'));
-    console.log(
-      chalk.cyan(
-        `│ Description:\n${chalk.white(
-          task.description
-            .split('\n')
-            .map(line => `│   ${line}`)
-            .join('\n')
-        )}`
-      )
-    );
+    console.log(chalk.cyan(''));
+    console.log(chalk.cyan(`  Description:\n${chalk.white(task.description.split('\n').map(line => `    ${line}`).join('\n'))}`));
   }
 
   if (task.dependencies.length > 0) {
-    console.log(chalk.cyan('│'));
-    console.log(chalk.cyan(`│ Dependencies: ${task.dependencies.join(', ')}`));
+    console.log(chalk.cyan(''));
+    console.log(chalk.cyan(`  Dependencies: ${task.dependencies.join(', ')}`));
   }
 
   if (task.subtasks && task.subtasks.length > 0) {
     const completedCount = task.subtasks.filter(st => st.completed).length;
-    console.log(chalk.cyan('│'));
-    console.log(chalk.cyan(`│ Subtasks (${completedCount}/${task.subtasks.length}):`));
+    console.log(chalk.cyan(''));
+    console.log(chalk.cyan(`  Subtasks (${completedCount}/${task.subtasks.length}):`));
     task.subtasks.forEach((subtask, index) => {
-      const status = subtask.completed ? '✅' : '⏸️';
-      console.log(chalk.cyan(`│   ${status} ${subtask.title}`));
+      const status = subtask.completed ? '[x]' : '[ ]';
+      console.log(chalk.cyan(`    ${index + 1}. ${status} ${subtask.title}`));
     });
   }
 
   if (task.context.relatedFiles.length > 0) {
-    console.log(chalk.cyan('│'));
-    console.log(
-      chalk.cyan(
-        `│ Related Files:\n${task.context.relatedFiles
-          .map(f => `│   • ${f}`)
-          .join('\n')}`
-      )
-    );
+    console.log(chalk.cyan(''));
+    console.log(chalk.cyan(`  Related Files:\n${task.context.relatedFiles.map(f => `    - ${f}`).join('\n')}`));
   }
 
   if (showFull && task.sessions.length > 0) {
     const lastSession = task.sessions[task.sessions.length - 1];
-    console.log(chalk.cyan('│'));
-    console.log(
-      chalk.cyan(`│ Last Session: ${lastSession.note || 'No notes'}`)
-    );
+    console.log(chalk.cyan(''));
+    console.log(chalk.cyan(`  Last Session: ${lastSession.note || 'No notes'}`));
   }
-
-  console.log(chalk.cyan('└' + '─'.repeat(task.title.length + 2) + '┘'));
 }
 
-/**
- * Get next task or show current
- */
+function toCompactLine(task) {
+  return `${task.id} | ${task.status} | ${task.priority} | ${task.title}`;
+}
+
 export async function next(options = {}) {
-  const spinner = ora('Loading workspace').start();
+  const mode = resolveOutputMode(options);
+  const compactMode = mode === 'compact';
+  const spinner = compactMode ? null : ora('Loading workspace').start();
 
   try {
     const manager = new TaskManager();
     await manager.init();
 
-    // JSON mode check
     if (isJSONMode(options)) {
       const currentTask = manager.getCurrentTask();
       if (currentTask) {
-        spinner.stop();
+        spinner?.stop();
         outputJSON(formatSuccessResponse({
           task: formatTaskJSON(currentTask),
           hasActiveSession: true,
@@ -102,7 +82,7 @@ export async function next(options = {}) {
         assignee: options.assignee
       });
 
-      spinner.stop();
+      spinner?.stop();
 
       if (!nextTask) {
         outputJSON(formatSuccessResponse({
@@ -125,95 +105,105 @@ export async function next(options = {}) {
       return;
     }
 
-    // Check for current session
     const currentTask = manager.getCurrentTask();
     if (currentTask) {
-      spinner.stop();
-      console.log(chalk.yellow('\n📌 You have an active session:'));
-      displayTask(currentTask, true);
-      console.log(
-        chalk.blue('\nCommands:'),
-        chalk.gray('seshflow done'),
-        chalk.gray('|'),
-        chalk.gray('seshflow show ' + currentTask.id)
-      );
+      spinner?.stop();
+      if (compactMode) {
+        console.log(`ACTIVE | ${toCompactLine(currentTask)}`);
+      } else {
+        console.log(chalk.yellow('\nYou have an active session:'));
+        displayTask(currentTask, true);
+        console.log(
+          chalk.blue('\nCommands:'),
+          chalk.gray('seshflow done'),
+          chalk.gray('|'),
+          chalk.gray('seshflow show ' + currentTask.id)
+        );
+      }
       return;
     }
 
-    // Get next task
     const nextTask = manager.getNextTask({
       priority: options.priority,
       tag: options.tag,
       assignee: options.assignee
     });
 
-    spinner.stop();
+    spinner?.stop();
 
     if (!nextTask) {
-      console.log(chalk.green('\n🎉 No tasks to work on!'));
-      console.log(chalk.gray('   Add a new task with: seshflow add "Task name"'));
+      if (compactMode) {
+        console.log('NO_TASK');
+      } else {
+        console.log(chalk.green('\nNo tasks to work on.'));
+        console.log(chalk.gray('  Add a new task with: seshflow add "Task name"'));
+      }
       return;
     }
 
-    // Check dependencies
     const unmetDeps = manager.getUnmetDependencies(nextTask);
     if (unmetDeps.length > 0) {
-      console.log(chalk.yellow('\n⚠️  Next task has unmet dependencies:'));
-      unmetDeps.forEach(dep => {
-        console.log(chalk.gray(`   • ${dep.title} (${dep.id})`));
-      });
-      console.log(chalk.gray('\n   Complete these tasks first:'));
-      unmetDeps.forEach(dep => {
-        console.log(chalk.gray(`     seshflow show ${dep.id}`));
-      });
+      if (compactMode) {
+        const depIds = unmetDeps.map(dep => dep.id).join(',');
+        console.log(`BLOCKED | ${toCompactLine(nextTask)} | deps=${depIds}`);
+      } else {
+        console.log(chalk.yellow('\nNext task has unmet dependencies:'));
+        unmetDeps.forEach(dep => {
+          console.log(chalk.gray(`  - ${dep.title} (${dep.id})`));
+        });
+        console.log(chalk.gray('\n  Complete these tasks first:'));
+        unmetDeps.forEach(dep => {
+          console.log(chalk.gray(`    seshflow show ${dep.id}`));
+        });
+      }
       return;
     }
 
-    // Start session
-    const sessionSpinner = ora('Starting session').start();
+    const sessionSpinner = compactMode ? null : ora('Starting session').start();
     manager.startSession(nextTask.id);
     await manager.saveData();
-    sessionSpinner.succeed('Session started');
+    sessionSpinner?.succeed('Session started');
 
-    // Display task
-    displayTask(nextTask, true);
+    if (compactMode) {
+      const subtaskInfo = nextTask.subtasks?.length
+        ? ` | subtasks=${nextTask.subtasks.filter(st => st.completed).length}/${nextTask.subtasks.length}`
+        : '';
+      console.log(`NEXT | ${toCompactLine(nextTask)}${subtaskInfo}`);
+    } else {
+      displayTask(nextTask, true);
+    }
 
-    // Switch git branch if configured
     if (nextTask.gitBranch && options.git) {
       try {
         const git = simpleGit();
         const currentBranch = (await git.branch()).current;
 
         if (currentBranch !== nextTask.gitBranch) {
-          console.log(chalk.blue(`\n🔄 Git: switching to branch ${nextTask.gitBranch}`));
-          // Note: Actual git operations would go here
-          // await git.checkout(nextTask.gitBranch);
+          console.log(chalk.blue(`\nGit: switching to branch ${nextTask.gitBranch}`));
         }
       } catch (error) {
-        console.warn(chalk.yellow(`\n⚠️  Git operation skipped: ${error.message}`));
+        console.warn(chalk.yellow(`\nGit operation skipped: ${error.message}`));
       }
     }
 
-    // AI context summary
-    console.log(chalk.bold('\n📋 AI Context:'));
+    if (compactMode) {
+      return;
+    }
+
+    console.log(chalk.bold('\nAI Context:'));
     console.log(chalk.white(`Current Task: ${nextTask.title}`));
     console.log(chalk.white(`Description: ${truncate(nextTask.description, 200)}`));
     if (nextTask.context.relatedFiles.length > 0) {
-      console.log(
-        chalk.white(`Related Files: ${nextTask.context.relatedFiles.join(', ')}`)
-      );
+      console.log(chalk.white(`Related Files: ${nextTask.context.relatedFiles.join(', ')}`));
     }
     if (nextTask.sessions.length > 0) {
       const lastSession = nextTask.sessions[nextTask.sessions.length - 1];
-      console.log(
-        chalk.white(`Last Session: ${lastSession.note || 'No notes from last session'}`
-      )
-      );
+      console.log(chalk.white(`Last Session: ${lastSession.note || 'No notes from last session'}`));
     }
 
     console.log(chalk.blue('\nCommands:'), chalk.gray('seshflow done [options]'));
   } catch (error) {
-    spinner.fail('Failed to get next task');
+    spinner?.fail('Failed to get next task');
     console.error(chalk.red(`\nError: ${error.message}`));
     process.exit(1);
   }
