@@ -46,8 +46,8 @@ program
   .option('-t, --tags <tags>', 'Comma-separated tags')
   .option('--tag <tags>', 'Alias for --tags')
   .option('--depends <tasks>', 'Comma-separated task IDs this task depends on')
-  .option('--hours <hours>', 'Alias for --estimate')
-  .option('-e, --estimate <hours>', 'Estimated hours')
+  .option('--hours <hours>', 'Advanced: alias for --estimate')
+  .option('-e, --estimate <hours>', 'Advanced: estimated hours')
   .option('-a, --assignee <name>', 'Assignee name')
   .option('-b, --branch <branch>', 'Git branch name')
   .action(add);
@@ -67,7 +67,7 @@ program
 program
   .command('done')
   .description('Complete current task')
-  .option('-h, --hours <number>', 'Hours spent')
+  .option('-h, --hours <number>', 'Advanced: hours spent')
   .option('-n, --note <text>', 'Completion notes')
   .action(done);
 
@@ -75,7 +75,7 @@ program
 program
   .command('complete <taskId>')
   .description('Complete a specific task')
-  .option('-h, --hours <number>', 'Hours spent')
+  .option('-h, --hours <number>', 'Advanced: hours spent')
   .option('-n, --note <text>', 'Completion notes')
   .action(completeTask);
 
@@ -164,8 +164,8 @@ program
   .option('--desc <description>', 'Alias for --description')
   .option('--tags <tags>', 'Comma-separated tags')
   .option('--tag <tags>', 'Alias for --tags')
-  .option('--hours <hours>', 'Alias for --estimate')
-  .option('-e, --estimate <hours>', 'New estimated hours')
+  .option('--hours <hours>', 'Advanced: alias for --estimate')
+  .option('-e, --estimate <hours>', 'Advanced: new estimated hours')
   .option('-a, --assignee <name>', 'New assignee')
   .option('-b, --branch <branch>', 'New git branch')
   .option('--json', 'Output as JSON')

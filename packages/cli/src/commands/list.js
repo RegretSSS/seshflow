@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
-import { formatHours, truncate } from '../utils/helpers.js';
+import { truncate } from '../utils/helpers.js';
 import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON } from '../utils/json-output.js';
 
 /**
@@ -36,16 +36,11 @@ function displayTaskSummary(task, index) {
     subtaskInfo = chalk.cyan(` [${completedCount}/${task.subtasks.length}]`);
   }
 
-  // Format hours
-  const hoursInfo = task.estimatedHours > 0
-    ? chalk.gray(`(${formatHours(task.estimatedHours)} / ${formatHours(task.actualHours)})`)
-    : '';
-
   // Truncate title if too long
   const title = truncate(task.title, 50);
 
   const colorFn = statusColor[task.status] || chalk.white;
-  const line = `${emoji} ${colorFn(statusText)} ${chalk.bold(task.id.padEnd(28))} ${chalk.white.bold(task.priority.padEnd(3))}  ${title}${subtaskInfo} ${hoursInfo}`;
+  const line = `${emoji} ${colorFn(statusText)} ${chalk.bold(task.id.padEnd(28))} ${chalk.white.bold(task.priority.padEnd(3))}  ${title}${subtaskInfo}`;
 
   console.log(line);
 }
@@ -55,7 +50,7 @@ function displayTaskSummary(task, index) {
  */
 function displayHeader() {
   console.log(chalk.cyan('\n' + '═'.repeat(120)));
-  console.log(chalk.cyan.bold('  STATUS           ID                            PRI  TITLE' + ' '.repeat(35) + 'HOURS'));
+  console.log(chalk.cyan.bold('  STATUS           ID                            PRI  TITLE'));
   console.log(chalk.cyan('═'.repeat(120)));
 }
 

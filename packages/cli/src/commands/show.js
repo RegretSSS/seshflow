@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
-import { formatHours, truncate } from '../utils/helpers.js';
+import { truncate } from '../utils/helpers.js';
 import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON } from '../utils/json-output.js';
 
 function formatDateTime(value) {
@@ -30,14 +30,8 @@ function displayTaskDetails(task) {
     console.log(chalk.cyan(`│ Completed: ${formatDateTime(task.completedAt)}`));
   }
 
-  if (task.estimatedHours > 0) {
-    console.log(
-      chalk.cyan(
-        `│ Estimated: ${formatHours(task.estimatedHours)} (Actual: ${formatHours(
-          task.actualHours
-        )})`
-      )
-    );
+  if (task.actualHours > 0) {
+    console.log(chalk.cyan(`│ Actual: ${task.actualHours}h`));
   }
 
   if (task.assignee) {
@@ -68,8 +62,7 @@ function displayTaskDetails(task) {
     console.log(chalk.cyan(`│ Subtasks (${completedCount}/${task.subtasks.length}):`));
     task.subtasks.forEach((subtask, index) => {
       const status = subtask.completed ? '✅' : '⏸️';
-      const hours = subtask.estimatedHours ? ` [${subtask.estimatedHours}h]` : '';
-      console.log(chalk.cyan(`│   ${status} ${subtask.title}${hours}`));
+      console.log(chalk.cyan(`│   ${status} ${subtask.title}`));
     });
   }
 

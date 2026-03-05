@@ -3,7 +3,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import simpleGit from 'simple-git';
 import { TaskManager } from '../core/task-manager.js';
-import { formatHours, truncate } from '../utils/helpers.js';
+import { truncate } from '../utils/helpers.js';
 
 /**
  * Display task details
@@ -15,14 +15,8 @@ function displayTask(task, showFull = false) {
   console.log(chalk.cyan(`│ Priority: ${task.priority}`));
   console.log(chalk.cyan(`│ Status: ${task.status}`));
 
-  if (task.estimatedHours > 0) {
-    console.log(
-      chalk.cyan(
-        `│ Estimated: ${formatHours(task.estimatedHours)} (Actual: ${formatHours(
-          task.actualHours
-        )})`
-      )
-    );
+  if (task.actualHours > 0) {
+    console.log(chalk.cyan(`│ Actual: ${task.actualHours}h`));
   }
 
   if (task.tags.length > 0) {
@@ -54,8 +48,7 @@ function displayTask(task, showFull = false) {
     console.log(chalk.cyan(`│ Subtasks (${completedCount}/${task.subtasks.length}):`));
     task.subtasks.forEach((subtask, index) => {
       const status = subtask.completed ? '✅' : '⏸️';
-      const hours = subtask.estimatedHours ? ` [${subtask.estimatedHours}h]` : '';
-      console.log(chalk.cyan(`│   ${status} ${subtask.title}${hours}`));
+      console.log(chalk.cyan(`│   ${status} ${subtask.title}`));
     });
   }
 

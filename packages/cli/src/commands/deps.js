@@ -26,8 +26,6 @@ function displayTaskTree(task, prefix = '', isLast = true) {
 
   const timeInfo = task.actualHours > 0
     ? chalk.dim(` - ${task.actualHours}h`)
-    : task.estimatedHours > 0
-    ? chalk.dim(` - 预估${task.estimatedHours}h`)
     : '';
 
   console.log(

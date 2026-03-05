@@ -104,7 +104,6 @@ function displayOverall(tasks) {
   const backlog = tasks.filter(t => t.status === 'backlog').length;
   const blocked = tasks.filter(t => t.status === 'blocked').length;
 
-  const totalEstimated = tasks.reduce((sum, t) => sum + (t.estimatedHours || 0), 0);
   const totalActual = tasks.reduce((sum, t) => sum + (parseFloat(t.actualHours) || 0), 0);
 
   const progress = total > 0 ? Math.round((completed / total) * 100) : 0;
@@ -115,11 +114,8 @@ function displayOverall(tasks) {
   console.log(chalk.gray(`   ${chalk.green(completed + ' 完成')} | ${chalk.yellow(inProgress + ' 进行中')} | ${chalk.blue(todo + ' 待办')} | ${chalk.gray(backlog + ' 待办池')} | ${chalk.red(blocked + ' 阻塞')}`));
   console.log(chalk.gray(`   进度: ${progress}%\n`));
 
-  if (totalEstimated > 0) {
-    console.log(chalk.gray(`   预估工时: ${totalEstimated}h`));
-    console.log(chalk.gray(`   实际工时: ${totalActual}h`));
-    const hoursProgress = totalEstimated > 0 ? Math.round((totalActual / totalEstimated) * 100) : 0;
-    console.log(chalk.gray(`   工时进度: ${hoursProgress}%\n`));
+  if (totalActual > 0) {
+    console.log(chalk.gray(`   已记录工时: ${totalActual}h\n`));
   }
 }
 
