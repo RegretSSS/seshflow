@@ -136,6 +136,8 @@ program
   .description('Show task statistics')
   .option('--by-priority', 'Show statistics by priority')
   .option('--by-tags', 'Show statistics by tags')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
   .action(stats);
 
@@ -157,6 +159,8 @@ program
 program
   .command('show <taskId>')
   .description('Show task details')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
   .action(show);
 

@@ -3,6 +3,7 @@ import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { truncate } from '../utils/helpers.js';
 import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON } from '../utils/json-output.js';
+import { resolveOutputMode } from '../utils/output-mode.js';
 
 function formatDateTime(value) {
   if (!value) return 'N/A';
@@ -11,154 +12,147 @@ function formatDateTime(value) {
   return date.toLocaleString();
 }
 
-/**
- * Display task details
- */
-function displayTaskDetails(task) {
-  console.log(chalk.bold.cyan(`\n┌─ ${task.title}`));
-  console.log(chalk.cyan('├' + '─'.repeat(Math.max(task.title.length + 2, 50)) + '┐'));
-  console.log(chalk.cyan(`│ ID: ${task.id}`));
-  console.log(chalk.cyan(`│ Priority: ${task.priority}`));
-  console.log(chalk.cyan(`│ Status: ${task.status}`));
-  console.log(chalk.cyan(`│ Created: ${formatDateTime(task.createdAt)}`));
+function subtaskProgress(task) {
+  const total = task.subtasks?.length || 0;
+  const done = task.subtasks?.filter(st => st.completed).length || 0;
+  return { total, done };
+}
+
+function displayCompact(task, blockers = []) {
+  const progress = subtaskProgress(task);
+  const tags = task.tags?.length ? ` | tags=${task.tags.join(',')}` : '';
+  const sub = progress.total > 0 ? ` | subtasks=${progress.done}/${progress.total}` : '';
+  console.log(`${task.id} | ${task.status} | ${task.priority} | ${task.title}${sub}${tags}`);
+  if (task.dependencies?.length) {
+    console.log(`deps=${task.dependencies.join(',')}`);
+  }
+  if (blockers.length) {
+    console.log(`blocked_by=${blockers.map(t => t.id).join(',')}`);
+  }
+}
+
+function displayPretty(task, blockers = []) {
+  const progress = subtaskProgress(task);
+
+  console.log(chalk.bold.cyan(`\n- ${task.title}`));
+  console.log(chalk.cyan(`  ID: ${task.id}`));
+  console.log(chalk.cyan(`  Priority: ${task.priority}`));
+  console.log(chalk.cyan(`  Status: ${task.status}`));
+  console.log(chalk.cyan(`  Created: ${formatDateTime(task.createdAt)}`));
 
   if (task.startedAt) {
-    console.log(chalk.cyan(`│ Started: ${formatDateTime(task.startedAt)}`));
+    console.log(chalk.cyan(`  Started: ${formatDateTime(task.startedAt)}`));
   }
-
   if (task.completedAt) {
-    console.log(chalk.cyan(`│ Completed: ${formatDateTime(task.completedAt)}`));
+    console.log(chalk.cyan(`  Completed: ${formatDateTime(task.completedAt)}`));
   }
-
   if (task.actualHours > 0) {
-    console.log(chalk.cyan(`│ Actual: ${task.actualHours}h`));
+    console.log(chalk.cyan(`  Actual: ${task.actualHours}h`));
   }
-
   if (task.assignee) {
-    console.log(chalk.cyan(`│ Assignee: ${task.assignee}`));
+    console.log(chalk.cyan(`  Assignee: ${task.assignee}`));
   }
-
-  if (task.tags.length > 0) {
-    console.log(chalk.cyan(`│ Tags: ${task.tags.join(', ')}`));
+  if (task.tags?.length > 0) {
+    console.log(chalk.cyan(`  Tags: ${task.tags.join(', ')}`));
   }
 
   if (task.description) {
-    console.log(chalk.cyan('│'));
-    console.log(
-      chalk.cyan(
-        `│ Description:\n${chalk.white(
-          task.description
-            .split('\n')
-            .map(line => `│   ${line}`)
-            .join('\n')
-        )}`
-      )
-    );
+    console.log(chalk.cyan('\n  Description:'));
+    task.description.split('\n').forEach(line => {
+      console.log(chalk.white(`    ${line}`));
+    });
   }
 
-  if (task.subtasks && task.subtasks.length > 0) {
-    const completedCount = task.subtasks.filter(st => st.completed).length;
-    console.log(chalk.cyan('│'));
-    console.log(chalk.cyan(`│ Subtasks (${completedCount}/${task.subtasks.length}):`));
+  if (progress.total > 0) {
+    console.log(chalk.cyan(`\n  Subtasks (${progress.done}/${progress.total}):`));
     task.subtasks.forEach((subtask, index) => {
-      const status = subtask.completed ? '✅' : '⏸️';
-      console.log(chalk.cyan(`│   ${status} ${subtask.title}`));
+      const mark = subtask.completed ? '[x]' : '[ ]';
+      console.log(chalk.cyan(`    ${index + 1}. ${mark} ${subtask.title}`));
     });
   }
 
-  if (task.dependencies && task.dependencies.length > 0) {
-    console.log(chalk.cyan('│'));
-    console.log(chalk.cyan(`│ Dependencies:`));
+  if (task.dependencies?.length > 0) {
+    console.log(chalk.cyan('\n  Dependencies:'));
     task.dependencies.forEach(depId => {
-      console.log(chalk.cyan(`│   • ${depId}`));
+      console.log(chalk.cyan(`    - ${depId}`));
     });
   }
 
-  if (task.blockedBy && Array.isArray(task.blockedBy) && task.blockedBy.length > 0) {
-    console.log(chalk.cyan('│'));
-    console.log(chalk.cyan(`│ Blocked By:`));
-    task.blockedBy.forEach(blocker => {
-      if (blocker && blocker.id) {
-        console.log(chalk.cyan(`│   • ${blocker.id}: ${truncate(blocker.title || blocker.id, 50)}`));
-      }
+  if (blockers.length > 0) {
+    console.log(chalk.yellow('\n  Blocked By:'));
+    blockers.forEach(blocker => {
+      console.log(chalk.yellow(`    - ${blocker.id}: ${truncate(blocker.title || blocker.id, 60)}`));
     });
   }
 
-  if (task.context.relatedFiles.length > 0) {
-    console.log(chalk.cyan('│'));
-    console.log(
-      chalk.cyan(
-        `│ Related Files:\n${task.context.relatedFiles
-          .map(f => `│   • ${f}`)
-          .join('\n')}`
-      )
-    );
+  if (task.context.relatedFiles?.length > 0) {
+    console.log(chalk.cyan('\n  Related Files:'));
+    task.context.relatedFiles.forEach(file => {
+      console.log(chalk.cyan(`    - ${file}`));
+    });
   }
 
-  if (task.sessions.length > 0) {
-    console.log(chalk.cyan('│'));
-    console.log(chalk.cyan(`│ Sessions (${task.sessions.length}):`));
-    task.sessions.slice(-3).forEach((session, index) => {
+  if (task.sessions?.length > 0) {
+    console.log(chalk.cyan(`\n  Sessions (${task.sessions.length}):`));
+    task.sessions.slice(-3).forEach(session => {
       const date = formatDateTime(session.startedAt || session.startTime);
-      const note = session.note ? truncate(session.note, 40) : 'No notes';
-      console.log(chalk.cyan(`│   ${date}: ${note}`));
+      const note = session.note ? truncate(session.note, 60) : 'No notes';
+      console.log(chalk.cyan(`    ${date}: ${note}`));
     });
   }
-
-  if (task.gitBranch) {
-    console.log(chalk.cyan('│'));
-    console.log(chalk.cyan(`│ Git Branch: ${task.gitBranch}`));
-  }
-
-  console.log(chalk.cyan('└' + '─'.repeat(Math.max(task.title.length + 2, 50)) + '┘'));
 }
 
-/**
- * Show task details
- */
 export async function show(taskId, options = {}) {
-  const spinner = ora('Loading task').start();
+  const mode = resolveOutputMode(options);
+  const compactMode = mode === 'compact';
+  const spinner = (!compactMode && process.stdout.isTTY) ? ora('Loading task').start() : null;
 
   try {
     const manager = new TaskManager();
     await manager.init();
 
-    // Find task
     const task = manager.getTask(taskId);
-
     if (!task) {
-      spinner.stop();
-      console.error(chalk.red(`\n✖ Task not found: ${taskId}`));
-      console.error(chalk.gray(`   Use 'seshflow list' to see all tasks`));
+      spinner?.stop();
+      console.error(chalk.red(`\nTask not found: ${taskId}`));
+      console.error(chalk.gray(`  Use 'seshflow list' to see all tasks`));
       process.exit(1);
     }
 
-    spinner.stop();
+    const blockers = (task.blockedBy || [])
+      .map(id => manager.getTask(id))
+      .filter(Boolean);
 
-    // JSON mode
+    spinner?.stop();
+
     if (isJSONMode(options)) {
       outputJSON(formatSuccessResponse({
-        task: formatTaskJSON(task)
+        task: formatTaskJSON(task),
+        subtasks: task.subtasks || [],
+        dependencies: task.dependencies || [],
+        blockedBy: blockers.map(t => ({ id: t.id, title: t.title, status: t.status })),
       }, formatWorkspaceJSON(manager.storage, 1)));
       return;
     }
 
-    // Display mode
-    displayTaskDetails(task);
+    if (compactMode) {
+      displayCompact(task, blockers);
+      return;
+    }
 
-    // Show related commands
+    displayPretty(task, blockers);
+
     console.log(chalk.blue('\nCommands:'));
     if (task.status === 'backlog' || task.status === 'todo') {
-      console.log(chalk.gray('  seshflow next'), chalk.gray('- Start this task'));
+      console.log(chalk.gray('  seshflow next - Start this task'));
     }
     if (task.status === 'in-progress') {
-      console.log(chalk.gray('  seshflow done [options]'), chalk.gray('- Complete this task'));
+      console.log(chalk.gray('  seshflow done [options] - Complete this task'));
     }
-    console.log(chalk.gray(`  seshflow deps ${taskId}`), chalk.gray('- Show dependencies'));
-    console.log(chalk.gray(`  seshflow delete ${taskId}`), chalk.gray('- Delete this task'));
-
+    console.log(chalk.gray(`  seshflow deps ${taskId} - Show dependencies`));
+    console.log(chalk.gray(`  seshflow delete ${taskId} - Delete this task`));
   } catch (error) {
-    spinner.fail('Failed to show task');
+    spinner?.fail('Failed to show task');
     console.error(chalk.red(`\nError: ${error.message}`));
     process.exit(1);
   }
