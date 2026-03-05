@@ -151,3 +151,9 @@ MIT License
 ---
 
 **Made with ❤️ for AI-assisted development**
+
+## AI Skill
+
+- Lightweight skill: [docs/skills/seshflow-light/SKILL.md](docs/skills/seshflow-light/SKILL.md)
+- Install guide: [docs/skills/INSTALL.md](docs/skills/INSTALL.md)
+
