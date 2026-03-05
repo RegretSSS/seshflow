@@ -1,12 +1,76 @@
+# Dependencies
 node_modules/
+.pnpm-store/
+
+# Build outputs
 dist/
+build/
 *.log
-.DS_Store
+
+# Environment files
+.env
+.env.local
+.env.*.local
+*.env
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
-.env
-.env.local
-.env.*.local
+.DS_Store
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.original
+
+# Debug files
+debug.log
+
+# Seshflow workspace data (keep template, ignore actual data)
+.seshflow/tasks.json
+.seshflow/sessions.json
+
+# Scripts (development only)
+scripts/
+create-github-repo.sh
+seshflow
+seshflow.bat
+seshflow.js
+
+# Test files
+*-test.md
+*-tasks.md
+test-*.md
+deps-test.md
+e2e-tasks.md
+test-import.md
+test-ncfr.md
+
+# Development docs (keep user-facing docs)
+BUGFIX*.md
+FIXES*.md
+IMPLEMENTATION*.md
+IMPROVEMENT*.md
+
+# Session files
+SESSION*.md
+NEW_SESSION*.txt
+NEXT_SESSION*.md
+
+# Template files (keep .seshflow/TASKS.template.md)
+TASKS.template.md
+TASKS_TEMPLATE_SPEC.md
+MARKDOWN_IMPORT_GUIDE.md
+
+# Build artifacts
+*.tgz
+*.tar.gz
