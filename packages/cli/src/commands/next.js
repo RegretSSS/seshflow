@@ -48,6 +48,17 @@ function displayTask(task, showFull = false) {
     console.log(chalk.cyan(`│ Dependencies: ${task.dependencies.join(', ')}`));
   }
 
+  if (task.subtasks && task.subtasks.length > 0) {
+    const completedCount = task.subtasks.filter(st => st.completed).length;
+    console.log(chalk.cyan('│'));
+    console.log(chalk.cyan(`│ Subtasks (${completedCount}/${task.subtasks.length}):`));
+    task.subtasks.forEach((subtask, index) => {
+      const status = subtask.completed ? '✅' : '⏸️';
+      const hours = subtask.estimatedHours ? ` [${subtask.estimatedHours}h]` : '';
+      console.log(chalk.cyan(`│   ${status} ${subtask.title}${hours}`));
+    });
+  }
+
   if (task.context.relatedFiles.length > 0) {
     console.log(chalk.cyan('│'));
     console.log(
@@ -79,6 +90,47 @@ export async function next(options = {}) {
   try {
     const manager = new TaskManager();
     await manager.init();
+
+    // JSON mode check
+    if (isJSONMode(options)) {
+      const currentTask = manager.getCurrentTask();
+      if (currentTask) {
+        spinner.stop();
+        outputJSON(formatSuccessResponse({
+          task: formatTaskJSON(currentTask),
+          hasActiveSession: true,
+        }, formatWorkspaceJSON(manager.storage, manager.getTasks().length)));
+        return;
+      }
+
+      const nextTask = manager.getNextTask({
+        priority: options.priority,
+        tag: options.tag,
+        assignee: options.assignee
+      });
+
+      spinner.stop();
+
+      if (!nextTask) {
+        outputJSON(formatSuccessResponse({
+          task: null,
+          message: 'No tasks to work on',
+        }, formatWorkspaceJSON(manager.storage, manager.getTasks().length)));
+        return;
+      }
+
+      const unmetDeps = manager.getUnmetDependencies(nextTask);
+      outputJSON(formatSuccessResponse({
+        task: formatTaskJSON(nextTask),
+        unmetDependencies: unmetDeps.map(d => ({
+          id: d.id,
+          title: d.title,
+          status: d.status,
+        })),
+        hasActiveSession: false,
+      }, formatWorkspaceJSON(manager.storage, manager.getTasks().length)));
+      return;
+    }
 
     // Check for current session
     const currentTask = manager.getCurrentTask();

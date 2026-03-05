@@ -25,7 +25,7 @@ export async function newchatfirstround(options = {}) {
       const task = currentTask || nextTask;
 
       // Calculate statistics
-      const allTasks = manager.tasks || [];
+      const allTasks = manager.getTasks() || [];
       const stats = {
         total: allTasks.length,
         inProgress: allTasks.filter(t => t.status === 'in-progress').length,
@@ -85,7 +85,7 @@ export async function newchatfirstround(options = {}) {
     const projectName = path.basename(workspacePath);
 
     // 获取所有任务并计算统计
-    const allTasks = manager.tasks || [];
+    const allTasks = manager.getTasks() || [];
     const stats = {
       total: allTasks.length,
       inProgress: allTasks.filter(t => t.status === 'in-progress').length,

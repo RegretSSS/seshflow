@@ -28,10 +28,11 @@ export function formatTaskJSON(task) {
  * Format workspace info as JSON
  */
 export function formatWorkspaceJSON(storage, taskCount = 0) {
+  const workspacePath = storage.getWorkspacePath();
   return {
-    path: storage.getWorkspacePath(),
-    name: storage.getWorkspacePath().split(/[/\\]/).pop() || '',
-    gitBranch: storage.getGitBranch() || '',
+    path: workspacePath,
+    name: workspacePath.split(/[/\\]/).pop() || '',
+    gitBranch: storage.getGitBranch ? (storage.getGitBranch() || '') : '',
     totalTasks: taskCount,
     seshflowDir: storage.getSeshflowDir(),
   };

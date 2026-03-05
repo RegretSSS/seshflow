@@ -3,7 +3,6 @@ import path from 'path';
 import yaml from 'yaml';
 import { PATHS, DEFAULT_TASK_FILE } from '../constants.js';
 import { existsSync } from 'fs';
-import simpleGit from 'simple-git';
 
 /**
  * Default configuration
@@ -228,7 +227,7 @@ export class Storage {
   getSeshflowDir() {
     return this.seshflowDir;
   }
-
+}
   /**
    * Get current git branch
    */
@@ -241,4 +240,3 @@ export class Storage {
       return '';
     }
   }
-}

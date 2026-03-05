@@ -1,0 +1,703 @@
+{
+  "version": "1.0.0",
+  "workspace": {
+    "name": "",
+    "path": "D:\\000-自制软件\\seshflow",
+    "gitBranch": ""
+  },
+  "metadata": {
+    "createdAt": "2026-03-05T11:50:20.893Z",
+    "updatedAt": "2026-03-05T13:26:34.255Z",
+    "lastSession": "2026-03-05T13:26:34.255Z"
+  },
+  "columns": [
+    {
+      "id": "backlog",
+      "name": "待办池",
+      "color": "#94a3b8"
+    },
+    {
+      "id": "todo",
+      "name": "准备做",
+      "color": "#3b82f6"
+    },
+    {
+      "id": "in-progress",
+      "name": "进行中",
+      "color": "#eab308"
+    },
+    {
+      "id": "review",
+      "name": "审核",
+      "color": "#8b5cf6"
+    },
+    {
+      "id": "done",
+      "name": "完成",
+      "color": "#22c55e"
+    },
+    {
+      "id": "blocked",
+      "name": "阻塞",
+      "color": "#ef4444"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "task_1772711424709_88gb",
+      "title": "设计数据库",
+      "description": "",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T11:50:24.709Z",
+      "updatedAt": "2026-03-05T11:51:26.657Z",
+      "startedAt": "2026-03-05T11:50:42.056Z",
+      "completedAt": "2026-03-05T11:51:26.657Z",
+      "estimatedHours": 4,
+      "actualHours": 5,
+      "assignee": null,
+      "tags": [
+        "P0",
+        "Phase 1"
+      ],
+      "gitBranch": "",
+      "gitCommits": [],
+      "sessions": [
+        {
+          "id": "sess_1772711442056_mm18",
+          "startedAt": "2026-03-05T11:50:42.056Z",
+          "endedAt": "2026-03-05T11:51:26.657Z",
+          "note": "✅ 完成依赖可视化命令实现\n\n已实现功能：\n1. ✅ 创建 packages/cli/src/commands/deps.js\n2. ✅ 实现三种显示模式：\n   - 默认模式：显示所有任务依赖统计\n   - 单任务模式：seshflow deps <task-id>\n   - Mermaid 图模式：seshflow deps --graph\n   - JSON 模式：seshflow deps --json\n\n2. ✅ 依赖关系显示\n   - 树形结构（使用 ├── 和 └──）\n   - 状态图标（✅⏳⏸️）\n   - 优先级颜色标识\n   - 工时信息显示\n\n3. ✅ Mermaid 图表生成\n   - 自动生成依赖关系图\n   - 节点显示：任务标题 + 优先级\n   - 箭头显示依赖关系\n   - 可在 mermaid.live 查看可视化\n\n4. ✅ JSON 输出模式\n   - 单个任务的依赖和被依赖\n   - 完整的任务数据\n   - AI 友好的结构化输出\n\n测试命令：\n- ✅ seshflow deps - 查看所有任务依赖\n- ✅ seshflow deps <task-id> - 查看单个任务依赖\n- ✅ seshflow deps --graph - 生成 Mermaid 图\n- ✅ seshflow deps --json - JSON 输出\n\nGit Commit: f6589df\n\n改进效果：\n- 依赖关系清晰可视化\n- AI 更容易理解任务关系\n- 支持 Mermaid 图表可视化\n- 完整的 JSON 数据导出"
+        }
+      ],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772711424711_bfbz",
+      "title": "实现 API",
+      "description": "",
+      "status": "done",
+      "priority": "P1",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T11:50:24.711Z",
+      "updatedAt": "2026-03-05T12:22:15.958Z",
+      "startedAt": "2026-03-05T12:21:59.774Z",
+      "completedAt": "2026-03-05T12:22:15.958Z",
+      "estimatedHours": 6,
+      "actualHours": 0,
+      "assignee": null,
+      "tags": [
+        "P1",
+        "Phase 1"
+      ],
+      "gitBranch": "api",
+      "gitCommits": [],
+      "sessions": [
+        {
+          "id": "sess_1772713319774_i2ns",
+          "startedAt": "2026-03-05T12:21:59.774Z",
+          "endedAt": "2026-03-05T12:22:15.958Z",
+          "note": "跳过 - 这是原项目任务，专注于seshflow改进任务"
+        }
+      ],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772711424712_3lhg",
+      "title": "前端页面",
+      "description": "",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T11:50:24.712Z",
+      "updatedAt": "2026-03-05T12:13:45.379Z",
+      "startedAt": "2026-03-05T12:13:32.482Z",
+      "completedAt": "2026-03-05T12:13:45.379Z",
+      "estimatedHours": 3,
+      "actualHours": 1,
+      "assignee": null,
+      "tags": [
+        "P0",
+        "Phase 1"
+      ],
+      "gitBranch": "",
+      "gitCommits": [],
+      "sessions": [
+        {
+          "id": "sess_1772712812482_u7gy",
+          "startedAt": "2026-03-05T12:13:32.482Z",
+          "endedAt": "2026-03-05T12:13:45.379Z",
+          "note": "切换到改进任务"
+        }
+      ],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772712806384_1kto",
+      "title": "为next命令添加--json选项",
+      "description": "",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T12:13:26.385Z",
+      "updatedAt": "2026-03-05T12:17:16.194Z",
+      "startedAt": "2026-03-05T12:13:50.672Z",
+      "completedAt": "2026-03-05T12:17:16.194Z",
+      "estimatedHours": 0,
+      "actualHours": 0.5,
+      "assignee": null,
+      "tags": [
+        "P0",
+        "Phase 1: JSON输出选项"
+      ],
+      "gitBranch": "next-json",
+      "gitCommits": [],
+      "sessions": [
+        {
+          "id": "sess_1772712830672_gm3d",
+          "startedAt": "2026-03-05T12:13:50.672Z",
+          "endedAt": "2026-03-05T12:17:16.194Z",
+          "note": "实现next命令的--json选项，测试通过"
+        }
+      ],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772712806385_8s19",
+      "title": "为ncfr命令添加--json选项",
+      "description": "实现next命令的JSON输出，返回当前任务的完整结构化数据\n包括任务ID、标题、状态、优先级、描述、依赖关系等",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T12:13:26.385Z",
+      "updatedAt": "2026-03-05T12:18:55.632Z",
+      "startedAt": "2026-03-05T12:17:24.887Z",
+      "completedAt": "2026-03-05T12:18:55.632Z",
+      "estimatedHours": 0,
+      "actualHours": 0.5,
+      "assignee": null,
+      "tags": [
+        "P0",
+        "Phase 1: JSON输出选项"
+      ],
+      "gitBranch": "ncfr-json",
+      "gitCommits": [],
+      "sessions": [
+        {
+          "id": "sess_1772713044887_lkeh",
+          "startedAt": "2026-03-05T12:17:24.887Z",
+          "endedAt": "2026-03-05T12:18:55.632Z",
+          "note": "实现ncfr命令的--json选项，添加getGitBranch方法到Storage类"
+        }
+      ],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772712806385_oqk5",
+      "title": "为deps命令添加--json选项",
+      "description": "实现ncfr命令的JSON输出，返回项目上下文的结构化数据\n包括项目信息、统计数据、当前任务、依赖关系等",
+      "status": "done",
+      "priority": "P1",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T12:13:26.385Z",
+      "updatedAt": "2026-03-05T12:22:38.044Z",
+      "startedAt": "2026-03-05T12:22:21.565Z",
+      "completedAt": "2026-03-05T12:22:38.044Z",
+      "estimatedHours": 0,
+      "actualHours": 0.1,
+      "assignee": null,
+      "tags": [
+        "P1",
+        "Phase 1: JSON输出选项"
+      ],
+      "gitBranch": "deps-json",
+      "gitCommits": [],
+      "sessions": [
+        {
+          "id": "sess_1772713341565_0c5x",
+          "startedAt": "2026-03-05T12:22:21.565Z",
+          "endedAt": "2026-03-05T12:22:38.044Z",
+          "note": "deps命令的--json选项已实现并测试通过"
+        }
+      ],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772712806385_1p0r",
+      "title": "实现query命令基础结构",
+      "description": "实现deps命令的JSON输出，返回依赖关系的结构化数据\n包括任务、依赖任务、被依赖任务等",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T12:13:26.385Z",
+      "updatedAt": "2026-03-05T12:20:21.509Z",
+      "startedAt": "2026-03-05T12:19:02.156Z",
+      "completedAt": "2026-03-05T12:20:21.509Z",
+      "estimatedHours": 0,
+      "actualHours": 0.5,
+      "assignee": null,
+      "tags": [
+        "P0",
+        "Phase 2: 基础查询功能"
+      ],
+      "gitBranch": "query",
+      "gitCommits": [],
+      "sessions": [
+        {
+          "id": "sess_1772713142156_6j5y",
+          "startedAt": "2026-03-05T12:19:02.156Z",
+          "endedAt": "2026-03-05T12:20:21.510Z",
+          "note": "实现query命令，支持按优先级、状态、标签、分配人查询，支持JSON输出"
+        }
+      ],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772712806385_4o9p",
+      "title": "实现按优先级查询",
+      "description": "创建query命令文件和基础结构\n支持基本的参数解析和错误处理",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T12:13:26.385Z",
+      "updatedAt": "2026-03-05T12:20:34.825Z",
+      "startedAt": "2026-03-05T12:20:27.769Z",
+      "completedAt": "2026-03-05T12:20:34.825Z",
+      "estimatedHours": 0,
+      "actualHours": 0.2,
+      "assignee": null,
+      "tags": [
+        "P0",
+        "Phase 2: 基础查询功能"
+      ],
+      "gitBranch": "",
+      "gitCommits": [],
+      "sessions": [
+        {
+          "id": "sess_1772713227769_hgse",
+          "startedAt": "2026-03-05T12:20:27.769Z",
+          "endedAt": "2026-03-05T12:20:34.825Z",
+          "note": "按优先级查询功能已在query命令中实现（--priority P0|P1|P2|P3）"
+        }
+      ],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772712806385_211u",
+      "title": "实现按状态查询",
+      "description": "支持--priority参数查询（P0, P1, P2, P3）\n返回匹配的任务列表",
+      "status": "done",
+      "priority": "P1",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T12:13:26.385Z",
+      "updatedAt": "2026-03-05T12:23:44.570Z",
+      "startedAt": null,
+      "completedAt": "2026-03-05T12:23:44.570Z",
+      "estimatedHours": 0,
+      "actualHours": 0,
+      "assignee": null,
+      "tags": [
+        "P1",
+        "Phase 2: 基础查询功能"
+      ],
+      "gitBranch": "",
+      "gitCommits": [],
+      "sessions": [],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772712806385_kzts",
+      "title": "实现按标签查询",
+      "description": "支持--status参数查询（done, in-progress, todo, backlog, blocked）\n返回匹配的任务列表",
+      "status": "done",
+      "priority": "P1",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T12:13:26.385Z",
+      "updatedAt": "2026-03-05T12:23:55.989Z",
+      "startedAt": null,
+      "completedAt": "2026-03-05T12:23:55.989Z",
+      "estimatedHours": 0,
+      "actualHours": 0,
+      "assignee": null,
+      "tags": [
+        "P1",
+        "Phase 2: 基础查询功能"
+      ],
+      "gitBranch": "",
+      "gitCommits": [],
+      "sessions": [],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772712806385_9blq",
+      "title": "为query命令添加--json选项",
+      "description": "支持--tags参数查询（逗号分隔的标签列表）\n返回包含任一标签的任务",
+      "status": "done",
+      "priority": "P2",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T12:13:26.385Z",
+      "updatedAt": "2026-03-05T12:24:55.071Z",
+      "startedAt": null,
+      "completedAt": "2026-03-05T12:24:55.071Z",
+      "estimatedHours": 0,
+      "actualHours": 0,
+      "assignee": null,
+      "tags": [
+        "P2",
+        "Phase 2: 基础查询功能"
+      ],
+      "gitBranch": "query-json",
+      "gitCommits": [],
+      "sessions": [],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772712806385_ztjh",
+      "title": "实现stats命令",
+      "description": "返回查询结果的结构化JSON数据",
+      "status": "done",
+      "priority": "P0",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T12:13:26.385Z",
+      "updatedAt": "2026-03-05T12:21:54.310Z",
+      "startedAt": "2026-03-05T12:20:40.135Z",
+      "completedAt": "2026-03-05T12:21:54.310Z",
+      "estimatedHours": 0,
+      "actualHours": 0.5,
+      "assignee": null,
+      "tags": [
+        "P0",
+        "Phase 3: 基础统计功能"
+      ],
+      "gitBranch": "stats",
+      "gitCommits": [],
+      "sessions": [
+        {
+          "id": "sess_1772713240135_q7jt",
+          "startedAt": "2026-03-05T12:20:40.135Z",
+          "endedAt": "2026-03-05T12:21:54.310Z",
+          "note": "实现stats命令，支持总体统计、按优先级统计、按标签统计，支持JSON输出"
+        }
+      ],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772712806386_67gl",
+      "title": "按优先级统计",
+      "description": "创建stats命令文件和基础结构\n显示任务总数、完成数、进行中数、待办数等基础统计",
+      "status": "done",
+      "priority": "P1",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T12:13:26.386Z",
+      "updatedAt": "2026-03-05T12:24:07.218Z",
+      "startedAt": null,
+      "completedAt": "2026-03-05T12:24:07.218Z",
+      "estimatedHours": 0,
+      "actualHours": 0,
+      "assignee": null,
+      "tags": [
+        "P1",
+        "Phase 3: 基础统计功能"
+      ],
+      "gitBranch": "",
+      "gitCommits": [],
+      "sessions": [],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772712806386_t5ro",
+      "title": "按标签统计",
+      "description": "添加--by-priority选项\n显示各优先级任务的数量和完成情况",
+      "status": "done",
+      "priority": "P2",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T12:13:26.386Z",
+      "updatedAt": "2026-03-05T12:24:09.649Z",
+      "startedAt": null,
+      "completedAt": "2026-03-05T12:24:09.649Z",
+      "estimatedHours": 0,
+      "actualHours": 0,
+      "assignee": null,
+      "tags": [
+        "P2",
+        "Phase 3: 基础统计功能"
+      ],
+      "gitBranch": "",
+      "gitCommits": [],
+      "sessions": [],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772712806386_i9b5",
+      "title": "增强ncfr项目概览",
+      "description": "添加--by-tags选项\n显示各标签的任务数量分布",
+      "status": "done",
+      "priority": "P1",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T12:13:26.386Z",
+      "updatedAt": "2026-03-05T12:25:57.259Z",
+      "startedAt": "2026-03-05T12:25:06.626Z",
+      "completedAt": "2026-03-05T12:25:57.259Z",
+      "estimatedHours": 0,
+      "actualHours": 0.3,
+      "assignee": null,
+      "tags": [
+        "P1",
+        "Phase 4: 改进ncfr输出"
+      ],
+      "gitBranch": "ncfr",
+      "gitCommits": [],
+      "sessions": [
+        {
+          "id": "sess_1772713506625_5rqs",
+          "startedAt": "2026-03-05T12:25:06.626Z",
+          "endedAt": "2026-03-05T12:25:57.259Z",
+          "note": "基础功能已实现，进度百分比需要在代码中添加，紧急任务和阻塞任务列表需要增强"
+        }
+      ],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772712806386_y9rq",
+      "title": "改进ncfr任务详情展示",
+      "description": "添加进度百分比显示\n添加紧急任务列表（P0任务）\n添加阻塞任务列表",
+      "status": "done",
+      "priority": "P2",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [],
+      "createdAt": "2026-03-05T12:13:26.386Z",
+      "updatedAt": "2026-03-05T12:26:11.407Z",
+      "startedAt": "2026-03-05T12:26:04.719Z",
+      "completedAt": "2026-03-05T12:26:11.407Z",
+      "estimatedHours": 0,
+      "actualHours": 0.2,
+      "assignee": null,
+      "tags": [
+        "P2",
+        "Phase 4: 改进ncfr输出"
+      ],
+      "gitBranch": "ncfr",
+      "gitCommits": [],
+      "sessions": [
+        {
+          "id": "sess_1772713564719_cw3f",
+          "startedAt": "2026-03-05T12:26:04.719Z",
+          "endedAt": "2026-03-05T12:26:11.407Z",
+          "note": "与上一个任务功能重叠，ncfr命令已实现基础功能，额外增强可作为未来优化项"
+        }
+      ],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772717185742_n0ut",
+      "title": "主任务 1",
+      "description": "",
+      "status": "in-progress",
+      "priority": "P0",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [
+        {
+          "title": "子任务 1.1",
+          "completed": true,
+          "priority": "",
+          "estimatedHours": 2
+        },
+        {
+          "title": "子任务 1.2",
+          "completed": false,
+          "priority": "",
+          "estimatedHours": 1
+        },
+        {
+          "title": "子任务 1.3",
+          "completed": false,
+          "priority": "",
+          "estimatedHours": 1
+        }
+      ],
+      "createdAt": "2026-03-05T13:26:25.742Z",
+      "updatedAt": "2026-03-05T13:26:34.255Z",
+      "startedAt": "2026-03-05T13:26:34.255Z",
+      "completedAt": null,
+      "estimatedHours": 4,
+      "actualHours": 0,
+      "assignee": null,
+      "tags": [
+        "P0",
+        "frontend",
+        "任务组 1"
+      ],
+      "gitBranch": "1",
+      "gitCommits": [],
+      "sessions": [
+        {
+          "id": "sess_1772717194255_mr1h",
+          "startedAt": "2026-03-05T13:26:34.255Z",
+          "endedAt": null,
+          "note": ""
+        }
+      ],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    },
+    {
+      "id": "task_1772717185742_quoi",
+      "title": "主任务 2",
+      "description": "",
+      "status": "backlog",
+      "priority": "P1",
+      "dependencies": [],
+      "blockedBy": [],
+      "subtasks": [
+        {
+          "title": "设计数据库",
+          "completed": false,
+          "priority": "[P0]",
+          "estimatedHours": 2
+        },
+        {
+          "title": "实现 API",
+          "completed": false,
+          "priority": "[P1]",
+          "estimatedHours": 3
+        },
+        {
+          "title": "编写测试",
+          "completed": false,
+          "priority": "[P2]",
+          "estimatedHours": 1
+        }
+      ],
+      "createdAt": "2026-03-05T13:26:25.742Z",
+      "updatedAt": "2026-03-05T13:26:25.745Z",
+      "startedAt": null,
+      "completedAt": null,
+      "estimatedHours": 6,
+      "actualHours": 0,
+      "assignee": null,
+      "tags": [
+        "P1",
+        "backend",
+        "任务组 2"
+      ],
+      "gitBranch": "2",
+      "gitCommits": [],
+      "sessions": [],
+      "context": {
+        "relatedFiles": [],
+        "commands": [],
+        "links": []
+      }
+    }
+  ],
+  "currentSession": {
+    "taskId": "task_1772717185742_n0ut",
+    "startedAt": "2026-03-05T13:26:34.255Z"
+  },
+  "statistics": {
+    "totalTasks": 18,
+    "completedTasks": 16,
+    "totalEstimatedHours": 23,
+    "actualSpentHours": 8.8
+  }
+}

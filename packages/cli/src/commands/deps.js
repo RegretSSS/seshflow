@@ -45,8 +45,7 @@ function displayTaskTree(task, prefix = '', isLast = true) {
 /**
  * Display dependency tree
  */
-function displayDependencyTree(task, prefix = '', isLast = true) {
-  const allTasks = task.manager.tasks || [];
+function displayDependencyTree(task, allTasks, prefix = '', isLast = true) {
 
   if (task.dependencies && task.dependencies.length > 0) {
     task.dependencies.forEach((depId, index) => {
@@ -100,7 +99,7 @@ export async function deps(taskId, options = {}) {
   try {
     const manager = new TaskManager();
     await manager.init();
-    const allTasks = manager.tasks || [];
+    const allTasks = manager.getTasks() || [];
 
     // JSON mode
     if (isJSONMode(options)) {
@@ -154,7 +153,7 @@ export async function deps(taskId, options = {}) {
     // Normal mode
     if (taskId) {
       // Show single task dependencies
-      const task = allTasks.find(t => t => t.id === taskId);
+      const task = allTasks.find(t => t.id === taskId);
       if (!task) {
         spinner.fail('Task not found');
         console.error(chalk.red(`\nError: Task not found: ${taskId}`));

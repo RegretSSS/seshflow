@@ -74,7 +74,7 @@ export class TaskManager {
       updatedAt: toISOString(),
       startedAt: null,
       completedAt: null,
-      estimatedHours: options.estimatedHours || 0,
+      estimatedHours: parseFloat(options.estimatedHours) || 0,
       actualHours: 0,
       assignee: options.assignee || null,
       tags: options.tags || [],
@@ -273,7 +273,7 @@ export class TaskManager {
     // Update task
     task.status = 'done';
     task.completedAt = toISOString();
-    task.actualHours = options.hours || task.actualHours;
+    task.actualHours = options.hours ? parseFloat(options.hours) : (parseFloat(task.actualHours) || 0);
     task.updatedAt = toISOString();
 
     // End session if active

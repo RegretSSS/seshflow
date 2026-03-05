@@ -1,0 +1,13 @@
+#!/bin/bash
+# Seshflow 快捷启动脚本
+# 可以在任何目录运行
+
+SESHFLOW_CLI="D:/000-自制软件/seshflow/packages/cli/bin/seshflow.js"
+
+if [ ! -f "$SESHFLOW_CLI" ]; then
+    echo "错误: 找不到 seshflow CLI"
+    echo "请确保此脚本在正确的目录下"
+    exit 1
+fi
+
+node "$SESHFLOW_CLI" "$@"

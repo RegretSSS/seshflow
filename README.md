@@ -1,201 +1,150 @@
-# Seshflow
+# Seshflow ✨
 
-> 跨对话任务序列器 - 专为 AI 辅助开发设计的轻量级 任务管理工具
+> 跨对话任务序列器 - 专为 AI 辅助开发设计的任务管理工具
 
-## 特性
+[![npm version](https://badge.fury.io/js/%40seshflow%2Fcli.svg)](https://www.npmjs.com/package/@seshflow/cli)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen)](https://nodejs.org)
 
-- 🔄 **跨对话持久化** - 每次新对话立即恢复工作上下文
-- 🌳 **依赖关系管理** - 智能任务依赖树，自动排序
-- 🎯 **Git 集成** - 提交自动关联任务，完整开发轨迹
-- 🎨 **可视化看板** - Trello 风格 Web 界面
-- 🔗 **跨平台同步** - Windows/WSL/Linux 任务状态实时同步
-- 📝 **Markdown 导入** - AI 友好的批量任务导入格式
-- 🤖 **AI 友好** - 专为 AI 辅助开发设计，一键恢复项目上下文
+## 🎯 核心价值
 
-## 快速开始
+- **🔄 跨对话记忆** - 每次新对话 `seshflow ncfr` 立即恢复工作上下文
+- **📋 Markdown 导入** - AI 友好的批量任务导入格式
+- **⚡ 魔法命令** - 逐步披露的 Skill 系统，提升工作效率
+- **🌐 跨平台支持** - Windows / WSL / macOS / Linux
+- **🔗 Git 集成** - 自动关联任务与 Git 提交
 
-### 安装
+## 📦 快速安装
+
+### 使用 npm
 
 ```bash
-pnpm add -g seshflow
+npm install -g @seshflow/cli
 ```
 
-### 初始化项目
+### 使用 pnpm（推荐）
+
+```bash
+pnpm install -g @seshflow/cli
+```
+
+### 使用 yarn
+
+```bash
+yarn global add @seshflow/cli
+```
+
+## 🚀 快速开始
+
+### 1. 初始化项目
 
 ```bash
 seshflow init
 ```
 
-### 使用方式
+这将创建 `.seshflow` 目录，包含任务数据和配置文件。
 
-#### 方式 1：单个命令添加
+### 2. 创建任务（两种方式）
 
-```bash
-# 添加单个任务
-seshflow add "实现用户认证" --priority P0 --tags auth,backend
-
-# 开始工作
-seshflow next
-
-# 完成任务
-seshflow done --hours 4 --note "完成认证系统"
-```
-
-#### 方式 2：批量导入（推荐）⭐
+#### 方式一：使用 Magic 命令快速开始
 
 ```bash
-# 1. 创建任务文件
-cp TASKS.template.md my-tasks.md
-
-# 2. 编辑任务（可使用 AI 生成）
-vim my-tasks.md
-
-# 3. 批量导入
-seshflow import my-tasks.md
-
-# 4. 开始工作
-seshflow next
+seshflow magic quickstart
 ```
 
-### Markdown 任务格式示例
+#### 方式二：手动创建
+
+创建 `tasks.md` 文件：
 
 ```markdown
-# 项目开发
+# 我的项目
 
-## 后端开发
-- [ ] 设计数据库 [P0] [database] [4h]
-- [ ] 实现 API [P1] [api] [6h] [依赖:1]
+## 第一阶段
 
-## 前端开发
-- [ ] 设计 UI [P1] [ui] [4h]
-- [ ] 实现页面 [P1] [frontend] [6h]
+- [ ] 设计数据库结构 [P0] [backend] [4h]
+  > 设计用户表和文章表的schema
+
+- [ ] 实现 API 接口 [P0] [backend] [8h]
+  > RESTful API 设计与实现
+
+- [ ] 编写前端页面 [P1] [frontend] [6h]
+  > React 组件开发
 ```
 
-### 新会话恢复
+然后导入：
 
 ```bash
-# 一键恢复项目上下文
-seshflow ncfr
-```
-
-## Web 看板
-
-启动 Trello 风格的可视化看板：
-
-```bash
-cd packages/web
-pnpm dev
-```
-
-访问 http://localhost:3000
-
-## 架构
-
-```
-seshflow/
-├── packages/
-│   ├── cli/          # CLI 核心工具
-│   ├── web/          # Web 看板（React + Vite）
-│   └── shared/       # 共享类型
-├── TASKS.template.md      # 任务模板
-├── TASKS_TEMPLATE_SPEC.md # 格式规范
-├── MARKDOWN_IMPORT_GUIDE.md # 导入指南
-└── docs.md           # 完整技术文档
-```
-
-## 主要命令
-
-```bash
-# 项目管理
-seshflow init              # 初始化项目
-seshflow import <file.md>  # 导入任务（支持 AI 生成）
-seshflow export <file.md>  # 导出任务
-
-# 任务操作
-seshflow add <title>       # 添加任务
-seshflow next              # 获取下一个任务
-seshflow done              # 完成当前任务
-seshflow list              # 列出所有任务
-seshflow tree              # 显示任务树
-
-# 会话管理
-seshflow ncfr              # 新会话恢复（别名: newchatfirstround）
-
-# Web 界面
-seshflow dashboard         # 启动看板（待实现）
-```
-
-## AI 使用指南
-
-### 1. 新会话启动
-
-```
-我正在开发 Seshflow 项目，请帮我继续。
-```
-
-然后运行：
-```bash
-seshflow ncfr
-```
-
-### 2. 让 AI 生成任务
-
-提示词：
-```
-请帮我生成一个电商网站的任务列表，
-包括：
-- 后端开发（Node.js + Express）
-- 前端开发（React）
-- 数据库设计（PostgreSQL）
-- 测试和部署
-
-使用 Markdown 格式，包含优先级、标签和工时预估。
-```
-
-### 3. 批量导入
-
-```bash
-# AI 生成的任务保存到 tasks.md
 seshflow import tasks.md
-
-# 开始工作
-seshflow next
 ```
 
-## 文档
-
-- 📖 [完整技术规划](docs.md)
-- 📝 [Markdown 任务格式规范](TASKS_TEMPLATE_SPEC.md)
-- 📋 [任务模板示例](TASKS.template.md)
-- 🚀 [快速导入指南](MARKDOWN_IMPORT_GUIDE.md)
-
-## 开发
+### 3. 开始工作
 
 ```bash
-# 克隆项目
-git clone https://github.com/your-username/seshflow.git
-cd seshflow
+# 查看下一个任务
+seshflow next
 
-# 安装依赖
-pnpm install
+# 查看任务详情
+seshflow show <task-id>
 
-# 构建 CLI
-cd packages/cli && pnpm build
-
-# 运行 CLI
-node bin/seshflow.js --help
-
-# 启动 Web 看板
-cd packages/web && pnpm dev
+# 完成任务
+seshflow done --hours 2 --note "完成核心功能"
 ```
 
-## 贡献
+## ✨ Magic 命令（Skill 系统）
 
-欢迎提交 Issue 和 Pull Request！
+Magic 命令是预定义的工作流，提供逐步披露的高级功能。
 
-## License
+### 查看所有 Magic 命令
 
-MIT
+```bash
+seshflow magic --list
+```
+
+### 可用 Skills
+
+#### 🔄 Workflows（工作流）
+
+- **quickstart** - 快速开始
+- **sync** - 同步上下文
+- **checkpoint** - 检查点
+
+#### 🔍 Filters（筛选）
+
+- **focus** - 专注模式（P0任务）
+
+#### ⚡ Advanced（高级）
+
+- **batch-done** - 批量完成子任务
+- **prioritize** - 优先级重排
+
+#### 🔓 Expert（专家）
+
+- **audit** - 任务健康审计
+
+## 📝 Markdown 任务格式
+
+```markdown
+- [ ] 任务标题 [P0] [tag1,tag2] [8h]
+  > 任务描述（可选）
+```
+
+## 🌐 跨平台使用
+
+### Windows / WSL / macOS / Linux
+
+```bash
+seshflow init
+seshflow magic quickstart
+```
+
+## 📚 许可证
+
+MIT License
+
+## 🔗 相关链接
+
+- [npm 包](https://www.npmjs.com/package/@seshflow/cli)
+- [GitHub 仓库](https://github.com/your-username/seshflow)
 
 ---
 
