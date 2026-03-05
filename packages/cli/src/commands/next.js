@@ -1,0 +1,174 @@
+import chalk from 'chalk';
+import ora from 'ora';
+import simpleGit from 'simple-git';
+import { TaskManager } from '../core/task-manager.js';
+import { formatHours, truncate } from '../utils/helpers.js';
+
+/**
+ * Display task details
+ */
+function displayTask(task, showFull = false) {
+  console.log(chalk.bold.cyan(`\n┌─ ${task.title}`));
+  console.log(chalk.cyan('├' + '─'.repeat(task.title.length + 2) + '┐'));
+  console.log(chalk.cyan(`│ ID: ${task.id}`));
+  console.log(chalk.cyan(`│ Priority: ${task.priority}`));
+  console.log(chalk.cyan(`│ Status: ${task.status}`));
+
+  if (task.estimatedHours > 0) {
+    console.log(
+      chalk.cyan(
+        `│ Estimated: ${formatHours(task.estimatedHours)} (Actual: ${formatHours(
+          task.actualHours
+        )})`
+      )
+    );
+  }
+
+  if (task.tags.length > 0) {
+    console.log(chalk.cyan(`│ Tags: ${task.tags.join(', ')}`));
+  }
+
+  if (task.description) {
+    console.log(chalk.cyan('│'));
+    console.log(
+      chalk.cyan(
+        `│ Description:\n${chalk.white(
+          task.description
+            .split('\n')
+            .map(line => `│   ${line}`)
+            .join('\n')
+        )}`
+      )
+    );
+  }
+
+  if (task.dependencies.length > 0) {
+    console.log(chalk.cyan('│'));
+    console.log(chalk.cyan(`│ Dependencies: ${task.dependencies.join(', ')}`));
+  }
+
+  if (task.context.relatedFiles.length > 0) {
+    console.log(chalk.cyan('│'));
+    console.log(
+      chalk.cyan(
+        `│ Related Files:\n${task.context.relatedFiles
+          .map(f => `│   • ${f}`)
+          .join('\n')}`
+      )
+    );
+  }
+
+  if (showFull && task.sessions.length > 0) {
+    const lastSession = task.sessions[task.sessions.length - 1];
+    console.log(chalk.cyan('│'));
+    console.log(
+      chalk.cyan(`│ Last Session: ${lastSession.note || 'No notes'}`)
+    );
+  }
+
+  console.log(chalk.cyan('└' + '─'.repeat(task.title.length + 2) + '┘'));
+}
+
+/**
+ * Get next task or show current
+ */
+export async function next(options = {}) {
+  const spinner = ora('Loading workspace').start();
+
+  try {
+    const manager = new TaskManager();
+    await manager.init();
+
+    // Check for current session
+    const currentTask = manager.getCurrentTask();
+    if (currentTask) {
+      spinner.stop();
+      console.log(chalk.yellow('\n📌 You have an active session:'));
+      displayTask(currentTask, true);
+      console.log(
+        chalk.blue('\nCommands:'),
+        chalk.gray('seshflow done'),
+        chalk.gray('|'),
+        chalk.gray('seshflow show ' + currentTask.id)
+      );
+      return;
+    }
+
+    // Get next task
+    const nextTask = manager.getNextTask({
+      priority: options.priority,
+      tag: options.tag,
+      assignee: options.assignee
+    });
+
+    spinner.stop();
+
+    if (!nextTask) {
+      console.log(chalk.green('\n🎉 No tasks to work on!'));
+      console.log(chalk.gray('   Add a new task with: seshflow add "Task name"'));
+      return;
+    }
+
+    // Check dependencies
+    const unmetDeps = manager.getUnmetDependencies(nextTask);
+    if (unmetDeps.length > 0) {
+      console.log(chalk.yellow('\n⚠️  Next task has unmet dependencies:'));
+      unmetDeps.forEach(dep => {
+        console.log(chalk.gray(`   • ${dep.title} (${dep.id})`));
+      });
+      console.log(chalk.gray('\n   Complete these tasks first:'));
+      unmetDeps.forEach(dep => {
+        console.log(chalk.gray(`     seshflow show ${dep.id}`));
+      });
+      return;
+    }
+
+    // Start session
+    const sessionSpinner = ora('Starting session').start();
+    manager.startSession(nextTask.id);
+    await manager.saveData();
+    sessionSpinner.succeed('Session started');
+
+    // Display task
+    displayTask(nextTask, true);
+
+    // Switch git branch if configured
+    if (nextTask.gitBranch && options.git) {
+      try {
+        const git = simpleGit();
+        const currentBranch = (await git.branch()).current;
+
+        if (currentBranch !== nextTask.gitBranch) {
+          console.log(chalk.blue(`\n🔄 Git: switching to branch ${nextTask.gitBranch}`));
+          // Note: Actual git operations would go here
+          // await git.checkout(nextTask.gitBranch);
+        }
+      } catch (error) {
+        console.warn(chalk.yellow(`\n⚠️  Git operation skipped: ${error.message}`));
+      }
+    }
+
+    // AI context summary
+    console.log(chalk.bold('\n📋 AI Context:'));
+    console.log(chalk.white(`Current Task: ${nextTask.title}`));
+    console.log(chalk.white(`Description: ${truncate(nextTask.description, 200)}`));
+    if (nextTask.context.relatedFiles.length > 0) {
+      console.log(
+        chalk.white(`Related Files: ${nextTask.context.relatedFiles.join(', ')}`)
+      );
+    }
+    if (nextTask.sessions.length > 0) {
+      const lastSession = nextTask.sessions[nextTask.sessions.length - 1];
+      console.log(
+        chalk.white(`Last Session: ${lastSession.note || 'No notes from last session'}`
+      )
+      );
+    }
+
+    console.log(chalk.blue('\nCommands:'), chalk.gray('seshflow done [options]'));
+  } catch (error) {
+    spinner.fail('Failed to get next task');
+    console.error(chalk.red(`\nError: ${error.message}`));
+    process.exit(1);
+  }
+}

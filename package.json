@@ -1,0 +1,37 @@
+{
+  "name": "seshflow-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Seshflow - 跨对话任务序列器",
+  "scripts": {
+    "dev:cli": "pnpm --filter @seshflow/cli dev",
+    "dev:web": "pnpm --filter @seshflow/web dev",
+    "build": "pnpm -r build",
+    "test": "pnpm -r test",
+    "test:coverage": "pnpm -r test:coverage",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix",
+    "clean": "pnpm -r clean",
+    "preinstall": "npx only-allow pnpm"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "typescript": "^5.3.3",
+    "prettier": "^3.2.4",
+    "eslint": "^8.56.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "keywords": [
+    "task-manager",
+    "git-integration",
+    "ai-assistant",
+    "session-manager",
+    "workflow",
+    "cli"
+  ],
+  "author": "",
+  "license": "MIT"
+}

@@ -1,0 +1,30 @@
+{
+  "name": "@seshflow/shared",
+  "version": "1.0.0",
+  "description": "Seshflow shared types and utilities",
+  "type": "module",
+  "exports": {
+    "./types/task.d.ts": "./types/task.d.ts",
+    "./constants/statuses.js": "./constants/statuses.js"
+  },
+  "files": [
+    "types",
+    "constants",
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "test": "jest",
+    "lint": "eslint types/**/*.ts",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  },
+  "keywords": [
+    "types",
+    "shared"
+  ],
+  "author": "",
+  "license": "MIT"
+}
