@@ -7,6 +7,7 @@ import { add } from '../src/commands/add.js';
 import { next } from '../src/commands/next.js';
 import { done, completeTask } from '../src/commands/done.js';
 import { newchatfirstround } from '../src/commands/newchatfirstround.js';
+import { importTasks } from '../src/commands/import.js';
 
 const program = new Command();
 
@@ -32,6 +33,7 @@ program
   .option('-d, --desc <description>', 'Task description (Markdown supported)')
   .option('-p, --priority <P0|P1|P2|P3>', 'Task priority', 'P2')
   .option('-t, --tags <tags>', 'Comma-separated tags')
+  .option('--tag <tags>', 'Alias for --tags')
   .option('--depends <tasks>', 'Comma-separated task IDs this task depends on')
   .option('-e, --estimate <hours>', 'Estimated hours')
   .option('-a, --assignee <name>', 'Assignee name')
@@ -63,6 +65,14 @@ program
   .option('-h, --hours <number>', 'Hours spent')
   .option('-n, --note <text>', 'Completion notes')
   .action(completeTask);
+
+// Import command
+program
+  .command('import <file>')
+  .description('Import tasks from markdown file')
+  .option('--dry-run', 'Preview tasks without importing')
+  .option('-f, --force', 'Ignore validation warnings')
+  .action(importTasks);
 
 // New chat first round command
 program
