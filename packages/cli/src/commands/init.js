@@ -340,6 +340,42 @@ async function copyTemplateFiles(seshflowDir) {
   }
 }
 
+function getShellHints() {
+  const isWindows = process.platform === 'win32';
+
+  if (!isWindows) {
+    return {
+      shellName: 'bash/zsh',
+      copyCmd: 'cp .seshflow/TASKS.template.md my-tasks.md',
+      viewCmd: 'cat .seshflow/MARKDOWN_IMPORT_GUIDE.md',
+      altShellLabel: 'PowerShell alternative',
+      altCopyCmd: 'Copy-Item .seshflow/TASKS.template.md my-tasks.md',
+      altViewCmd: 'Get-Content .seshflow/MARKDOWN_IMPORT_GUIDE.md'
+    };
+  }
+
+  const isPowerShell = Boolean(process.env.PSModulePath);
+  if (isPowerShell) {
+    return {
+      shellName: 'PowerShell',
+      copyCmd: 'Copy-Item .seshflow/TASKS.template.md my-tasks.md',
+      viewCmd: 'Get-Content .seshflow/MARKDOWN_IMPORT_GUIDE.md',
+      altShellLabel: 'CMD alternative',
+      altCopyCmd: 'copy .seshflow\\TASKS.template.md my-tasks.md',
+      altViewCmd: 'type .seshflow\\MARKDOWN_IMPORT_GUIDE.md'
+    };
+  }
+
+  return {
+    shellName: 'CMD',
+    copyCmd: 'copy .seshflow\\TASKS.template.md my-tasks.md',
+    viewCmd: 'type .seshflow\\MARKDOWN_IMPORT_GUIDE.md',
+    altShellLabel: 'PowerShell alternative',
+    altCopyCmd: 'Copy-Item .seshflow/TASKS.template.md my-tasks.md',
+    altViewCmd: 'Get-Content .seshflow/MARKDOWN_IMPORT_GUIDE.md'
+  };
+}
+
 /**
  * Initialize seshflow workspace
  */
@@ -380,19 +416,26 @@ export async function init(options = {}) {
     console.log(chalk.gray('  .seshflow/TASKS_TEMPLATE_SPEC.md  - 格式规范'));
     console.log(chalk.gray('  .seshflow/MARKDOWN_IMPORT_GUIDE.md - 导入指南'));
 
-    console.log(chalk.blue('\n⚡ Quick start:'));
+    const shellHints = getShellHints();
+
+    console.log(chalk.blue(`\n⚡ Quick start (${shellHints.shellName}):`));
     console.log(chalk.gray('  # Option 1: Add a single task'));
     console.log(chalk.gray('  seshflow add "My first task"'));
     console.log(chalk.gray('  seshflow next'));
     console.log('');
     console.log(chalk.gray('  # Option 2: Batch import tasks (recommended)'));
-    console.log(chalk.gray('  cp .seshflow/TASKS.template.md my-tasks.md'));
+    console.log(chalk.gray(`  ${shellHints.copyCmd}`));
     console.log(chalk.gray('  # Edit my-tasks.md (or use AI to generate)'));
     console.log(chalk.gray('  seshflow import my-tasks.md'));
     console.log(chalk.gray('  seshflow next'));
+    console.log('');
+    console.log(chalk.gray(`  # ${shellHints.altShellLabel}`));
+    console.log(chalk.gray(`  ${shellHints.altCopyCmd}`));
 
     console.log(chalk.blue('\n📖 Learn more:'));
-    console.log(chalk.gray('  cat .seshflow/MARKDOWN_IMPORT_GUIDE.md'));
+    console.log(chalk.gray(`  ${shellHints.viewCmd}`));
+    console.log(chalk.gray(`  # ${shellHints.altShellLabel}`));
+    console.log(chalk.gray(`  ${shellHints.altViewCmd}`));
   } catch (error) {
     spinner.fail('Initialization failed');
     console.error(chalk.red('\nError: ' + error.message));

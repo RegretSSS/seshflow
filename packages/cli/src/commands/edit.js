@@ -26,16 +26,32 @@ export async function edit(taskId, options = {}) {
 
     spinner.stop();
 
+    const description = options.description ?? options.desc;
+    const hasDirectOptions =
+      options.title !== undefined ||
+      options.priority !== undefined ||
+      options.status !== undefined ||
+      description !== undefined ||
+      options.estimate !== undefined ||
+      options.assignee !== undefined ||
+      options.branch !== undefined ||
+      options.tags !== undefined ||
+      options.tag !== undefined;
+
     // If direct options provided, use them
-    if (options.title || options.priority || options.status || options.description !== undefined) {
+    if (hasDirectOptions) {
       // Non-interactive mode
       if (options.title) task.title = options.title;
       if (options.priority) task.priority = options.priority;
       if (options.status) task.status = options.status;
-      if (options.description !== undefined) task.description = options.description;
+      if (description !== undefined) task.description = description;
       if (options.estimate) task.estimatedHours = parseFloat(options.estimate);
       if (options.assignee) task.assignee = options.assignee;
       if (options.branch) task.gitBranch = options.branch;
+      if (options.tags !== undefined || options.tag !== undefined) {
+        const rawTags = options.tags ?? options.tag ?? '';
+        task.tags = rawTags.split(',').map(t => t.trim()).filter(Boolean);
+      }
 
       await manager.saveData();
 
@@ -49,6 +65,12 @@ export async function edit(taskId, options = {}) {
         }, formatWorkspaceJSON(manager.storage, manager.getTasks().length)));
       }
       return;
+    }
+
+    if (!process.stdin.isTTY) {
+      console.error(chalk.red('\n✖ Interactive edit is not available in non-TTY environments.'));
+      console.error(chalk.gray("   Use flags, e.g. seshflow edit <taskId> --title \"...\" --description \"...\""));
+      process.exit(1);
     }
 
     // Interactive mode

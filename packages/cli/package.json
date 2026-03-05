@@ -33,12 +33,12 @@
   ],
   "scripts": {
     "dev": "node bin/seshflow.js",
-    "build": "tsc",
+    "build": "node -e \"console.log('CLI is plain JavaScript; no compilation step required.')\"",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
-    "clean": "rm -rf dist",
+    "clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});\"",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {

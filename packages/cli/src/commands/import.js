@@ -5,6 +5,8 @@ import { TaskManager } from '../core/task-manager.js';
 import { Storage } from '../core/storage.js';
 import crypto from 'crypto';
 
+const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
+
 /**
  * Generate task hash for deduplication
  */
@@ -69,10 +71,10 @@ function parseTaskLine(line, lineNumber, isCompleted = false) {
       continue;
     }
 
-    // Skip if it's dependency (依赖:xxx or dependency:xxx)
-    if (content.match(/^(依赖|dependency):/i)) {
-      const depString = content.replace(/^(依赖|dependency):\s*/i, '');
-      task.dependencies = depString.split(',').map(d => d.trim());
+    // Parse inline dependency metadata
+    const dependencies = parseDependencyToken(content);
+    if (dependencies.length > 0) {
+      task.dependencies.push(...dependencies);
       continue;
     }
 
@@ -83,8 +85,21 @@ function parseTaskLine(line, lineNumber, isCompleted = false) {
 
   // Remove duplicate tags
   task.tags = [...new Set(task.tags)];
+  task.dependencies = [...new Set(task.dependencies)];
 
   return task.title ? task : null;
+}
+
+function parseDependencyToken(content) {
+  if (!DEPENDENCY_PREFIX_RE.test(content)) {
+    return [];
+  }
+
+  return content
+    .replace(DEPENDENCY_PREFIX_RE, '')
+    .split(',')
+    .map(dep => dep.trim())
+    .filter(Boolean);
 }
 
 /**
@@ -147,6 +162,22 @@ async function parseMarkdownFile(filePath) {
       continue;
     }
 
+    // Check for indented metadata/description
+    // Example:
+    //   依赖: 数据模型设计
+    //   这是任务描述
+    const isIndented = /^\s+/.test(rawLine);
+    if (isIndented && currentTask) {
+      const normalized = line.replace(/^[-*]\s*/, '');
+      const dependencies = parseDependencyToken(normalized);
+      if (dependencies.length > 0) {
+        currentTask.dependencies = [...new Set([...(currentTask.dependencies || []), ...dependencies])];
+      } else {
+        currentTask.description = (currentTask.description || '') + normalized + '\n';
+      }
+      continue;
+    }
+
     // Check for task line
     if (line.match(/^-\s*\[[ x]\]/)) {
       const isCompleted = line.match(/^-\s*\[x\]/i) !== null;
@@ -189,22 +220,22 @@ function validateTasks(tasks) {
 
     // Check required fields
     if (!task.title) {
-      errors.push(`任务 ${taskNum}: 缺少标题`);
+      errors.push(`浠诲姟 ${taskNum}: 缂哄皯鏍囬`);
     }
 
     // Check priority
     if (!['P0', 'P1', 'P2', 'P3'].includes(task.priority)) {
-      warnings.push(`任务 ${taskNum}: 无效的优先级 ${task.priority}`);
+      warnings.push(`Task ${taskNum}: invalid priority ${task.priority}`);
     }
 
     // Check hours
     if (task.estimatedHours < 0) {
-      errors.push(`任务 ${taskNum}: 工时不能为负数`);
+      errors.push(`Task ${taskNum}: estimated hours cannot be negative`);
     }
 
-    // Check if task has description but should have one
+    // Warn if large task has no description
     if (!task.description && task.estimatedHours > 4) {
-      warnings.push(`任务 ${taskNum}: 大任务(${task.estimatedHours}h)缺少描述`);
+      warnings.push(`Task ${taskNum}: large task (${task.estimatedHours}h) has no description`);
     }
   });
 
@@ -214,24 +245,36 @@ function validateTasks(tasks) {
 /**
  * Resolve dependencies from numbers/indices to task IDs
  */
-function resolveDependencies(tasks, createdTasks) {
-  createdTasks.forEach((task, index) => {
-    if (task.dependencies && task.dependencies.length > 0) {
-      const resolvedDeps = task.dependencies.map(dep => {
-        // If dependency is a number, resolve to task ID
-        const num = parseInt(dep);
-        if (!isNaN(num)) {
-          const targetIndex = num - 1;
-          if (targetIndex >= 0 && targetIndex < createdTasks.length) {
-            return createdTasks[targetIndex].id;
-          }
-        }
-        // Otherwise return as-is (assuming it's a task ID)
-        return dep;
-      });
+function resolveDependencies(createdTasks, knownTasks = []) {
+  const resolveDependencyRef = (dep) => {
+    const value = String(dep).trim();
+    if (!value) return null;
 
-      task.dependencies = resolvedDeps;
-      task.blockedBy = resolvedDeps;
+    const numericIndex = Number.parseInt(value, 10);
+    if (Number.isInteger(numericIndex) && numericIndex > 0) {
+      const indexedTask = createdTasks[numericIndex - 1];
+      if (indexedTask) return indexedTask.id;
+    }
+
+    if (knownTasks.some(task => task.id === value)) {
+      return value;
+    }
+
+    const byTitle = createdTasks.find(task => task.title === value)
+      || knownTasks.find(task => task.title === value);
+    if (byTitle) return byTitle.id;
+
+    return value;
+  };
+
+  createdTasks.forEach((task) => {
+    if (task.dependencies && task.dependencies.length > 0) {
+      const resolvedDeps = task.dependencies
+        .map(resolveDependencyRef)
+        .filter(Boolean);
+
+      task.dependencies = [...new Set(resolvedDeps)];
+      task.blockedBy = task.dependencies;
     }
   });
 }
@@ -268,16 +311,16 @@ export async function importTasks(filePath, options = {}) {
 
     if (errors.length > 0) {
       spinner.fail('Validation failed');
-      console.error(chalk.red('\n❌ Validation errors:'));
-      errors.forEach((error) => console.error(chalk.red(`  • ${error}`)));
+      console.error(chalk.red('\n鉂?Validation errors:'));
+      errors.forEach((error) => console.error(chalk.red(`  鈥?${error}`)));
       process.exit(1);
     }
 
     // Show warnings if any
     if (warnings.length > 0 && !options.force) {
       spinner.warn('Validation warnings');
-      console.log(chalk.yellow('\n⚠️  Warnings:'));
-      warnings.forEach((warning) => console.log(chalk.yellow(`  • ${warning}`)));
+      console.log(chalk.yellow('\n鈿狅笍  Warnings:'));
+      warnings.forEach((warning) => console.log(chalk.yellow(`  鈥?${warning}`)));
 
       if (!options.dryRun) {
         console.log(chalk.gray('\nUse --force to ignore warnings'));
@@ -287,7 +330,7 @@ export async function importTasks(filePath, options = {}) {
     // Dry run mode
     if (options.dryRun) {
       spinner.succeed('Dry run completed');
-      console.log(chalk.green(`\n✓ Would import ${tasks.length} tasks:\n`));
+      console.log(chalk.green(`\n鉁?Would import ${tasks.length} tasks:\n`));
 
       tasks.forEach((task, index) => {
         const descPreview = task.description ?
@@ -401,7 +444,7 @@ export async function importTasks(filePath, options = {}) {
     await manager.saveData();
 
     // Resolve dependencies (convert numeric indices to task IDs)
-    resolveDependencies(tasks, createdTasks);
+    resolveDependencies(createdTasks, [...existingTasks, ...createdTasks]);
 
     // Update tasks with resolved dependencies and subtasks
     for (const task of createdTasks) {
@@ -419,15 +462,15 @@ export async function importTasks(filePath, options = {}) {
 
     // Display results
     if (results.skipped > 0) {
-      console.log(chalk.cyan(`\n📊 Import Results:`));
-      console.log(chalk.green(`  ✓ Created: ${results.created} new tasks`));
-      console.log(chalk.yellow(`  ⏭ Skipped: ${results.skipped} duplicates`));
+      console.log(chalk.cyan(`\n馃搳 Import Results:`));
+      console.log(chalk.green(`  鉁?Created: ${results.created} new tasks`));
+      console.log(chalk.yellow(`  鈴?Skipped: ${results.skipped} duplicates`));
       if (results.updated > 0) {
-        console.log(chalk.blue(`  ↻ Updated: ${results.updated} tasks`));
+        console.log(chalk.blue(`  鈫?Updated: ${results.updated} tasks`));
       }
     }
 
-    console.log(chalk.green(`\n✓ Processed ${tasks.length} tasks (${results.created} created, ${results.skipped} skipped)\n`));
+    console.log(chalk.green(`\n鉁?Processed ${tasks.length} tasks (${results.created} created, ${results.skipped} skipped)\n`));
 
     // Show imported tasks
     if (results.created > 0) {
@@ -469,7 +512,7 @@ export async function importTasks(filePath, options = {}) {
     }
 
     if (results.skipped > 0 && !options.force) {
-      console.log(chalk.blue('\n💡 Tip: Use --update to update existing tasks'));
+      console.log(chalk.blue('\n馃挕 Tip: Use --update to update existing tasks'));
       console.log(chalk.gray('         Use --force to force create duplicates\n'));
     }
 
@@ -483,7 +526,7 @@ export async function importTasks(filePath, options = {}) {
     console.error(chalk.red(`\nError: ${error.message}`));
 
     if (error.message.includes('unexpected token')) {
-      console.error(chalk.yellow('\n💡 Tip: Make sure your markdown file is properly formatted'));
+      console.error(chalk.yellow('\n馃挕 Tip: Make sure your markdown file is properly formatted'));
       console.error(chalk.gray('Example:'));
       console.error(chalk.gray('  - [ ] Task title [P0] [tag1,tag2] [4h]'));
     }

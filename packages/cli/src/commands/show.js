@@ -4,6 +4,13 @@ import { TaskManager } from '../core/task-manager.js';
 import { formatHours, truncate } from '../utils/helpers.js';
 import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON } from '../utils/json-output.js';
 
+function formatDateTime(value) {
+  if (!value) return 'N/A';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return 'N/A';
+  return date.toLocaleString();
+}
+
 /**
  * Display task details
  */
@@ -13,14 +20,14 @@ function displayTaskDetails(task) {
   console.log(chalk.cyan(`│ ID: ${task.id}`));
   console.log(chalk.cyan(`│ Priority: ${task.priority}`));
   console.log(chalk.cyan(`│ Status: ${task.status}`));
-  console.log(chalk.cyan(`│ Created: ${new Date(task.createdAt).toLocaleString()}`));
+  console.log(chalk.cyan(`│ Created: ${formatDateTime(task.createdAt)}`));
 
   if (task.startedAt) {
-    console.log(chalk.cyan(`│ Started: ${new Date(task.startedAt).toLocaleString()}`));
+    console.log(chalk.cyan(`│ Started: ${formatDateTime(task.startedAt)}`));
   }
 
   if (task.completedAt) {
-    console.log(chalk.cyan(`│ Completed: ${new Date(task.completedAt).toLocaleString()}`));
+    console.log(chalk.cyan(`│ Completed: ${formatDateTime(task.completedAt)}`));
   }
 
   if (task.estimatedHours > 0) {
@@ -99,7 +106,7 @@ function displayTaskDetails(task) {
     console.log(chalk.cyan('│'));
     console.log(chalk.cyan(`│ Sessions (${task.sessions.length}):`));
     task.sessions.slice(-3).forEach((session, index) => {
-      const date = new Date(session.startTime).toLocaleDateString();
+      const date = formatDateTime(session.startedAt || session.startTime);
       const note = session.note ? truncate(session.note, 40) : 'No notes';
       console.log(chalk.cyan(`│   ${date}: ${note}`));
     });

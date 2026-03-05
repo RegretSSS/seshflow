@@ -12,7 +12,7 @@ export async function add(title, options = {}) {
     const manager = new TaskManager();
     await manager.init();
 
-    let description = options.desc || '';
+    let description = options.description ?? options.desc ?? '';
 
     // Interactive description input if not provided
     if (!description && process.stdin.isTTY) {
