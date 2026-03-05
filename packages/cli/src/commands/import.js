@@ -338,6 +338,7 @@ function validateTasks(tasks) {
 
   tasks.forEach((task, index) => {
     const taskNum = index + 1;
+    const taskLabel = task.title ? `"${task.title}"` : `Task ${taskNum}`;
 
     // Check required fields
     if (!task.title) {
@@ -346,17 +347,17 @@ function validateTasks(tasks) {
 
     // Check priority
     if (!['P0', 'P1', 'P2', 'P3'].includes(task.priority)) {
-      warnings.push(`Task ${taskNum}: invalid priority ${task.priority}`);
+      warnings.push(`${taskLabel}: invalid priority ${task.priority}`);
     }
 
     // Check hours
     if (task.estimatedHours < 0) {
-      errors.push(`Task ${taskNum}: estimated hours cannot be negative`);
+      errors.push(`${taskLabel}: estimated hours cannot be negative`);
     }
 
     // Warn if large task has no description
     if (!task.description && task.estimatedHours > 4) {
-      warnings.push(`Task ${taskNum}: large task (${task.estimatedHours}h) has no description`);
+      warnings.push(`${taskLabel}: large task (${task.estimatedHours}h) has no description`);
     }
   });
 

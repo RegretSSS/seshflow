@@ -27,8 +27,10 @@ export async function skip(options = {}) {
 
     await manager.endSession(reason);
     manager.updateTask(currentTask.id, {
-      status: 'blocked',
-      blockedReason: reason,
+      status: 'todo',
+      blockedReason: null,
+      skippedReason: reason,
+      skippedAt: new Date().toISOString(),
     });
     await manager.saveData();
 

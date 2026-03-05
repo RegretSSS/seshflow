@@ -5,6 +5,13 @@ import { formatTaskJSON, formatSuccessResponse, outputJSON, isJSONMode } from '.
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { truncate } from '../utils/helpers.js';
 
+function matchesTag(taskTag, inputTag) {
+  const taskValue = String(taskTag || '').toLowerCase();
+  const inputValue = String(inputTag || '').toLowerCase();
+  if (!taskValue || !inputValue) return false;
+  return taskValue === inputValue || taskValue.includes(inputValue) || inputValue.includes(taskValue);
+}
+
 function displayCompactTask(task) {
   const subtaskInfo = task.subtasks?.length
     ? ` [${task.subtasks.filter(st => st.completed).length}/${task.subtasks.length}]`
@@ -61,8 +68,10 @@ export async function query(options = {}) {
     }
 
     if (tagFilter) {
-      const tags = tagFilter.split(',');
-      filteredTasks = filteredTasks.filter(t => t.tags && t.tags.some(tag => tags.includes(tag)));
+      const tags = tagFilter.split(',').map(tag => tag.trim()).filter(Boolean);
+      filteredTasks = filteredTasks.filter(
+        t => t.tags && t.tags.some(taskTag => tags.some(inputTag => matchesTag(taskTag, inputTag)))
+      );
     }
 
     if (options.assignee) {

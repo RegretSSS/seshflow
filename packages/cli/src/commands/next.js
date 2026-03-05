@@ -56,6 +56,41 @@ function toCompactLine(task) {
   return `${task.id} | ${task.status} | ${task.priority} | ${task.title}`;
 }
 
+function priorityWeight(priority) {
+  return { P0: 0, P1: 1, P2: 2, P3: 3 }[priority] ?? 9;
+}
+
+function formatTaskRef(task) {
+  return `${task.id}:${truncate(task.title || task.id, 50).replace(/\|/g, '/')}`;
+}
+
+function findTopBlockedTask(manager, filters = {}) {
+  let candidates = manager.getTasks().filter(t => t.status === 'todo' || t.status === 'backlog');
+
+  if (filters.priority) {
+    const minWeight = priorityWeight(filters.priority);
+    candidates = candidates.filter(t => priorityWeight(t.priority) <= minWeight);
+  }
+  if (filters.tag) {
+    candidates = candidates.filter(t => t.tags.includes(filters.tag));
+  }
+  if (filters.assignee) {
+    candidates = candidates.filter(t => t.assignee === filters.assignee);
+  }
+
+  const blockedCandidates = candidates
+    .map(task => ({ task, unmetDeps: manager.getUnmetDependencies(task) }))
+    .filter(entry => entry.unmetDeps.length > 0)
+    .sort((a, b) => {
+      if (priorityWeight(a.task.priority) !== priorityWeight(b.task.priority)) {
+        return priorityWeight(a.task.priority) - priorityWeight(b.task.priority);
+      }
+      return new Date(a.task.createdAt) - new Date(b.task.createdAt);
+    });
+
+  return blockedCandidates[0] || null;
+}
+
 function compactTaskContext(task, manager) {
   if (task.description) {
     console.log(`desc=${truncate(task.description.replace(/\s+/g, ' '), 140)}`);
@@ -72,7 +107,7 @@ function compactTaskContext(task, manager) {
   }
   const dependents = manager.getTasks().filter(t => (t.dependencies || []).includes(task.id));
   if (dependents.length > 0) {
-    console.log(`unlocks=${dependents.map(t => t.id).join(',')}`);
+    console.log(`unlocks=${dependents.map(formatTaskRef).join(',')}`);
   }
 }
 
@@ -153,11 +188,27 @@ export async function next(options = {}) {
     spinner?.stop();
 
     if (!nextTask) {
+      const blockedInfo = findTopBlockedTask(manager, {
+        priority: options.priority,
+        tag: options.tag,
+        assignee: options.assignee,
+      });
       if (compactMode) {
-        console.log('NO_TASK');
+        if (blockedInfo) {
+          console.log(`BLOCKED | ${toCompactLine(blockedInfo.task)} | blocked_by=${blockedInfo.unmetDeps.map(formatTaskRef).join(',')}`);
+        } else {
+          console.log('NO_TASK');
+        }
       } else {
-        console.log(chalk.green('\nNo tasks to work on.'));
-        console.log(chalk.gray('  Add a new task with: seshflow add "Task name"'));
+        if (blockedInfo) {
+          console.log(chalk.yellow('\nNo ready task. Top candidate is blocked by:'));
+          blockedInfo.unmetDeps.forEach(dep => {
+            console.log(chalk.gray(`  - ${dep.id} | ${dep.status} | ${dep.title}`));
+          });
+        } else {
+          console.log(chalk.green('\nNo tasks to work on.'));
+          console.log(chalk.gray('  Add a new task with: seshflow add "Task name"'));
+        }
       }
       return;
     }
@@ -165,8 +216,7 @@ export async function next(options = {}) {
     const unmetDeps = manager.getUnmetDependencies(nextTask);
     if (unmetDeps.length > 0) {
       if (compactMode) {
-        const depIds = unmetDeps.map(dep => dep.id).join(',');
-        console.log(`BLOCKED | ${toCompactLine(nextTask)} | deps=${depIds}`);
+        console.log(`BLOCKED | ${toCompactLine(nextTask)} | blocked_by=${unmetDeps.map(formatTaskRef).join(',')}`);
       } else {
         console.log(chalk.yellow('\nNext task has unmet dependencies:'));
         unmetDeps.forEach(dep => {

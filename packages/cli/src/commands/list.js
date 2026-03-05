@@ -87,7 +87,7 @@ export async function list(options = {}) {
     }
 
     if (!options.all && !hasExplicitFilter) {
-      tasks = tasks.filter(task => task.status === 'in-progress' || task.status === 'todo' || task.status === 'backlog');
+      tasks = tasks.filter(task => task.status === 'in-progress' || task.status === 'todo');
     }
 
     let offset = 0;
@@ -106,7 +106,7 @@ export async function list(options = {}) {
       }
       limit = parsedLimit;
     } else if (!options.all) {
-      limit = 20;
+      limit = 10;
     }
 
     const priorityOrder = { P0: 0, P1: 1, P2: 2, P3: 3 };

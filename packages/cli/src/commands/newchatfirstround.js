@@ -5,6 +5,7 @@ import { existsSync } from 'fs';
 import path from 'path';
 import { formatTaskJSON, formatWorkspaceJSON, formatSuccessResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
+import { truncate } from '../utils/helpers.js';
 
 function collectStats(tasks) {
   return {
@@ -27,11 +28,11 @@ function printCompactContext(data) {
   console.log(`CURRENT | ${taskText}`);
 
   if (dependencies.length > 0) {
-    console.log(`DEPS | ${dependencies.map(t => t.id).join(',')}`);
+    console.log(`DEPS | ${dependencies.map(t => `${t.id}:${truncate(t.title || t.id, 40).replace(/\|/g, '/')}`).join(',')}`);
   }
 
   if (dependents.length > 0) {
-    console.log(`DEPENDENTS | ${dependents.map(t => t.id).join(',')}`);
+    console.log(`DEPENDENTS | ${dependents.map(t => `${t.id}:${truncate(t.title || t.id, 40).replace(/\|/g, '/')}`).join(',')}`);
   }
 }
 

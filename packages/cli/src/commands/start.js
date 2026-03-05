@@ -39,8 +39,8 @@ export async function start(taskId, options = {}) {
     if (currentTask && currentTask.id !== task.id) {
       if (!options.force) {
         spinner?.fail('Another session is active');
-        console.error(chalk.yellow(`\nActive session exists: ${currentTask.id} | ${currentTask.title}`));
-        console.error(chalk.gray('Use --force to switch, or run seshflow done / seshflow skip first.'));
+        console.error(chalk.yellow(`\nSession conflict: active task exists (${currentTask.id} | ${currentTask.title})`));
+        console.error(chalk.gray('Use --force to switch task, or run seshflow done / seshflow skip first.'));
         process.exit(1);
       }
 

@@ -97,7 +97,7 @@ program
 // Skip current task
 program
   .command('skip')
-  .description('Skip current task and mark it blocked')
+  .description('Skip current task and return it to todo')
   .option('-r, --reason <text>', 'Reason for skipping')
   .option('-n, --note <text>', 'Alias for --reason')
   .option('--compact', 'Compact output (AI-friendly)')
@@ -214,14 +214,14 @@ program
 
 // Magic command (Skills)
 program
-  .command('magic [skillName]')
+  .command('magic [skillName] [args...]')
   .description('Execute magic commands (Skills) - use --list to see all')
   .option('-l, --list', 'List all available skills')
-  .action(async (skillName, options) => {
+  .action(async (skillName, args, options) => {
     if (options.list || !skillName) {
       await magicList();
     } else {
-      await magic(skillName);
+      await magic(skillName, ...(args || []));
     }
   });
 

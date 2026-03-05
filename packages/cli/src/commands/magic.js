@@ -215,6 +215,7 @@ export async function magicList() {
   });
 
   console.log(chalk.gray('Usage: seshflow magic <skill-name>\n'));
+  console.log(chalk.gray('Example: seshflow magic batch-done <task-id> 1,2,3\n'));
 }
 
 export async function magic(skillName, ...args) {

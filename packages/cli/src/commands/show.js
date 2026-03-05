@@ -27,11 +27,14 @@ function displayCompact(task, blockers = []) {
     console.log(`desc=${truncate(task.description.replace(/\s+/g, ' '), 160)}`);
   }
   if (task.subtasks?.length) {
-    const preview = task.subtasks
-      .slice(0, 8)
-      .map(st => `${st.completed ? '[x]' : '[ ]'} ${truncate(st.title, 36)}`)
-      .join(' ; ');
-    console.log(`subtasks=${preview}`);
+    const preview = task.subtasks.slice(0, 6);
+    console.log(`subtasks=${progress.done}/${progress.total}`);
+    preview.forEach((st, index) => {
+      console.log(`subtask_${index + 1}=${st.completed ? '[x]' : '[ ]'} ${truncate(st.title, 48)}`);
+    });
+    if (task.subtasks.length > preview.length) {
+      console.log(`subtask_more=${task.subtasks.length - preview.length}`);
+    }
   }
   if (task.dependencies?.length) {
     console.log(`deps=${task.dependencies.join(',')}`);
