@@ -156,4 +156,5 @@ MIT License
 
 - Lightweight skill: [docs/skills/seshflow-light/SKILL.md](docs/skills/seshflow-light/SKILL.md)
 - Install guide: [docs/skills/INSTALL.md](docs/skills/INSTALL.md)
+- Note: npm/pnpm installs the CLI only; install the skill from GitHub per guide.
 

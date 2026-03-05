@@ -1,18 +1,20 @@
 # Install Seshflow Light Skill
 
-This document explains how to install `seshflow-light` into Codex skills.
+This skill is distributed from the GitHub repository.
 
-## Option A: Install from local repo (PowerShell)
+Note: installing `seshflow` with npm/pnpm only installs the CLI, not Codex skill files.
+
+## Option A (recommended): Download from GitHub (PowerShell)
 
 ```powershell
-$repo = "D:\path\to\seshflow"
-$src = "$repo\docs\skills\seshflow-light"
 $dst = "$HOME\.codex\skills\seshflow-light"
 New-Item -ItemType Directory -Force -Path $dst | Out-Null
-Copy-Item -Recurse -Force "$src\*" $dst
+Invoke-WebRequest `
+  -Uri "https://raw.githubusercontent.com/RegretSSS/seshflow/master/docs/skills/seshflow-light/SKILL.md" `
+  -OutFile "$dst\SKILL.md"
 ```
 
-## Option B: Install from GitHub clone (PowerShell)
+## Option B: Install from local cloned repo (PowerShell)
 
 ```powershell
 git clone https://github.com/RegretSSS/seshflow.git
@@ -24,15 +26,11 @@ Copy-Item -Recurse -Force "$src\*" $dst
 
 ## Verify
 
-Check that this file exists:
-
 ```powershell
 Get-Item "$HOME\.codex\skills\seshflow-light\SKILL.md"
 ```
 
 ## Use
-
-Mention skill by name in prompt:
 
 ```text
 Use seshflow-light skill to run this task workflow.
