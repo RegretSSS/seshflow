@@ -333,7 +333,32 @@ async function copyTemplateFiles(seshflowDir) {
     {
       source: path.join(projectRoot, 'TASKS_TEMPLATE_SPEC.md'),
       target: path.join(seshflowDir, 'TASKS_TEMPLATE_SPEC.md'),
-      fallback: '# TASKS Template Spec\n\nUse `seshflow validate <file>` before import.\n',
+      fallback: `# Seshflow Tasks Template Spec
+
+Use \`seshflow validate <file>\` before import.
+
+## Task format
+
+\`\`\`markdown
+- [ ] Task title [P0] [tag1,tag2] [4h] [依赖:Task A,Task B]
+> Optional task description
+  - [ ] Subtask A [1h]
+  - [ ] Subtask B [2h]
+\`\`\`
+
+## Priority
+
+- [P0] urgent
+- [P1] high
+- [P2] normal
+- [P3] low
+
+## Notes
+
+- Subtasks should be indented by 2 spaces.
+- Dependencies can reference task title, index, or task_id.
+- Use \`seshflow import <file>\` after validation.
+`,
     },
     {
       source: path.join(projectRoot, 'MARKDOWN_IMPORT_GUIDE.md'),

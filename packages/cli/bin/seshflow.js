@@ -113,6 +113,7 @@ program
   .option('-p, --priority <P0|P1|P2|P3>', 'Filter by priority')
   .option('-s, --status <statuses>', 'Filter by status (comma-separated)')
   .option('-t, --tags <tags>', 'Filter by tags (comma-separated)')
+  .option('--tag <tags>', 'Alias for --tags')
   .option('-a, --assignee <name>', 'Filter by assignee')
   .option('-l, --limit <number>', 'Limit number of tasks displayed')
   .option('--json', 'Output as JSON')

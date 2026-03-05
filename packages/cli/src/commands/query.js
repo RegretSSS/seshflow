@@ -51,6 +51,7 @@ export async function query(options = {}) {
   try {
     const manager = new TaskManager();
     await manager.init();
+    const tagFilter = options.tags || options.tag;
 
     // Get all tasks
     const allTasks = manager.getTasks();
@@ -70,8 +71,8 @@ export async function query(options = {}) {
     }
 
     // Filter by tags
-    if (options.tags) {
-      const tags = options.tags.split(',');
+    if (tagFilter) {
+      const tags = tagFilter.split(',');
       filteredTasks = filteredTasks.filter(t =>
         t.tags && t.tags.some(tag => tags.includes(tag))
       );
@@ -103,7 +104,7 @@ export async function query(options = {}) {
         filters: {
           priority: options.priority || null,
           status: options.status || null,
-          tags: options.tags || null,
+          tags: tagFilter || null,
           assignee: options.assignee || null,
           limit: options.limit ? Number.parseInt(options.limit, 10) : null,
         },
@@ -127,7 +128,7 @@ export async function query(options = {}) {
     const activeFilters = [];
     if (options.priority) activeFilters.push(`priority: ${options.priority}`);
     if (options.status) activeFilters.push(`status: ${options.status}`);
-    if (options.tags) activeFilters.push(`tags: ${options.tags}`);
+    if (tagFilter) activeFilters.push(`tags: ${tagFilter}`);
     if (options.assignee) activeFilters.push(`assignee: ${options.assignee}`);
     if (options.limit) activeFilters.push(`limit: ${options.limit}`);
 
