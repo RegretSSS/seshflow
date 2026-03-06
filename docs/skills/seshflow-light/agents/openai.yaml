@@ -1,0 +1,7 @@
+interface:
+  display_name: "Seshflow Light"
+  short_description: "Low-context seshflow workflow with init/ncfr-first progressive command reveal."
+  default_prompt: "Use $seshflow-light to bootstrap this repo with init/ncfr-first flow and suggest the next command by intent."
+
+policy:
+  allow_implicit_invocation: true

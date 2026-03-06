@@ -61,8 +61,17 @@ seshflow import tasks.md
 
 ## AI 使用示例
 
+`ncfr` 的全称是 `NewChatFirstRound`。
+
+每次开启新的 AI 对话，必须先执行：
+
 ```bash
 seshflow ncfr --json
+```
+
+这是新对话中的第一步，在执行 `next/show/query` 前必须先跑一次。
+
+```bash
 seshflow next --json
 seshflow show <task-id> --json
 seshflow query --priority P0 --json

@@ -61,8 +61,17 @@ Defaults:
 
 ## AI Usage
 
+`ncfr` means `NewChatFirstRound`.
+
+For every new AI chat session, you must start with:
+
 ```bash
 seshflow ncfr --json
+```
+
+This is the required first step before any `next/show/query` command in a new conversation.
+
+```bash
 seshflow next --json
 seshflow show <task-id> --json
 seshflow query --priority P0 --json

@@ -38,7 +38,6 @@ function printCompactContext(data) {
   const {
     project,
     stats,
-    task,
     currentTask,
     nextReadyTask,
     dependencies,
@@ -47,15 +46,17 @@ function printCompactContext(data) {
     recentlyCompleted,
     keyFiles,
   } = data;
-  const taskText = task
-    ? `${task.id} | ${task.status} | ${task.priority} | ${task.title}`
-    : 'none';
-
   console.log(`PROJECT | ${project.name} | tasks=${stats.total} | done=${stats.completed} | in_progress=${stats.inProgress}`);
-  console.log(`BRANCH | ${project.gitBranch}`);
+  if (project.gitBranch && project.gitBranch !== 'unknown') {
+    console.log(`BRANCH | ${project.gitBranch}`);
+  }
   console.log(`STATS | total=${stats.total} | done=${stats.completed} | in_progress=${stats.inProgress} | todo=${stats.todo} | backlog=${stats.backlog} | blocked=${stats.blocked}`);
-  console.log(`CURRENT | ${currentTask ? taskText : 'none'}`);
-  console.log(`NEXT | ${nextReadyTask ? `${nextReadyTask.id} | ${nextReadyTask.status} | ${nextReadyTask.priority} | ${nextReadyTask.title}` : 'none'}`);
+  if (currentTask) {
+    console.log(`CURRENT | ${currentTask.id} | ${currentTask.status} | ${currentTask.priority} | ${currentTask.title}`);
+  }
+  if (nextReadyTask) {
+    console.log(`NEXT | ${nextReadyTask.id} | ${nextReadyTask.status} | ${nextReadyTask.priority} | ${nextReadyTask.title}`);
+  }
 
   if (dependencies.length > 0) {
     console.log(`DEPS | ${dependencies.map(t => taskRef(t, false)).join(',')}`);
@@ -79,7 +80,7 @@ function printCompactContext(data) {
 }
 
 function printPrettyContext(data, options = {}) {
-  const { project, stats, task, currentTask, nextReadyTask, dependencies, dependents, keyFiles, blockedTasks, recentlyCompleted } = data;
+  const { project, stats, currentTask, nextReadyTask, dependencies, dependents, keyFiles, blockedTasks, recentlyCompleted } = data;
 
   console.log(chalk.bold.cyan('\nSeshflow Project Context\n'));
   console.log(chalk.bold('Project'));
@@ -94,9 +95,7 @@ function printPrettyContext(data, options = {}) {
   console.log(chalk.gray(`  Done: ${stats.completed} | In Progress: ${stats.inProgress} | Todo: ${stats.todo} | Backlog: ${stats.backlog} | Blocked: ${stats.blocked}`));
 
   console.log(chalk.bold('\nCurrent Task'));
-  if (!currentTask) {
-    console.log(chalk.gray('  None'));
-  } else {
+  if (currentTask) {
     console.log(chalk.white(`  ${currentTask.title}`));
     console.log(chalk.gray(`  ${currentTask.id} | ${currentTask.priority} | ${currentTask.status}`));
     if (currentTask.tags?.length > 0) {
@@ -109,9 +108,7 @@ function printPrettyContext(data, options = {}) {
   }
 
   console.log(chalk.bold('\nNext Ready Task'));
-  if (!nextReadyTask) {
-    console.log(chalk.gray('  None'));
-  } else {
+  if (nextReadyTask) {
     console.log(chalk.white(`  ${nextReadyTask.title}`));
     console.log(chalk.gray(`  ${nextReadyTask.id} | ${nextReadyTask.priority} | ${nextReadyTask.status}`));
   }
@@ -144,8 +141,7 @@ function printPrettyContext(data, options = {}) {
   if (recentlyCompleted.length > 0) {
     console.log(chalk.bold('\nRecently Completed'));
     recentlyCompleted.forEach(item => {
-      const when = item.completedAt ? new Date(item.completedAt).toLocaleString() : 'unknown';
-      console.log(chalk.gray(`  - ${item.id} | ${item.priority} | ${item.title} | ${when}`));
+      console.log(chalk.gray(`  - ${item.id} | ${item.priority} | ${item.title}`));
     });
   }
 

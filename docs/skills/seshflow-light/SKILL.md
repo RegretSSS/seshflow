@@ -1,55 +1,65 @@
+---
+name: seshflow-light
+description: Lightweight progressive-disclosure workflow for repositories using seshflow. Use when an AI assistant should start each new conversation with minimal context cost by running seshflow init (if needed) and seshflow ncfr --json first, then reveal only one intent-matched next command at a time.
+---
+
 # seshflow-light
 
-Lightweight skill for AI assistants using `seshflow` in real projects.
+Lightweight skill for AI assistants using `seshflow` with progressive disclosure.
 
-## When to use
+## Disclosure model (important)
 
-- You are in a repo that uses `seshflow`.
-- You need minimal, repeatable task flow.
-- You want low context cost and stable command patterns.
+Expose only two commands up front:
 
-## Core policy
+1. `seshflow init`
+2. `seshflow ncfr --json`
 
-1. Prefer `--json` for machine steps.
-2. Keep command set small.
-3. Do not add process complexity.
-4. Fix blockers first, then continue task flow.
+Everything else must be introduced only when needed by intent.
 
-## Standard flow
+## One-time bootstrap per conversation
 
-1. Load context:
+Run these at most once per new conversation:
+
+1. Initialize workspace if missing:
+   - `seshflow init`
+2. Load context snapshot:
    - `seshflow ncfr --json`
-2. Pick current work:
-   - `seshflow next --json`
-3. Execute code/test loop in the repo.
-4. Complete task:
-   - `seshflow done --note "<what changed>"`
-   - Add `--hours` only if the team requires time tracking.
-5. Move forward:
-   - `seshflow next --json`
 
-## Fast diagnostics
+Do not repeatedly run `init` or `ncfr` unless user asks to refresh context explicitly.
 
-- Task list:
-  - `seshflow list --json`
-- Filtered query:
-  - `seshflow query --priority P0 --status todo --json`
-- Dependency check:
-  - `seshflow deps <taskId> --json`
-- Progress:
-  - `seshflow stats --json`
+## Intent-based next-step hints
 
-## Error handling
+After `init`, suggest one next step based on user intent:
 
-- Unknown task id:
-  - run `seshflow list --json`, then retry with valid id.
-- Import/format issue:
-  - run `seshflow validate <file>`, fix warnings, re-import.
-- Blocked task:
-  - use `deps` output and switch to unblocked P0/P1 work.
+- If user wants to start work now:
+  - suggest `seshflow next --json`
+- If user wants to review backlog first:
+  - suggest `seshflow list --json`
+- If user wants to import tasks:
+  - suggest `seshflow import <file>`
 
-## Scope guardrails
+After `ncfr --json`, suggest one next step based on detected state:
 
-- Do not add team-collaboration, notification, or UI workflows here.
-- Do not require extra tools to use this skill.
-- Keep this skill as an execution guide, not a framework.
+- If there is an active task/session:
+  - suggest `seshflow show <taskId> --json` or continue coding directly
+- If there is no active session and ready tasks exist:
+  - suggest `seshflow next --json`
+- If top candidate is blocked:
+  - suggest `seshflow deps <taskId> --json`
+
+## On-demand command reveal
+
+Only reveal commands that match the immediate user intent:
+
+- Execution: `next`, `start`, `done`
+- Inspection: `show`, `list`, `query`, `stats`, `deps`
+- Data flow: `import`, `export`, `validate`
+
+Prefer `--json` for machine steps.
+
+## Guardrails
+
+- Keep command set minimal in each turn.
+- Do not introduce process complexity unless requested.
+- Fix blockers first, then resume flow.
+- This skill is an execution guide, not a full framework.

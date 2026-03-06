@@ -5,13 +5,6 @@ import { truncate } from '../utils/helpers.js';
 import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 
-function formatDateTime(value) {
-  if (!value) return 'N/A';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'N/A';
-  return date.toLocaleString();
-}
-
 function subtaskProgress(task) {
   const total = task.subtasks?.length || 0;
   const done = task.subtasks?.filter(st => st.completed).length || 0;
@@ -51,14 +44,6 @@ function displayPretty(task, blockers = []) {
   console.log(chalk.cyan(`  ID: ${task.id}`));
   console.log(chalk.cyan(`  Priority: ${task.priority}`));
   console.log(chalk.cyan(`  Status: ${task.status}`));
-  console.log(chalk.cyan(`  Created: ${formatDateTime(task.createdAt)}`));
-
-  if (task.startedAt) {
-    console.log(chalk.cyan(`  Started: ${formatDateTime(task.startedAt)}`));
-  }
-  if (task.completedAt) {
-    console.log(chalk.cyan(`  Completed: ${formatDateTime(task.completedAt)}`));
-  }
   if (task.actualHours > 0) {
     console.log(chalk.cyan(`  Actual: ${task.actualHours}h`));
   }
@@ -108,9 +93,8 @@ function displayPretty(task, blockers = []) {
   if (task.sessions?.length > 0) {
     console.log(chalk.cyan(`\n  Sessions (${task.sessions.length}):`));
     task.sessions.slice(-3).forEach(session => {
-      const date = formatDateTime(session.startedAt || session.startTime);
       const note = session.note ? truncate(session.note, 60) : 'No notes';
-      console.log(chalk.cyan(`    ${date}: ${note}`));
+      console.log(chalk.cyan(`    - ${note}`));
     });
   }
 }
