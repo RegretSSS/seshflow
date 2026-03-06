@@ -150,11 +150,21 @@ export async function list(options = {}) {
     }
 
     if (tasks.length === 0) {
+      const noActionableOnly = !options.all && !hasExplicitFilter;
       if (compactMode) {
-        console.log('NO_TASKS');
+        if (noActionableOnly) {
+          console.log('NO_ACTIONABLE_TASKS | hint=use --all');
+        } else {
+          console.log('NO_TASKS');
+        }
       } else {
-        console.log(chalk.yellow('\nNo tasks found.'));
-        console.log(chalk.gray('  Try adjusting filters or add new tasks'));
+        if (noActionableOnly) {
+          console.log(chalk.yellow('\nNo actionable tasks found.'));
+          console.log(chalk.gray('  Use --all to see all tasks'));
+        } else {
+          console.log(chalk.yellow('\nNo tasks found.'));
+          console.log(chalk.gray('  Try adjusting filters or add new tasks'));
+        }
       }
       return;
     }

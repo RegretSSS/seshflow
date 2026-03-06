@@ -208,7 +208,7 @@ export async function newchatfirstround(options = {}) {
       project: {
         name: projectName,
         path: workspacePath,
-        gitBranch: gitBranch || 'unknown',
+        gitBranch: gitBranch || null,
       },
       stats,
       task,
