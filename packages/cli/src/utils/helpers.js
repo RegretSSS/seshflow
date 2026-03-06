@@ -2,12 +2,11 @@ import { v4 as uuidv4 } from 'uuid';
 
 /**
  * Generate a unique task ID
- * @returns {string} Task ID in format timestamp_random
+ * @returns {string} Task ID in format task_<6-char>
  */
 export function generateTaskId() {
-  const timestamp = Date.now();
-  const random = Math.random().toString(36).substring(2, 6);
-  return `task_${timestamp}_${random}`;
+  const random = uuidv4().replace(/-/g, '').slice(0, 6).toLowerCase();
+  return `task_${random}`;
 }
 
 /**
@@ -45,8 +44,19 @@ export function toISOString(date = new Date()) {
  * @returns {object} Parsed components
  */
 export function parseTaskId(id) {
-  const [prefix, timestamp, random] = id.split('_');
-  return { prefix, timestamp, random };
+  const parts = String(id || '').split('_');
+  const prefix = parts[0] || '';
+
+  // Legacy: task_<timestamp>_<random>
+  if (parts.length >= 3) {
+    const timestamp = parts[1];
+    const random = parts.slice(2).join('_');
+    return { prefix, timestamp, random, short: random };
+  }
+
+  // Current: task_<short>
+  const short = parts[1] || '';
+  return { prefix, timestamp: null, random: short, short };
 }
 
 /**
