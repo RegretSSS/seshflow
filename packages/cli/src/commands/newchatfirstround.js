@@ -18,26 +18,68 @@ function collectStats(tasks) {
   };
 }
 
+function priorityWeight(priority) {
+  return { P0: 0, P1: 1, P2: 2, P3: 3 }[priority] ?? 9;
+}
+
+function sortByPriorityAndCreated(a, b) {
+  if (priorityWeight(a.priority) !== priorityWeight(b.priority)) {
+    return priorityWeight(a.priority) - priorityWeight(b.priority);
+  }
+  return new Date(a.createdAt) - new Date(b.createdAt);
+}
+
+function taskRef(task, withStatus = true) {
+  const head = withStatus ? `${task.id}:${task.status}:${task.priority}` : task.id;
+  return `${head}:${truncate(task.title || task.id, 44).replace(/\|/g, '/')}`;
+}
+
 function printCompactContext(data) {
-  const { project, stats, task, dependencies, dependents } = data;
+  const {
+    project,
+    stats,
+    task,
+    currentTask,
+    nextReadyTask,
+    dependencies,
+    dependents,
+    blockedTasks,
+    recentlyCompleted,
+    keyFiles,
+  } = data;
   const taskText = task
     ? `${task.id} | ${task.status} | ${task.priority} | ${task.title}`
     : 'none';
 
   console.log(`PROJECT | ${project.name} | tasks=${stats.total} | done=${stats.completed} | in_progress=${stats.inProgress}`);
-  console.log(`CURRENT | ${taskText}`);
+  console.log(`BRANCH | ${project.gitBranch}`);
+  console.log(`STATS | total=${stats.total} | done=${stats.completed} | in_progress=${stats.inProgress} | todo=${stats.todo} | backlog=${stats.backlog} | blocked=${stats.blocked}`);
+  console.log(`CURRENT | ${currentTask ? taskText : 'none'}`);
+  console.log(`NEXT | ${nextReadyTask ? `${nextReadyTask.id} | ${nextReadyTask.status} | ${nextReadyTask.priority} | ${nextReadyTask.title}` : 'none'}`);
 
   if (dependencies.length > 0) {
-    console.log(`DEPS | ${dependencies.map(t => `${t.id}:${truncate(t.title || t.id, 40).replace(/\|/g, '/')}`).join(',')}`);
+    console.log(`DEPS | ${dependencies.map(t => taskRef(t, false)).join(',')}`);
   }
 
   if (dependents.length > 0) {
-    console.log(`DEPENDENTS | ${dependents.map(t => `${t.id}:${truncate(t.title || t.id, 40).replace(/\|/g, '/')}`).join(',')}`);
+    console.log(`DEPENDENTS | ${dependents.map(t => taskRef(t, false)).join(',')}`);
+  }
+
+  if (blockedTasks.length > 0) {
+    console.log(`BLOCKED_TOP | ${blockedTasks.map(item => taskRef(item.task)).join(',')}`);
+  }
+
+  if (recentlyCompleted.length > 0) {
+    console.log(`RECENT_DONE | ${recentlyCompleted.map(t => taskRef(t, false)).join(',')}`);
+  }
+
+  if (keyFiles.length > 0) {
+    console.log(`KEY_FILES | ${keyFiles.join(',')}`);
   }
 }
 
 function printPrettyContext(data, options = {}) {
-  const { project, stats, task, dependencies, dependents, keyFiles } = data;
+  const { project, stats, task, currentTask, nextReadyTask, dependencies, dependents, keyFiles, blockedTasks, recentlyCompleted } = data;
 
   console.log(chalk.bold.cyan('\nSeshflow Project Context\n'));
   console.log(chalk.bold('Project'));
@@ -52,18 +94,26 @@ function printPrettyContext(data, options = {}) {
   console.log(chalk.gray(`  Done: ${stats.completed} | In Progress: ${stats.inProgress} | Todo: ${stats.todo} | Backlog: ${stats.backlog} | Blocked: ${stats.blocked}`));
 
   console.log(chalk.bold('\nCurrent Task'));
-  if (!task) {
+  if (!currentTask) {
     console.log(chalk.gray('  None'));
   } else {
-    console.log(chalk.white(`  ${task.title}`));
-    console.log(chalk.gray(`  ${task.id} | ${task.priority} | ${task.status}`));
-    if (task.tags?.length > 0) {
-      console.log(chalk.gray(`  Tags: ${task.tags.join(', ')}`));
+    console.log(chalk.white(`  ${currentTask.title}`));
+    console.log(chalk.gray(`  ${currentTask.id} | ${currentTask.priority} | ${currentTask.status}`));
+    if (currentTask.tags?.length > 0) {
+      console.log(chalk.gray(`  Tags: ${currentTask.tags.join(', ')}`));
     }
-    if (task.subtasks?.length > 0) {
-      const done = task.subtasks.filter(s => s.completed).length;
-      console.log(chalk.gray(`  Subtasks: ${done}/${task.subtasks.length}`));
+    if (currentTask.subtasks?.length > 0) {
+      const done = currentTask.subtasks.filter(s => s.completed).length;
+      console.log(chalk.gray(`  Subtasks: ${done}/${currentTask.subtasks.length}`));
     }
+  }
+
+  console.log(chalk.bold('\nNext Ready Task'));
+  if (!nextReadyTask) {
+    console.log(chalk.gray('  None'));
+  } else {
+    console.log(chalk.white(`  ${nextReadyTask.title}`));
+    console.log(chalk.gray(`  ${nextReadyTask.id} | ${nextReadyTask.priority} | ${nextReadyTask.status}`));
   }
 
   if (dependencies.length > 0) {
@@ -77,6 +127,25 @@ function printPrettyContext(data, options = {}) {
     console.log(chalk.bold('\nDependent Tasks'));
     dependents.forEach(dep => {
       console.log(chalk.gray(`  - ${dep.id} | ${dep.status} | ${dep.title}`));
+    });
+  }
+
+  if (blockedTasks.length > 0) {
+    console.log(chalk.bold('\nBlocked Snapshot'));
+    blockedTasks.forEach(item => {
+      const blockers = item.blockers.length > 0
+        ? item.blockers.map(t => `${t.id}:${truncate(t.title || t.id, 28)}`).join(', ')
+        : 'unknown';
+      console.log(chalk.gray(`  - ${item.task.id} | ${item.task.priority} | ${item.task.title}`));
+      console.log(chalk.gray(`    blockers: ${blockers}`));
+    });
+  }
+
+  if (recentlyCompleted.length > 0) {
+    console.log(chalk.bold('\nRecently Completed'));
+    recentlyCompleted.forEach(item => {
+      const when = item.completedAt ? new Date(item.completedAt).toLocaleString() : 'unknown';
+      console.log(chalk.gray(`  - ${item.id} | ${item.priority} | ${item.title} | ${when}`));
     });
   }
 
@@ -98,7 +167,7 @@ function printPrettyContext(data, options = {}) {
 export async function newchatfirstround(options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
-  const spinner = compactMode ? null : ora('Loading project context').start();
+  const spinner = (!compactMode && process.stdout.isTTY) ? ora('Loading project context').start() : null;
 
   try {
     const manager = new TaskManager();
@@ -112,7 +181,7 @@ export async function newchatfirstround(options = {}) {
     const stats = collectStats(allTasks);
 
     const currentTask = manager.getCurrentTask();
-    const nextTask = currentTask ? null : manager.getNextTask();
+    const nextTask = manager.getNextTask();
     const task = currentTask || nextTask;
 
     let dependencies = [];
@@ -121,6 +190,20 @@ export async function newchatfirstround(options = {}) {
       dependencies = manager.getUnmetDependencies(task);
       dependents = allTasks.filter(t => t.dependencies && t.dependencies.includes(task.id));
     }
+
+    const blockedTasks = allTasks
+      .filter(t => (t.status === 'todo' || t.status === 'backlog' || t.status === 'blocked') && manager.getUnmetDependencies(t).length > 0)
+      .sort(sortByPriorityAndCreated)
+      .slice(0, 5)
+      .map(taskItem => ({
+        task: taskItem,
+        blockers: manager.getUnmetDependencies(taskItem),
+      }));
+
+    const recentlyCompleted = allTasks
+      .filter(t => t.status === 'done')
+      .sort((a, b) => new Date(b.completedAt || b.updatedAt || 0) - new Date(a.completedAt || a.updatedAt || 0))
+      .slice(0, 5);
 
     const keyFiles = ['README.md', 'docs.md', 'QUICKSTART.md', 'ARCHITECTURE.md', 'API.md']
       .filter(file => existsSync(path.join(workspacePath, file)));
@@ -133,8 +216,12 @@ export async function newchatfirstround(options = {}) {
       },
       stats,
       task,
+      currentTask,
+      nextReadyTask: nextTask,
       dependencies,
       dependents,
+      blockedTasks,
+      recentlyCompleted,
       keyFiles,
     };
 
@@ -156,6 +243,22 @@ export async function newchatfirstround(options = {}) {
           title: t.title,
           status: t.status,
           priority: t.priority,
+        })),
+        nextReadyTask: nextTask ? formatTaskJSON(nextTask) : null,
+        blockedTasks: blockedTasks.map(item => ({
+          task: formatTaskJSON(item.task),
+          blockers: item.blockers.map(blocker => ({
+            id: blocker.id,
+            title: blocker.title,
+            status: blocker.status,
+            priority: blocker.priority,
+          })),
+        })),
+        recentlyCompleted: recentlyCompleted.map(t => ({
+          id: t.id,
+          title: t.title,
+          priority: t.priority,
+          completedAt: t.completedAt || null,
         })),
         keyFiles,
       }, workspaceJSON));
