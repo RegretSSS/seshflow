@@ -69,20 +69,22 @@ program
 
 // Done command
 program
-  .command('done')
-  .description('Complete current task')
+  .command('done [taskId]')
+  .description('Complete current task or a specific task by ID')
   .option('-h, --hours <number>', 'Advanced: hours spent')
   .option('-n, --note <text>', 'Completion notes')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .action(done);
 
-// Complete specific task
+// Complete specific task (compatibility alias)
 program
   .command('complete <taskId>')
-  .description('Complete a specific task')
+  .description('Alias of done <taskId>')
   .option('-h, --hours <number>', 'Advanced: hours spent')
   .option('-n, --note <text>', 'Completion notes')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
   .action(completeTask);
 
 // Start specific task

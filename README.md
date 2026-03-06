@@ -36,12 +36,16 @@ seshflow import tasks.md
 - `seshflow list`
 - `seshflow next`
 - `seshflow start <taskId>`
-- `seshflow done`
+- `seshflow done [taskId]`
 - `seshflow show <taskId>`
 - `seshflow query`
 - `seshflow stats`
 - `seshflow import <file>`
 - `seshflow export [output]`
+
+Compatibility:
+
+- `seshflow complete <taskId>` is kept as an alias of `seshflow done <taskId>`.
 
 ## Output Modes
 

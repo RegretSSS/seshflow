@@ -30,7 +30,24 @@ function getUnlockedTasks(tasks, completedTaskId) {
   });
 }
 
-export async function done(options = {}) {
+function normalizeDoneInput(taskIdOrOptions, maybeOptions) {
+  if (typeof taskIdOrOptions === 'string') {
+    return {
+      taskId: taskIdOrOptions,
+      options: maybeOptions || {},
+      fromExplicitTaskId: true,
+    };
+  }
+
+  return {
+    taskId: null,
+    options: taskIdOrOptions || {},
+    fromExplicitTaskId: false,
+  };
+}
+
+export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
+  const { taskId, options, fromExplicitTaskId } = normalizeDoneInput(taskIdOrOptions, maybeOptions);
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const spinner = compactMode ? null : ora('Loading workspace').start();
@@ -39,8 +56,21 @@ export async function done(options = {}) {
     const manager = new TaskManager();
     await manager.init();
 
+    let targetTask = null;
     const currentTask = manager.getCurrentTask();
-    if (!currentTask) {
+    if (fromExplicitTaskId) {
+      targetTask = manager.getTask(taskId);
+      if (!targetTask) {
+        spinner?.stop();
+        console.error(chalk.red(`\nTask not found: ${taskId}`));
+        console.error(chalk.gray(`  Use 'seshflow list' to see all tasks`));
+        process.exit(1);
+      }
+    } else {
+      targetTask = currentTask;
+    }
+
+    if (!targetTask) {
       spinner?.stop();
       if (compactMode) {
         console.log('NO_ACTIVE_SESSION');
@@ -79,7 +109,7 @@ export async function done(options = {}) {
     }
 
     const completeSpinner = compactMode ? null : ora('Completing task').start();
-    await manager.completeTask(currentTask.id, {
+    await manager.completeTask(targetTask.id, {
       hours,
       note
     });
@@ -88,11 +118,11 @@ export async function done(options = {}) {
 
     const allTasksAfter = manager.getTasks();
     const progressAfter = getProgress(allTasksAfter);
-    const unlockedTasks = getUnlockedTasks(allTasksAfter, currentTask.id);
+    const unlockedTasks = getUnlockedTasks(allTasksAfter, targetTask.id);
     const nextTask = manager.getNextTask();
 
     if (compactMode) {
-      console.log(`DONE | ${currentTask.id} | ${currentTask.title}${hours ? ` | hours=${hours}` : ''}`);
+      console.log(`DONE | ${targetTask.id} | ${targetTask.title}${hours ? ` | hours=${hours}` : ''}`);
       console.log(`PROGRESS | ${progressBefore.done}/${progressBefore.total} -> ${progressAfter.done}/${progressAfter.total} (${progressAfter.percent}%)`);
       if (unlockedTasks.length > 0) {
         console.log(`UNLOCKED | ${unlockedTasks.map(task => task.id).join(',')}`);
@@ -103,8 +133,8 @@ export async function done(options = {}) {
       return;
     }
 
-    console.log(chalk.green(`\nTask completed: ${currentTask.title}`));
-    console.log(chalk.gray(`  ID: ${currentTask.id}`));
+    console.log(chalk.green(`\nTask completed: ${targetTask.title}`));
+    console.log(chalk.gray(`  ID: ${targetTask.id}`));
     if (hours) {
       console.log(chalk.gray(`  Time: ${hours}h`));
     }
@@ -135,39 +165,5 @@ export async function done(options = {}) {
 }
 
 export async function completeTask(taskId, options = {}) {
-  const spinner = process.stdout.isTTY ? ora('Completing task').start() : null;
-
-  try {
-    const manager = new TaskManager();
-    await manager.init();
-
-    const task = manager.getTask(taskId);
-    if (!task) {
-      spinner?.stop();
-      console.error(chalk.red(`\nTask not found: ${taskId}`));
-      console.error(chalk.gray(`  Use 'seshflow list' to see all tasks`));
-      process.exit(1);
-    }
-
-    await manager.completeTask(taskId, {
-      hours: options.hours,
-      note: options.note || ''
-    });
-    await manager.saveData();
-
-    spinner?.succeed('Task completed');
-    console.log(chalk.green(`\nTask completed: ${task.title}`));
-    console.log(chalk.gray(`  ID: ${task.id}`));
-    console.log(chalk.gray(`  Status: done`));
-    if (options.hours) {
-      console.log(chalk.gray(`  Time: ${options.hours}h`));
-    }
-    if (options.note) {
-      console.log(chalk.gray(`  Note: ${options.note}`));
-    }
-  } catch (error) {
-    spinner?.fail('Failed to complete task');
-    console.error(chalk.red(`\nError: ${error.message}`));
-    process.exit(1);
-  }
+  return done(taskId, options);
 }
