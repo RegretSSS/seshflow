@@ -425,7 +425,7 @@ export class TaskManager {
    */
   updateWorkspaceInfo() {
     if (this.data.workspace) {
-      this.data.workspace.path = process.cwd();
+      this.data.workspace.path = this.storage.getWorkspacePath();
     }
   }
 

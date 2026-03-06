@@ -14,9 +14,10 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "jest",
-    "lint": "eslint types/**/*.ts",
-    "clean": "rm -rf dist"
+    "test": "node -e \"console.log('No tests for @seshflow/shared yet.')\"",
+    "test:coverage": "node -e \"console.log('No coverage for @seshflow/shared yet.')\"",
+    "lint": "tsc --noEmit",
+    "clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});\""
   },
   "devDependencies": {
     "typescript": "^5.3.3"

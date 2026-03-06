@@ -148,7 +148,7 @@ function parseStatusValue(value = '') {
   return null;
 }
 function parsePriorityValue(value) {
-  const raw = String(value || '').trim();
+  const raw = String(value || '').trim().toLowerCase();
   if (!raw) return null;
 
   if (/^P[0-3]$/i.test(raw)) {

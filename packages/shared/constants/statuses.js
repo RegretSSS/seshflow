@@ -1,35 +1,35 @@
-/**
+﻿/**
  * Default columns for the kanban board
  */
 export const DEFAULT_COLUMNS = [
-  { id: 'backlog', name: '待办池', color: '#94a3b8' },
-  { id: 'todo', name: '准备做', color: '#3b82f6' },
-  { id: 'in-progress', name: '进行中', color: '#eab308' },
-  { id: 'review', name: '审核', color: '#8b5cf6' },
-  { id: 'done', name: '完成', color: '#22c55e' },
-  { id: 'blocked', name: '阻塞', color: '#ef4444' }
+  { id: 'backlog', name: 'Backlog', color: '#94a3b8' },
+  { id: 'todo', name: 'Todo', color: '#3b82f6' },
+  { id: 'in-progress', name: 'In Progress', color: '#eab308' },
+  { id: 'review', name: 'Review', color: '#8b5cf6' },
+  { id: 'done', name: 'Done', color: '#22c55e' },
+  { id: 'blocked', name: 'Blocked', color: '#ef4444' }
 ];
 
 /**
  * Task priority levels with colors
  */
 export const PRIORITIES = {
-  P0: { value: 'P0', label: '最高', color: '#ef4444', weight: 0 },
-  P1: { value: 'P1', label: '高', color: '#f97316', weight: 1 },
-  P2: { value: 'P2', label: '中', color: '#eab308', weight: 2 },
-  P3: { value: 'P3', label: '低', color: '#3b82f6', weight: 3 }
+  P0: { value: 'P0', label: 'Critical', color: '#ef4444', weight: 0 },
+  P1: { value: 'P1', label: 'High', color: '#f97316', weight: 1 },
+  P2: { value: 'P2', label: 'Medium', color: '#eab308', weight: 2 },
+  P3: { value: 'P3', label: 'Low', color: '#3b82f6', weight: 3 }
 };
 
 /**
  * Task statuses with display names
  */
 export const STATUSES = {
-  backlog: '待办池',
-  todo: '准备做',
-  'in-progress': '进行中',
-  review: '审核',
-  done: '完成',
-  blocked: '阻塞'
+  backlog: 'Backlog',
+  todo: 'Todo',
+  'in-progress': 'In Progress',
+  review: 'Review',
+  done: 'Done',
+  blocked: 'Blocked'
 };
 
 /**

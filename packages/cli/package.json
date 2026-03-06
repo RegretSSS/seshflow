@@ -34,8 +34,8 @@
   "scripts": {
     "dev": "node bin/seshflow.js",
     "build": "node -e \"console.log('CLI is plain JavaScript; no compilation step required.')\"",
-    "test": "jest",
-    "test:coverage": "jest --coverage",
+    "test": "jest --passWithNoTests",
+    "test:coverage": "jest --coverage --passWithNoTests",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});\"",
