@@ -118,6 +118,8 @@ program
 program
   .command('newchatfirstround')
   .alias('ncfr')
+  .alias('context')
+  .alias('resume')
   .description('Show project context for new AI chat session')
   .option('--show-paths', 'Show full file paths')
   .option('--compact', 'Compact output (AI-friendly)')
@@ -232,6 +234,7 @@ program
   .option('-s, --status <statuses>', 'Filter by status (comma-separated)')
   .option('-p, --priority <priorities>', 'Filter by priority (comma-separated)')
   .option('-f, --format <markdown|json>', 'Export format', 'markdown')
+  .option('--json', 'Alias for --format json')
   .action(exportTasks);
 
 // Validate command

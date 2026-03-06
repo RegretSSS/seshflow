@@ -219,17 +219,25 @@ export async function magicList() {
 }
 
 export async function magic(skillName, ...args) {
-  const normalizedName = String(skillName || '').replace(/-/g, '_');
-  const skill = SKILLS[skillName] || SKILLS[normalizedName];
+  let resolvedName = String(skillName || '');
+  let resolvedArgs = [...args];
+
+  // Compatibility: allow `seshflow magic workflow quickstart`.
+  if (['workflow', 'filter', 'advanced', 'expert'].includes(resolvedName) && resolvedArgs.length > 0) {
+    resolvedName = String(resolvedArgs.shift());
+  }
+
+  const normalizedName = resolvedName.replace(/-/g, '_');
+  const skill = SKILLS[resolvedName] || SKILLS[normalizedName];
   if (!skill) {
-    console.error(chalk.red(`\nUnknown skill: ${skillName}`));
+    console.error(chalk.red(`\nUnknown skill: ${resolvedName || skillName}`));
     console.error(chalk.gray("Use 'seshflow magic --list' to see available skills\n"));
     process.exit(1);
   }
 
   const spinner = process.stdout.isTTY ? ora(`Executing ${skill.name}...`).start() : null;
   try {
-    await skill.execute(...args);
+    await skill.execute(...resolvedArgs);
     spinner?.succeed(`Magic complete: ${skill.name}`);
   } catch (error) {
     spinner?.fail(`Magic failed: ${skill.name}`);

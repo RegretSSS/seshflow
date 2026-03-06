@@ -80,7 +80,9 @@ export async function exportTasks(outputFile, options = {}) {
     await manager.init();
 
     const tasks = filterTasks(manager.getTasks(), options);
-    const format = (options.format || 'markdown').toLowerCase();
+    const format = options.json
+      ? 'json'
+      : (options.format || 'markdown').toLowerCase();
     const content = format === 'json'
       ? JSON.stringify(tasks, null, 2)
       : toMarkdown(tasks);
