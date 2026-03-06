@@ -5,6 +5,15 @@ import { TaskManager } from '../core/task-manager.js';
 import { isValidPriority, truncate } from '../utils/helpers.js';
 
 const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
+const HOURS_RE = /^(\d+(?:\.\d+)?)\s*h?$/i;
+
+function parseHoursInput(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const raw = String(value).trim();
+  const match = raw.match(HOURS_RE);
+  if (!match) return Number.NaN;
+  return parseFloat(match[1]);
+}
 
 function parseInlineMetadataFromTitle(rawTitle = '') {
   let cleanTitle = String(rawTitle);
@@ -83,8 +92,9 @@ export async function add(title, options = {}) {
     }
 
     // Parse tags
-    const cliTags = options.tags
-      ? options.tags.split(',').map(t => t.trim()).filter(Boolean)
+    const tagsInput = options.tags ?? options.tag;
+    const cliTags = tagsInput
+      ? String(tagsInput).split(',').map(t => t.trim()).filter(Boolean)
       : [];
     const tags = [...new Set([...parsed.tags, ...cliTags])];
 
@@ -114,15 +124,19 @@ export async function add(title, options = {}) {
     // Create task
     const spinner = ora('Creating task').start();
 
+    const hoursInput = options.hours ?? options.estimate ?? parsed.estimatedHours;
+    const estimatedHours = parseHoursInput(hoursInput);
+    if (Number.isNaN(estimatedHours)) {
+      throw new Error(`Invalid estimate value: ${hoursInput}. Use number or number+h (e.g. 2 or 2h).`);
+    }
+
     const task = manager.createTask({
       title: normalizedTitle,
       description,
       priority,
       tags,
       dependencies,
-      estimatedHours: (options.hours ?? options.estimate ?? parsed.estimatedHours)
-        ? parseFloat(options.hours ?? options.estimate ?? parsed.estimatedHours)
-        : 0,
+      estimatedHours: estimatedHours ?? 0,
       assignee: options.assignee || null,
       branch: options.branch || null
     });
