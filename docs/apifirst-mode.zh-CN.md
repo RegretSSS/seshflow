@@ -12,6 +12,13 @@
 2. `seshflow ncfr`、`seshflow next`、`seshflow show` 会先展示绑定契约，再展示更宽泛的仓库上下文。
 3. 当实现工作偏离契约时，Seshflow 会主动提醒 drift/conflict，而不是让 AI 去代码里重新猜协议。
 
+AI 拿到 contract 的顺序应当是可预测的：
+
+1. 先在 `.seshflow/contracts/` 下写入或导入契约文件
+2. 再通过 `.seshflow/plans/api-planning.md` 或任务字段把工作绑定到契约
+3. 执行 `seshflow ncfr`、`seshflow next` 或 `seshflow show`
+4. Seshflow 根据这些绑定信息解析主契约，并把它作为 `currentContract` 暴露出来
+
 ## 工作区结构
 
 `seshflow init apifirst` 预期创建或补齐这些文件：
@@ -253,6 +260,12 @@ RPC 起始示例：
 - `## Contract: ...` 为该分组下的任务设置默认契约
 - `[contracts:...]` 可以显式覆盖或追加绑定
 - `import --update` 仍然必须先按 stable id 匹配，再保留契约绑定
+
+也就是说，`v1.3.0` 里契约关联不是靠扫代码猜出来的，而是由这些来源明确决定：
+
+- `.seshflow/contracts/<contractId>.json`
+- 托管 Markdown 里的 contract 分组和 contract 元数据
+- 任务对象里的 `contractIds`、`contractRole`、`boundFiles`
 
 ## 契约优先的上下文解析
 

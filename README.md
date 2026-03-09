@@ -103,6 +103,20 @@ Recommended sequence:
 
 AI-facing commands now default to structured JSON, so `ncfr` already returns the minimal workspace snapshot needed to decide what to do next.
 
+What the three core commands return:
+
+- `seshflow init`
+  - creates `.seshflow/config.json`, `.seshflow/tasks.json`, and starter planning templates
+  - prints the resolved workspace location and the mode that was initialized
+- `seshflow ncfr`
+  - returns the current workspace snapshot
+  - tells AI whether there is an active task, a next ready task, or no immediate focus
+  - in `contractfirst`, it also returns `currentContract`, `contractReminderSummary`, and `contextPriority`
+- `seshflow next`
+  - returns the next actionable task, or the currently active task if one is already running
+  - includes blocker information and workspace mode metadata
+  - in `contractfirst`, it also carries the primary contract context for that task
+
 ## Contract-first mode (`v1.3.0`, current command aliases: `contractfirst`, `apifirst`)
 
 ```bash
@@ -142,6 +156,16 @@ Contract authoring rules today:
   - JSON array
   - JSONL
 - custom contract data should live inside `metadata` or `extensions`, not as arbitrary top-level fields
+
+Where contract linkage comes from:
+
+1. contract truth is stored in `.seshflow/contracts/<contractId>.json`
+2. contract-first planning is usually authored in `.seshflow/plans/api-planning.md`
+3. task-to-contract linkage is created by:
+   - `## Contract: <contractId>` groups in managed Markdown
+   - `[contracts:<contractId>]` metadata on specific Markdown tasks
+   - explicit task fields such as `contractIds`, `contractRole`, and `boundFiles`
+4. `ncfr`, `next`, and `show` read that binding data and decide which contract to surface first
 
 ## Planning flow
 
@@ -230,6 +254,7 @@ Defaults:
 
 ## Skills
 
+- `docs/CLI.md`
 - `docs/skills/seshflow-light/SKILL.md`
 - `docs/skills/INSTALL.md`
 

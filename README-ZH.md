@@ -107,6 +107,20 @@ seshflow next
 
 面向 AI 的命令默认输出结构化 JSON，`ncfr` 会直接给出决定下一步所需的最小上下文。
 
+这 3 个核心命令实际会给你什么：
+
+- `seshflow init`
+  - 创建 `.seshflow/config.json`、`.seshflow/tasks.json` 和起始规划模板
+  - 输出当前解析到的 workspace 位置与初始化模式
+- `seshflow ncfr`
+  - 返回当前 workspace 的最小上下文快照
+  - 明确告诉 AI：现在是有活动任务、存在 next ready task，还是当前没有焦点
+  - 在 `contractfirst` 模式下，还会额外返回 `currentContract`、`contractReminderSummary`、`contextPriority`
+- `seshflow next`
+  - 返回下一个可执行任务；如果已经有活动任务，则优先返回当前活动任务
+  - 同时给出 blocker 信息和 workspace mode 元数据
+  - 在 `contractfirst` 模式下，还会把该任务的主契约一起带出来
+
 ## 契约先行模式（`v1.3.0`，命令名：`contractfirst`）
 
 ```bash
@@ -146,6 +160,16 @@ seshflow mode set contractfirst
   - JSON array
   - JSONL
 - 自定义 contract 数据请放进 `metadata` 或 `extensions`，不要随意占用顶层核心字段
+
+契约关联到底由什么决定：
+
+1. 契约真相文件在 `.seshflow/contracts/<contractId>.json`
+2. 契约先行的规划文件通常是 `.seshflow/plans/api-planning.md`
+3. 任务和契约的关联来自：
+   - 托管 Markdown 里的 `## Contract: <contractId>` 分组
+   - Markdown 任务上的 `[contracts:<contractId>]` 元数据
+   - 任务对象里的 `contractIds`、`contractRole`、`boundFiles`
+4. `ncfr`、`next`、`show` 就是根据这些绑定信息决定当前应该先把哪个 contract 暴露给 AI
 
 ## 任务规划流程
 
@@ -234,6 +258,8 @@ Seshflow 不会扩展成完整的 Agent 产品。后续 Agent 项目中的模型
 
 ## Skills
 
+- `docs/CLI.md`
+- `docs/CLI.zh-CN.md`
 - `docs/skills/seshflow-light/SKILL.md`
 - `docs/skills/INSTALL.md`
 

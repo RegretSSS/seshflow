@@ -12,6 +12,13 @@ A developer should notice `apifirst` in three places:
 2. `seshflow ncfr`, `seshflow next`, and `seshflow show` surface bound API/RPC contracts before broad repo context.
 3. When implementation work drifts from the declared contract, Seshflow raises a contract reminder instead of making AI rediscover protocol truth from code.
 
+The contract becomes visible to AI in a predictable order:
+
+1. author or import the contract file under `.seshflow/contracts/`
+2. bind work to it through `.seshflow/plans/api-planning.md` or task fields
+3. run `seshflow ncfr`, `seshflow next`, or `seshflow show`
+4. Seshflow resolves the primary contract from those bindings and surfaces it as `currentContract`
+
 ## Workspace layout
 
 `seshflow init apifirst` should create or update these files:
@@ -251,6 +258,12 @@ Rules:
 - `## Contract: ...` establishes the default contract group for child tasks
 - `[contracts:...]` may override or add bindings explicitly
 - `import --update` must preserve stable task identity first, then contract binding
+
+This means the contract association is not guessed from code. In `v1.3.0`, it is determined by:
+
+- `.seshflow/contracts/<contractId>.json`
+- contract groups and contract metadata in managed Markdown
+- stored task fields: `contractIds`, `contractRole`, and `boundFiles`
 
 ## Contract-first context resolution
 
