@@ -13,6 +13,7 @@ import {
   outputJSON,
 } from '../utils/json-output.js';
 import { INTEGRATION_EVENT_TYPES } from '../../../shared/constants/integration.js';
+import { omitEmptyFields } from '../utils/helpers.js';
 
 function printContractSummary(summary) {
   console.log(`CONTRACT | ${summary.id} | ${summary.kind} | ${summary.version} | ${summary.name}`);
@@ -294,7 +295,7 @@ export async function showContract(contractId, options = {}) {
       const workspace = await formatWorkspaceJSON(storage);
       outputJSON(formatSuccessResponse({
         action: 'contracts.show',
-        contract,
+        contract: omitEmptyFields(contract),
         ...bindings,
       }, workspace));
       return;

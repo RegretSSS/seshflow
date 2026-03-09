@@ -116,6 +116,7 @@ seshflow next
   - 返回当前 workspace 的最小上下文快照
   - 明确告诉 AI：现在是有活动任务、存在 next ready task，还是当前没有焦点
   - 在 `contractfirst` 模式下，还会额外返回 `currentContract`、`contractReminderSummary`、`contextPriority`
+  - `currentContract` 只返回非空字段，不会塞满空数组、空对象和 `null`
 - `seshflow next`
   - 返回下一个可执行任务；如果已经有活动任务，则优先返回当前活动任务
   - 同时给出 blocker 信息和 workspace mode 元数据
@@ -159,7 +160,17 @@ seshflow mode set contractfirst
   - JSON object
   - JSON array
   - JSONL
-- 自定义 contract 数据请放进 `metadata` 或 `extensions`，不要随意占用顶层核心字段
+- Seshflow 只依赖少量核心字段做绑定、提醒和上下文恢复：
+  - `id`
+  - `version`
+  - `kind`
+  - `protocol`
+  - `name`
+- 其余广义协议内容可以放进：
+  - `payload`
+  - `metadata`
+  - `extensions`
+- `currentContract` 和 `contracts show` 默认只返回非空字段
 
 契约关联到底由什么决定：
 

@@ -1,8 +1,8 @@
-# API-first 模式（`v1.3.0`）
+# Contract-first 模式（`v1.3.0`，兼容命令名：`apifirst`）
 
-这份文档把 `apifirst` 从“口号”收敛成可实现的设计目标。
+这份文档把 `contractfirst` 从“口号”收敛成可实现的设计目标。
 
-在 Seshflow 里，`API-first` 指的是一种“契约先行”的开发模式，不是把 Seshflow 改造成一个泛化 HTTP 服务平台。
+在 Seshflow 里，`contract-first` 指的是一种“契约先行”的开发模式，不是把 Seshflow 改造成一个泛化 HTTP 服务平台。
 
 ## 用户最终会感知到什么
 
@@ -67,7 +67,7 @@ seshflow mode set apifirst
 ## 契约存储与身份
 
 - 存储位置：`.seshflow/contracts/*.json`
-- 格式：`v1.3.0` 只支持 JSON
+- 格式：`v1.3.0` 只支持 JSON 文件作为 contract truth
 - 一个契约一个文件
 - 文件名规则：使用稳定 contract id，不把版本号编码进文件名
 
@@ -93,7 +93,19 @@ RPC 起始示例：
 
 ## 契约对象
 
-`v1.3.0` 的目标一等契约对象如下：
+`v1.3.0` 的 contract 不是重型 API governance schema，而是“可绑定、可提醒、可恢复上下文的结构化协议对象”。
+
+Seshflow 真正依赖的最小核心字段是：
+
+- `id`
+- `version`
+- `kind`
+- `protocol`
+- `name`
+
+其余字段都属于可选协议内容。它们可以用于提醒和展示，但不是绑定解析所必需。
+
+一个较完整的示例如下：
 
 ```json
 {
@@ -194,9 +206,41 @@ RPC 起始示例：
 }
 ```
 
-当 `contracts add` 拒绝一个非法契约文件时，CLI 应返回 issue 级别的校验细节、字段提示以及起始示例路径，不能让 AI 去猜缺了哪些 RPC 字段。
+当 `contracts add` 拒绝一个非法契约文件时，CLI 应返回 issue 级别的校验细节、字段提示以及起始示例路径，不能让 AI 去猜到底缺了哪些核心字段。
 
-`v1.3.0` 中的 schema 语言统一为 JSON Schema 片段，不做 TypeScript 类型解析，也不引入自定义 DSL。
+如果你只想把 contract 当作较宽泛的协议载体，而不是严格 API schema，也可以这样做：
+
+```json
+{
+  "id": "contract.agent.review-handoff",
+  "version": "1.0.0",
+  "kind": "rpc",
+  "protocol": "rpc-json",
+  "name": "Review Handoff",
+  "payload": {
+    "handoffShape": {
+      "requiredSections": ["summary", "risks", "nextStep"]
+    }
+  },
+  "metadata": {
+    "domain": "agent-collaboration"
+  },
+  "extensions": {
+    "x-reviewer": {
+      "preferredAgent": "qa-agent"
+    }
+  }
+}
+```
+
+约束边界是：
+
+- Seshflow 不做代码解析来猜协议
+- Seshflow 不要求所有 contract 都写成完整 HTTP/RPC 运输细节
+- Seshflow 只依赖最小核心字段做绑定、提醒和上下文恢复
+- 更宽泛的协议示例请放进 `payload`、`metadata`、`extensions`
+
+`v1.3.0` 中的 schema 语言仍然保持 JSON 载体，不做 TypeScript 类型解析，也不引入自定义 DSL。
 
 ## “归属”是什么意思
 

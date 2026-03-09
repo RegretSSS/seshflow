@@ -54,6 +54,11 @@ describe('api-first context resolution', () => {
       responseSchema: { type: 'object' },
       consumers: [],
       implementationBindings: [],
+      payload: {
+        exampleMessage: {
+          duplicateEmail: '409/conflict'
+        }
+      },
       openQuestions: [
         {
           id: 'question_duplicate_email',
@@ -107,6 +112,14 @@ describe('api-first context resolution', () => {
       })
     );
     expect(ncfrPayload.currentContract.id).toBe('contract.user-service.create-user');
+    expect(ncfrPayload.currentContract.payload).toEqual(
+      expect.objectContaining({
+        exampleMessage: expect.objectContaining({
+          duplicateEmail: '409/conflict',
+        })
+      })
+    );
+    expect(ncfrPayload.currentContract.rpc).toBeUndefined();
     expect(ncfrPayload.openContractQuestions).toHaveLength(1);
     expect(ncfrPayload.relatedTasks.map(task => task.id)).toContain(taskA.id);
     expect(ncfrPayload.contractReminders.map(reminder => reminder.code)).toEqual(

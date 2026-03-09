@@ -112,6 +112,7 @@ What the three core commands return:
   - returns the current workspace snapshot
   - tells AI whether there is an active task, a next ready task, or no immediate focus
   - in `contractfirst`, it also returns `currentContract`, `contractReminderSummary`, and `contextPriority`
+  - `currentContract` only includes non-empty fields
 - `seshflow next`
   - returns the next actionable task, or the currently active task if one is already running
   - includes blocker information and workspace mode metadata
@@ -155,7 +156,17 @@ Contract authoring rules today:
   - JSON object
   - JSON array
   - JSONL
-- custom contract data should live inside `metadata` or `extensions`, not as arbitrary top-level fields
+- Seshflow only depends on a small set of core fields for binding, reminders, and context recovery:
+  - `id`
+  - `version`
+  - `kind`
+  - `protocol`
+  - `name`
+- broader protocol content can live in:
+  - `payload`
+  - `metadata`
+  - `extensions`
+- `currentContract` and `contracts show` omit empty fields by default
 
 Where contract linkage comes from:
 

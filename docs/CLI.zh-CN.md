@@ -43,6 +43,7 @@
 - `contractReminders`
 - `contractReminderSummary`
 - `contextPriority`
+- 这些 contract 字段默认只返回非空值
 
 ### `seshflow next`
 
@@ -72,6 +73,12 @@ Seshflow 不会靠任意代码扫描去猜 contract 关联。
    - `contractRole`
    - `boundFiles`
 4. `ncfr`、`next`、`show` 再根据这些绑定解析出 `currentContract`
+
+注意：
+
+- Seshflow 不靠源码扫描猜 contract
+- `currentContract` 的返回只依赖显式绑定
+- contract 文件里更宽泛的协议内容可以放进 `payload`、`metadata`、`extensions`
 
 ## 对人类友好的输出
 

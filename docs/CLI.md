@@ -43,6 +43,7 @@ In `contractfirst`, it additionally returns:
 - `contractReminders`
 - `contractReminderSummary`
 - `contextPriority`
+- those contract fields omit empty values by default
 
 ### `seshflow next`
 
@@ -72,6 +73,12 @@ The contract-first chain is:
    - `contractRole`
    - `boundFiles`
 4. `ncfr`, `next`, and `show` resolve `currentContract` from those bindings
+
+Notes:
+
+- Seshflow does not infer contracts from source-code scans
+- `currentContract` depends only on explicit bindings
+- broader protocol content inside a contract file can live in `payload`, `metadata`, and `extensions`
 
 ## Human-readable output
 

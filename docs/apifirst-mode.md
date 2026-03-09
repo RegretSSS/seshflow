@@ -1,8 +1,8 @@
-# API-first Mode (`v1.3.0`)
+# Contract-first Mode (`v1.3.0`, compatible command name: `apifirst`)
 
-This document makes `apifirst` concrete enough to implement.
+This document makes `contractfirst` concrete enough to implement.
 
-In Seshflow, `API-first` means a contract-first development mode for large tasks. It does not mean "add a generic HTTP service layer to Seshflow".
+In Seshflow, `contract-first` means a contract-first development mode for large tasks. It does not mean "add a generic HTTP service layer to Seshflow".
 
 ## User-visible outcome
 
@@ -67,7 +67,7 @@ Minimal `.seshflow/config.json` additions:
 ## Contract storage and identity
 
 - Storage location: `.seshflow/contracts/*.json`
-- Format: JSON only in `v1.3.0`
+- Format: JSON files only as contract truth in `v1.3.0`
 - One file per contract
 - File name rule: stable contract id, not version
 
@@ -93,7 +93,19 @@ Version lives inside the file, not in the filename.
 
 ## Contract object
 
-This is the target first-class contract shape for `v1.3.0`:
+In `v1.3.0`, a contract is not a heavy API-governance schema. It is a structured protocol object that Seshflow can bind, remind on, and surface back to AI.
+
+The minimal core fields Seshflow actually depends on are:
+
+- `id`
+- `version`
+- `kind`
+- `protocol`
+- `name`
+
+Everything else is optional protocol content. It can be used for reminders and display, but it is not required for binding resolution.
+
+This is a fuller example shape:
 
 ```json
 {
@@ -194,9 +206,41 @@ For RPC contracts, `kind` becomes `"rpc"` and `endpoint` becomes `rpc`:
 }
 ```
 
-When `contracts add` rejects a malformed contract, the CLI should return issue-level validation details, field-specific hints, and starter example paths. AI should not need to guess the missing RPC fields.
+When `contracts add` rejects a malformed contract, the CLI should return issue-level validation details, field-specific hints, and starter example paths. AI should not need to guess which core fields are missing.
 
-The schema language in `v1.3.0` is JSON Schema fragments only. No TypeScript-type parsing and no custom DSL.
+If you want to treat a contract as a broader protocol/example carrier instead of a strict API schema, this is also valid:
+
+```json
+{
+  "id": "contract.agent.review-handoff",
+  "version": "1.0.0",
+  "kind": "rpc",
+  "protocol": "rpc-json",
+  "name": "Review Handoff",
+  "payload": {
+    "handoffShape": {
+      "requiredSections": ["summary", "risks", "nextStep"]
+    }
+  },
+  "metadata": {
+    "domain": "agent-collaboration"
+  },
+  "extensions": {
+    "x-reviewer": {
+      "preferredAgent": "qa-agent"
+    }
+  }
+}
+```
+
+The boundary is:
+
+- Seshflow does not parse source code to infer protocol truth
+- Seshflow does not require every contract to declare full HTTP/RPC transport details
+- Seshflow only depends on the minimal core fields for binding, reminders, and context recovery
+- broader protocol content should live in `payload`, `metadata`, and `extensions`
+
+The schema carrier in `v1.3.0` still stays JSON. No TypeScript-type parsing and no custom DSL.
 
 ## Ownership
 

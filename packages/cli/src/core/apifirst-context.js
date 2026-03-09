@@ -2,19 +2,23 @@ import { ContractRegistry } from './contract-registry.js';
 import { WORKSPACE_MODES } from '../../../shared/constants/modes.js';
 import { collectContractScopedReminders, collectTaskContractReminders, summarizeContractReminders } from './contract-reminders.js';
 import { CONTEXT_PRIORITY_STRATEGIES, CONTEXT_PRIORITY_TIERS } from '../../../shared/constants/context-priority.js';
+import { omitEmptyFields } from '../utils/helpers.js';
 
 function summarizeContract(contract) {
-  return {
+  return omitEmptyFields({
     id: contract.id,
     version: contract.version,
     kind: contract.kind,
     protocol: contract.protocol,
     name: contract.name,
-    endpoint: contract.endpoint || null,
-    rpc: contract.rpc || null,
-    owner: contract.owner || null,
-    lifecycle: contract.lifecycle || null,
-  };
+    endpoint: contract.endpoint,
+    rpc: contract.rpc,
+    owner: contract.owner,
+    lifecycle: contract.lifecycle,
+    metadata: contract.metadata,
+    extensions: contract.extensions,
+    payload: contract.payload,
+  });
 }
 
 function taskSummary(task) {

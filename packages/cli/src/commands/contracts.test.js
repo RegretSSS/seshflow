@@ -107,6 +107,10 @@ describe('contracts commands', () => {
           'x-agent': {
             reviewer: 'api-linter'
           }
+        },
+        exampleFlow: {
+          source: 'crm-sync',
+          retries: 3
         }
       },
       {
@@ -149,6 +153,14 @@ describe('contracts commands', () => {
       expect.objectContaining({
         'x-agent': expect.objectContaining({
           reviewer: 'api-linter',
+        })
+      })
+    );
+    expect(showPayload.contract.payload).toEqual(
+      expect.objectContaining({
+        exampleFlow: expect.objectContaining({
+          source: 'crm-sync',
+          retries: 3,
         })
       })
     );
@@ -257,7 +269,6 @@ describe('contracts commands', () => {
     expect(payload.error.issues).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: 'INVALID_CONTRACT_ID' }),
-        expect.objectContaining({ field: 'owner.service' }),
       ])
     );
     expect(payload.error.examples.rpc).toBe('.seshflow/contracts/contract.board-service.move-card.json');
@@ -379,7 +390,7 @@ describe('contracts commands', () => {
     );
   });
 
-  test('contracts add validates rpc contracts with detailed issue output', async () => {
+  test('contracts add accepts broad rpc contracts without transport-specific fields', async () => {
     const { workspacePath } = await createWorkspace();
     const sourceFile = path.join(workspacePath, 'move-card.contract.json');
 
@@ -389,23 +400,19 @@ describe('contracts commands', () => {
       kind: 'rpc',
       protocol: 'rpc-json',
       name: 'Move Card',
-      owner: {
-        service: 'board-service',
-      },
-      rpc: {
-        service: 'board-service',
-      },
+      notes: ['Used as a planning contract before wire format is finalized'],
     }, { spaces: 2 });
 
     const result = runCLI(workspacePath, ['contracts', 'add', sourceFile]);
-    expect(result.status).toBe(1);
-
+    expect(result.status).toBe(0);
     const payload = JSON.parse(result.stdout);
-    expect(payload.error.code).toBe('CONTRACT_VALIDATION_FAILED');
-    expect(payload.error.issues).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({ code: 'MISSING_RPC_TARGET' }),
-      ])
-    );
+    expect(payload.contract.id).toBe('contract.board-service.move-card');
+
+    const showResult = runCLI(workspacePath, ['contracts', 'show', 'contract.board-service.move-card']);
+    expect(showResult.status).toBe(0);
+    const showPayload = JSON.parse(showResult.stdout);
+    expect(showPayload.contract.rpc).toBeUndefined();
+    expect(showPayload.contract.owner).toBeUndefined();
+    expect(showPayload.contract.notes).toEqual(['Used as a planning contract before wire format is finalized']);
   });
 });

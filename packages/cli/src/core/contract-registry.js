@@ -9,11 +9,32 @@ import {
   CONTRACT_ROLES,
   CONTRACT_SCHEMA_VERSION,
 } from '../../../shared/constants/contracts.js';
-import { isValidContractId } from '../utils/helpers.js';
+import { isValidContractId, omitEmptyFields } from '../utils/helpers.js';
 
 const VALID_KINDS = new Set(Object.values(CONTRACT_KINDS));
 const VALID_PROTOCOLS = new Set(Object.values(CONTRACT_PROTOCOLS));
 const VALID_ROLES = new Set(Object.values(CONTRACT_ROLES));
+const KNOWN_CONTRACT_FIELDS = new Set([
+  'schemaVersion',
+  'id',
+  'version',
+  'kind',
+  'protocol',
+  'name',
+  'owner',
+  'lifecycle',
+  'endpoint',
+  'rpc',
+  'requestSchema',
+  'responseSchema',
+  'consumers',
+  'implementationBindings',
+  'openQuestions',
+  'notes',
+  'metadata',
+  'extensions',
+  'payload',
+]);
 
 export class ContractRegistry {
   constructor(storage) {
@@ -175,7 +196,7 @@ export class ContractRegistry {
   }
 
   summarizeContract(contract) {
-    return {
+    return omitEmptyFields({
       id: contract.id,
       version: contract.version,
       kind: contract.kind,
@@ -183,7 +204,12 @@ export class ContractRegistry {
       name: contract.name,
       owner: contract.owner,
       lifecycle: contract.lifecycle,
-    };
+      endpoint: contract.endpoint,
+      rpc: contract.rpc,
+      metadata: contract.metadata,
+      extensions: contract.extensions,
+      payload: contract.payload,
+    });
   }
 
   getStarterExamplePaths() {
@@ -194,6 +220,12 @@ export class ContractRegistry {
   }
 
   normalizeContract(raw = {}) {
+    const payloadFields = Object.fromEntries(
+      Object.entries(raw).filter(([key]) => !KNOWN_CONTRACT_FIELDS.has(key))
+    );
+    const explicitPayload = raw.payload && typeof raw.payload === 'object' && !Array.isArray(raw.payload)
+      ? raw.payload
+      : {};
     const normalized = {
       schemaVersion: Number.parseInt(raw.schemaVersion, 10) || CONTRACT_SCHEMA_VERSION,
       id: String(raw.id || '').trim(),
@@ -222,6 +254,10 @@ export class ContractRegistry {
       notes: Array.isArray(raw.notes) ? raw.notes : [],
       metadata: raw.metadata && typeof raw.metadata === 'object' && !Array.isArray(raw.metadata) ? raw.metadata : {},
       extensions: raw.extensions && typeof raw.extensions === 'object' && !Array.isArray(raw.extensions) ? raw.extensions : {},
+      payload: {
+        ...explicitPayload,
+        ...payloadFields,
+      },
     };
 
     normalized.implementationBindings = normalized.implementationBindings.map(binding => ({
@@ -231,7 +267,7 @@ export class ContractRegistry {
       role: VALID_ROLES.has(binding?.role) ? binding.role : undefined,
     }));
 
-    return normalized;
+    return omitEmptyFields(normalized);
   }
 
   validateContract(contract) {
@@ -270,39 +306,6 @@ export class ContractRegistry {
         message: `Unsupported contract protocol: ${contract.protocol}`,
         contractId: contract.id || null,
       });
-    }
-
-    if (!String(contract.owner?.service || '').trim()) {
-      issues.push({
-        code: CONTRACT_CHECK_CODES.MISSING_REQUIRED_FIELD,
-        message: 'Missing required field: owner.service',
-        contractId: contract.id || null,
-        field: 'owner.service',
-      });
-    }
-
-    if (contract.kind === CONTRACT_KINDS.API) {
-      const method = String(contract.endpoint?.method || '').trim();
-      const routePath = String(contract.endpoint?.path || '').trim();
-      if (!method || !routePath) {
-        issues.push({
-          code: CONTRACT_CHECK_CODES.MISSING_HTTP_ENDPOINT,
-          message: 'API contracts require endpoint.method and endpoint.path',
-          contractId: contract.id || null,
-        });
-      }
-    }
-
-    if (contract.kind === CONTRACT_KINDS.RPC) {
-      const service = String(contract.rpc?.service || '').trim();
-      const method = String(contract.rpc?.method || '').trim();
-      if (!service || !method) {
-        issues.push({
-          code: CONTRACT_CHECK_CODES.MISSING_RPC_TARGET,
-          message: 'RPC contracts require rpc.service and rpc.method',
-          contractId: contract.id || null,
-        });
-      }
     }
 
     return issues;
