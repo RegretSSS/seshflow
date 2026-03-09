@@ -40,6 +40,11 @@ describe('contract binding flows', () => {
     expect(payload.task.contractIds).toEqual(['contract.user-service.create-user']);
     expect(payload.task.contractRole).toBe('producer');
     expect(payload.task.boundFiles).toEqual(['src/api/users.ts']);
+    expect(payload.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'BOUND_FILE_MISSING', filePath: 'src/api/users.ts' }),
+      ])
+    );
   });
 
   test('edit can bind contracts and files to existing tasks', async () => {
@@ -66,6 +71,13 @@ describe('contract binding flows', () => {
     expect(updated.contractIds).toEqual(['contract.user-service.create-user']);
     expect(updated.contractRole).toBe('consumer');
     expect(updated.boundFiles).toEqual(['src/client/user.ts']);
+
+    const payload = JSON.parse(result.stdout);
+    expect(payload.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'BOUND_FILE_MISSING', filePath: 'src/client/user.ts' }),
+      ])
+    );
   });
 
   test('import applies contract headings and exports contract metadata', async () => {

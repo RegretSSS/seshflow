@@ -267,6 +267,7 @@ export async function newchatfirstround(options = {}) {
         responseData.openContractQuestions = apiFirstContext.openContractQuestions;
         responseData.relatedTasks = apiFirstContext.relatedTasks;
         responseData.contractReminders = apiFirstContext.contractReminders;
+        responseData.contractReminderSummary = apiFirstContext.contractReminderSummary;
       }
 
       if (fullMode) {

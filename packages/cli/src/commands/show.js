@@ -179,6 +179,7 @@ export async function show(taskId, options = {}) {
         openContractQuestions: apiFirstContext?.openContractQuestions || [],
         relatedContractTasks: apiFirstContext?.relatedTasks || [],
         contractReminders: apiFirstContext?.contractReminders || [],
+        contractReminderSummary: apiFirstContext?.contractReminderSummary || { total: 0, errors: 0, warnings: 0 },
         subtasks: task.subtasks || [],
         dependencies: task.dependencies || [],
         blockedBy: blockers.map(t => ({ id: t.id, title: t.title, status: t.status })),

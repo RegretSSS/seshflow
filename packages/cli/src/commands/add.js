@@ -1,11 +1,13 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
+import path from 'node:path';
+import fs from 'fs-extra';
 import { TaskManager } from '../core/task-manager.js';
 import { WorkspaceEventService } from '../core/workspace-event-service.js';
 import { isValidContractId, isValidPriority, truncate } from '../utils/helpers.js';
 import { formatErrorResponse, formatSuccessResponse, formatTaskJSON, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
-import { CONTRACT_ROLES } from '../../../shared/constants/contracts.js';
+import { CONTRACT_CHECK_CODES, CONTRACT_ROLES } from '../../../shared/constants/contracts.js';
 import { INTEGRATION_EVENT_TYPES } from '../../../shared/constants/integration.js';
 
 const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
@@ -98,6 +100,21 @@ function parseInlineMetadataFromTitle(rawTitle = '') {
   };
 }
 
+async function collectBoundFileWarnings(workspacePath, boundFiles = []) {
+  const warnings = [];
+  for (const filePath of [...new Set(boundFiles.filter(Boolean))]) {
+    const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(workspacePath, filePath);
+    if (!(await fs.pathExists(resolvedPath))) {
+      warnings.push({
+        code: CONTRACT_CHECK_CODES.BOUND_FILE_MISSING,
+        filePath,
+        message: `Bound file does not exist yet: ${filePath}`,
+      });
+    }
+  }
+  return warnings;
+}
+
 /**
  * Add a new task
  */
@@ -165,6 +182,8 @@ export async function add(title, options = {}) {
       dependencyId,
       message: `Referenced dependency does not exist yet: ${dependencyId}`,
     }));
+    const fileWarnings = await collectBoundFileWarnings(manager.storage.getWorkspacePath(), boundFiles);
+    warnings.push(...fileWarnings);
     if (!jsonMode && invalidDeps.length > 0) {
       console.warn(
         chalk.yellow(
@@ -173,6 +192,11 @@ export async function add(title, options = {}) {
           )}`
         )
       );
+    }
+    if (!jsonMode && fileWarnings.length > 0) {
+      fileWarnings.forEach(warning => {
+        console.warn(chalk.yellow(`\n⚠️  Warning: ${warning.message}`));
+      });
     }
 
     // Create task

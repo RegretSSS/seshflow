@@ -81,6 +81,14 @@ describe('api-first context resolution', () => {
       contractRole: 'consumer',
       boundFiles: ['src/client/users.ts']
     });
+    manager.createTask({
+      title: 'Review error mapping',
+      priority: 'P1',
+      status: 'todo',
+      contractIds: ['contract.user-service.create-user'],
+      contractRole: 'producer',
+      boundFiles: ['src/api/error-map.ts']
+    });
     await manager.saveData();
 
     const ncfrResult = runCLI(workspacePath, ['ncfr']);
@@ -94,6 +102,10 @@ describe('api-first context resolution', () => {
     expect(ncfrPayload.contractReminders.map(reminder => reminder.code)).toEqual(
       expect.arrayContaining(['OPEN_CONTRACT_QUESTIONS', 'BOUND_FILE_MISSING'])
     );
+    expect(ncfrPayload.contractReminderSummary).toEqual(
+      expect.objectContaining({ total: expect.any(Number) })
+    );
+    expect(ncfrPayload.contractReminders.length).toBeGreaterThanOrEqual(3);
 
     const nextResult = runCLI(workspacePath, ['next']);
     expect(nextResult.status).toBe(0);
@@ -104,6 +116,7 @@ describe('api-first context resolution', () => {
     expect(nextPayload.contractReminders.map(reminder => reminder.code)).toEqual(
       expect.arrayContaining(['OPEN_CONTRACT_QUESTIONS', 'BOUND_FILE_MISSING'])
     );
+    expect(nextPayload.contractReminderSummary.total).toBeGreaterThanOrEqual(3);
 
     const showResult = runCLI(workspacePath, ['show', taskA.id]);
     expect(showResult.status).toBe(0);
@@ -116,5 +129,6 @@ describe('api-first context resolution', () => {
     expect(showPayload.contractReminders.map(reminder => reminder.code)).toEqual(
       expect.arrayContaining(['OPEN_CONTRACT_QUESTIONS', 'BOUND_FILE_MISSING'])
     );
+    expect(showPayload.contractReminderSummary.total).toBeGreaterThanOrEqual(3);
   });
 });

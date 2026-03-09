@@ -35,6 +35,7 @@ describe('api-first bootstrap', () => {
     expect(config.mode).toBe('apifirst');
     expect(await fs.pathExists(path.join(workspacePath, '.seshflow/contracts/README.md'))).toBe(true);
     expect(await fs.pathExists(path.join(workspacePath, '.seshflow/contracts/contract.user-service.create-user.json'))).toBe(true);
+    expect(await fs.pathExists(path.join(workspacePath, '.seshflow/contracts/contract.board-service.move-card.json'))).toBe(true);
     expect(await fs.pathExists(path.join(workspacePath, '.seshflow/plans/api-planning.md'))).toBe(true);
   });
 

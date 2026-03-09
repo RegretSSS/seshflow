@@ -1,9 +1,11 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
+import path from 'node:path';
+import fs from 'fs-extra';
 import { TaskManager } from '../core/task-manager.js';
 import { WorkspaceEventService } from '../core/workspace-event-service.js';
-import { CONTRACT_ROLES } from '../../../shared/constants/contracts.js';
+import { CONTRACT_CHECK_CODES, CONTRACT_ROLES } from '../../../shared/constants/contracts.js';
 import { INTEGRATION_EVENT_TYPES } from '../../../shared/constants/integration.js';
 import {
   isJSONMode,
@@ -12,6 +14,21 @@ import {
   outputJSON,
   formatTaskJSON
 } from '../utils/json-output.js';
+
+async function collectBoundFileWarnings(workspacePath, boundFiles = []) {
+  const warnings = [];
+  for (const filePath of [...new Set(boundFiles.filter(Boolean))]) {
+    const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(workspacePath, filePath);
+    if (!(await fs.pathExists(resolvedPath))) {
+      warnings.push({
+        code: CONTRACT_CHECK_CODES.BOUND_FILE_MISSING,
+        filePath,
+        message: `Bound file does not exist yet: ${filePath}`,
+      });
+    }
+  }
+  return warnings;
+}
 
 export async function edit(taskId, options = {}) {
   const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Loading task').start() : null;
@@ -64,6 +81,7 @@ export async function edit(taskId, options = {}) {
 
     if (hasDirectOptions) {
       const eventService = new WorkspaceEventService(manager);
+      const warnings = [];
       if (options.title) task.title = options.title;
       if (options.priority) task.priority = options.priority;
       if (options.status) task.status = options.status;
@@ -120,6 +138,7 @@ export async function edit(taskId, options = {}) {
         for (const filePath of filePaths) {
           manager.addBoundFile(task.id, filePath);
         }
+        warnings.push(...await collectBoundFileWarnings(manager.storage.getWorkspacePath(), filePaths));
       }
       if (options.unbindFile !== undefined) {
         const filePaths = String(options.unbindFile).split(',').map(value => value.trim()).filter(Boolean);
@@ -133,11 +152,15 @@ export async function edit(taskId, options = {}) {
       if (!isJSONMode(options)) {
         console.log(chalk.green(`\nTask updated: ${task.title}`));
         console.log(chalk.gray(`   ID: ${task.id}`));
+        warnings.forEach(warning => {
+          console.warn(chalk.yellow(`\n⚠️  Warning: ${warning.message}`));
+        });
       } else {
         const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
         outputJSON(formatSuccessResponse({
           updated: true,
-          task: formatTaskJSON(task)
+          task: formatTaskJSON(task),
+          warnings,
         }, workspaceJSON));
       }
       return;

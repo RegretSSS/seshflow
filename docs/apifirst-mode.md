@@ -23,6 +23,7 @@ A developer should notice `apifirst` in three places:
   contracts/
     README.md
     contract.user-service.create-user.json
+    contract.board-service.move-card.json
   plans/
     api-planning.md
 ```
@@ -67,6 +68,12 @@ Example path:
 
 ```text
 .seshflow/contracts/contract.user-service.create-user.json
+```
+
+Starter RPC example:
+
+```text
+.seshflow/contracts/contract.board-service.move-card.json
 ```
 
 Why JSON:
@@ -180,6 +187,8 @@ For RPC contracts, `kind` becomes `"rpc"` and `endpoint` becomes `rpc`:
 }
 ```
 
+When `contracts add` rejects a malformed contract, the CLI should return issue-level validation details, field-specific hints, and starter example paths. AI should not need to guess the missing RPC fields.
+
 The schema language in `v1.3.0` is JSON Schema fragments only. No TypeScript-type parsing and no custom DSL.
 
 ## Ownership
@@ -256,6 +265,7 @@ If the active task binds multiple contracts:
 
 - return `currentContract` as the first primary binding
 - return the rest in `relatedContracts`
+- aggregate `contractReminders` and `contractReminderSummary` across tasks bound to the primary contract
 
 Unresolved protocol questions come from:
 
@@ -308,6 +318,11 @@ Default mode `ncfr`:
       "title": "How should duplicate email conflicts be returned?"
     }
   ],
+  "contractReminderSummary": {
+    "total": 2,
+    "errors": 0,
+    "warnings": 2
+  },
   "relatedTasks": [
     "task_api_create_user_contract",
     "task_impl_create_user_route",

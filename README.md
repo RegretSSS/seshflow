@@ -38,6 +38,7 @@ Use `ncfr` as the first step of a new AI conversation. AI-facing commands now de
 ```bash
 seshflow init apifirst
 seshflow contracts add .seshflow/contracts/contract.user-service.create-user.json
+seshflow contracts add .seshflow/contracts/contract.board-service.move-card.json
 seshflow validate .seshflow/plans/api-planning.md
 seshflow import .seshflow/plans/api-planning.md --update
 seshflow contracts check

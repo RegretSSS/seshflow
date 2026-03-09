@@ -98,6 +98,14 @@ describe('contracts commands', () => {
     const payload = JSON.parse(result.stdout);
     expect(payload.success).toBe(false);
     expect(payload.error.code).toBe('CONTRACT_VALIDATION_FAILED');
+    expect(payload.error.issueCount).toBeGreaterThan(0);
+    expect(payload.error.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'INVALID_CONTRACT_ID' }),
+        expect.objectContaining({ field: 'owner.service' }),
+      ])
+    );
+    expect(payload.error.examples.rpc).toBe('.seshflow/contracts/contract.board-service.move-card.json');
   });
 
   test('contracts check surfaces workspace-level contract reminders', async () => {
@@ -205,6 +213,43 @@ describe('contracts commands', () => {
     expect(payload.dependencyChains).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ fromTaskId: 'task_contract' })
+      ])
+    );
+    expect(payload.dependencySummary).toEqual(
+      expect.objectContaining({
+        taskCount: 2,
+        internalEdgeCount: 1,
+        topologicalOrder: expect.arrayContaining(['task_contract']),
+      })
+    );
+  });
+
+  test('contracts add validates rpc contracts with detailed issue output', async () => {
+    const { workspacePath } = await createWorkspace();
+    const sourceFile = path.join(workspacePath, 'move-card.contract.json');
+
+    await fs.writeJson(sourceFile, {
+      id: 'contract.board-service.move-card',
+      version: '1.0.0',
+      kind: 'rpc',
+      protocol: 'rpc-json',
+      name: 'Move Card',
+      owner: {
+        service: 'board-service',
+      },
+      rpc: {
+        service: 'board-service',
+      },
+    }, { spaces: 2 });
+
+    const result = runCLI(workspacePath, ['contracts', 'add', sourceFile]);
+    expect(result.status).toBe(1);
+
+    const payload = JSON.parse(result.stdout);
+    expect(payload.error.code).toBe('CONTRACT_VALIDATION_FAILED');
+    expect(payload.error.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'MISSING_RPC_TARGET' }),
       ])
     );
   });

@@ -82,3 +82,38 @@ export async function collectWorkspaceContractReminders(manager) {
 
   return reminders;
 }
+
+export async function collectContractScopedReminders(manager, contractIds = [], options = {}) {
+  const uniqueContractIds = [...new Set((contractIds || []).filter(Boolean))];
+  if (uniqueContractIds.length === 0) {
+    return [];
+  }
+
+  const registry = options.registry || new ContractRegistry(manager.storage);
+  const reminders = [];
+  const seen = new Set();
+  const relatedTasks = manager.getTasks().filter(task =>
+    (task.contractIds || []).some(contractId => uniqueContractIds.includes(contractId))
+  );
+
+  for (const task of relatedTasks) {
+    const taskReminders = await collectTaskContractReminders(manager, task, { registry });
+    for (const reminder of taskReminders) {
+      const key = JSON.stringify([
+        reminder.code,
+        reminder.taskId,
+        reminder.contractId,
+        reminder.message,
+      ]);
+
+      if (seen.has(key)) {
+        continue;
+      }
+
+      seen.add(key);
+      reminders.push(reminder);
+    }
+  }
+
+  return reminders;
+}

@@ -117,6 +117,13 @@ export class ContractRegistry {
     };
   }
 
+  getStarterExamplePaths() {
+    return {
+      api: '.seshflow/contracts/contract.user-service.create-user.json',
+      rpc: '.seshflow/contracts/contract.board-service.move-card.json',
+    };
+  }
+
   normalizeContract(raw = {}) {
     const normalized = {
       schemaVersion: Number.parseInt(raw.schemaVersion, 10) || CONTRACT_SCHEMA_VERSION,

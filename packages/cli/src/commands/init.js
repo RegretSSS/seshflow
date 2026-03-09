@@ -113,6 +113,7 @@ Store one JSON contract per file in this directory.
 - Keep the filename aligned with the stable contract id
 - Keep the version inside the JSON payload, not in the filename
 - Start from \`contract.user-service.create-user.json\`
+- Start from \`contract.board-service.move-card.json\` for RPC-style contracts
 - Validate contract-linked planning through \`seshflow validate\` and \`seshflow import --update\`
 `;
 }
@@ -155,6 +156,53 @@ function getApiFirstExampleContract() {
         id: { type: 'string' },
         name: { type: 'string' },
         email: { type: 'string', format: 'email' }
+      }
+    },
+    consumers: [{ name: 'web-app', role: 'caller' }],
+    implementationBindings: [],
+    openQuestions: [],
+    notes: []
+  }, null, 2);
+}
+
+function getApiFirstExampleRpcContract() {
+  return JSON.stringify({
+    schemaVersion: 1,
+    id: 'contract.board-service.move-card',
+    version: '1.0.0',
+    kind: CONTRACT_KINDS.RPC,
+    protocol: CONTRACT_PROTOCOLS.RPC_JSON,
+    name: 'Move Card',
+    owner: {
+      service: 'board-service',
+      team: 'collaboration',
+      ownerTaskIds: ['task_rpc_move_card_contract']
+    },
+    lifecycle: {
+      status: 'draft',
+      compatibility: 'backward-compatible',
+      supersedes: [],
+      replacedBy: null
+    },
+    endpoint: null,
+    rpc: {
+      service: 'board-service',
+      method: 'MoveCard'
+    },
+    requestSchema: {
+      type: 'object',
+      required: ['cardId', 'targetListId'],
+      properties: {
+        cardId: { type: 'string' },
+        targetListId: { type: 'string' },
+        targetPosition: { type: 'number' }
+      }
+    },
+    responseSchema: {
+      type: 'object',
+      required: ['ok'],
+      properties: {
+        ok: { type: 'boolean' }
       }
     },
     consumers: [{ name: 'web-app', role: 'caller' }],
@@ -211,6 +259,10 @@ async function copyTemplateFiles(seshflowDir, mode = 'default') {
       {
         target: path.join(seshflowDir, 'contracts', 'contract.user-service.create-user.json'),
         fallback: getApiFirstExampleContract()
+      },
+      {
+        target: path.join(seshflowDir, 'contracts', 'contract.board-service.move-card.json'),
+        fallback: getApiFirstExampleRpcContract()
       },
       {
         target: path.join(seshflowDir, 'plans', 'api-planning.md'),

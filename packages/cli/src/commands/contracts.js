@@ -18,6 +18,71 @@ function printContractSummary(summary) {
   console.log(`CONTRACT | ${summary.id} | ${summary.kind} | ${summary.version} | ${summary.name}`);
 }
 
+function buildDependencyView(boundTasks) {
+  const taskMap = new Map(boundTasks.map(task => [task.id, task]));
+  const internalEdges = [];
+  const externalDependencies = [];
+
+  for (const task of boundTasks) {
+    for (const depId of task.dependencies || []) {
+      if (taskMap.has(depId)) {
+        internalEdges.push({
+          fromTaskId: depId,
+          toTaskId: task.id,
+          relation: 'intra-contract',
+        });
+      } else {
+        externalDependencies.push({
+          fromTaskId: depId,
+          toTaskId: task.id,
+          relation: 'cross-contract',
+        });
+      }
+    }
+  }
+
+  const indegree = new Map(boundTasks.map(task => [task.id, 0]));
+  const outgoing = new Map(boundTasks.map(task => [task.id, []]));
+
+  for (const edge of internalEdges) {
+    indegree.set(edge.toTaskId, (indegree.get(edge.toTaskId) || 0) + 1);
+    outgoing.get(edge.fromTaskId).push(edge.toTaskId);
+  }
+
+  const ready = boundTasks
+    .map(task => task.id)
+    .filter(taskId => (indegree.get(taskId) || 0) === 0)
+    .sort();
+  const topologicalOrder = [];
+
+  while (ready.length > 0) {
+    const taskId = ready.shift();
+    topologicalOrder.push(taskId);
+    for (const dependentId of outgoing.get(taskId) || []) {
+      indegree.set(dependentId, (indegree.get(dependentId) || 1) - 1);
+      if ((indegree.get(dependentId) || 0) === 0) {
+        ready.push(dependentId);
+        ready.sort();
+      }
+    }
+  }
+
+  return {
+    dependencyChains: internalEdges.sort((left, right) =>
+      `${left.fromTaskId}:${left.toTaskId}`.localeCompare(`${right.fromTaskId}:${right.toTaskId}`)
+    ),
+    dependencySummary: {
+      taskCount: boundTasks.length,
+      internalEdgeCount: internalEdges.length,
+      externalDependencyCount: externalDependencies.length,
+      topologicalOrder,
+      externalDependencies: externalDependencies.sort((left, right) =>
+        `${left.fromTaskId}:${left.toTaskId}`.localeCompare(`${right.fromTaskId}:${right.toTaskId}`)
+      ),
+    },
+  };
+}
+
 function buildContractTaskBindings(manager, contractId) {
   const boundTasks = manager.getTasks()
     .filter(task => (task.contractIds || []).includes(contractId))
@@ -33,15 +98,26 @@ function buildContractTaskBindings(manager, contractId) {
       ),
     }));
 
+  const dependencyView = buildDependencyView(boundTasks);
+
   return {
     boundTasks,
-    dependencyChains: boundTasks.flatMap(task =>
-      (task.dependencies || []).map(depId => ({
-        fromTaskId: depId,
-        toTaskId: task.id,
-      }))
-    ),
+    dependencyChains: dependencyView.dependencyChains,
+    dependencySummary: dependencyView.dependencySummary,
   };
+}
+
+function formatContractValidationError(error, registry) {
+  const base = formatErrorResponse(error, error.code || 'CONTRACT_ADD_FAILED');
+  if (!error.issues) {
+    return base;
+  }
+
+  base.error.issues = error.issues;
+  base.error.issueCount = error.issues.length;
+  base.error.examples = registry.getStarterExamplePaths();
+  base.error.hints = error.issues.map(issue => issue.message);
+  return base;
 }
 
 export async function addContract(file, options = {}) {
@@ -82,9 +158,19 @@ export async function addContract(file, options = {}) {
   } catch (error) {
     spinner?.fail('Failed to register contract');
     if (isJSONMode(options)) {
-      outputJSON(formatErrorResponse(error, error.code || 'CONTRACT_ADD_FAILED'));
+      const storage = new Storage();
+      await storage.init();
+      const registry = new ContractRegistry(storage);
+      outputJSON(formatContractValidationError(error, registry));
     } else {
       console.error(chalk.red(`\nError: ${error.message}`));
+      if (Array.isArray(error.issues) && error.issues.length > 0) {
+        error.issues.forEach(issue => {
+          console.error(chalk.gray(`  - ${issue.message}`));
+        });
+        const examples = new ContractRegistry(new Storage()).getStarterExamplePaths();
+        console.error(chalk.gray(`  Examples: ${examples.api} | ${examples.rpc}`));
+      }
     }
     process.exit(1);
   }

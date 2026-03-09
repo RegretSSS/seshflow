@@ -23,6 +23,7 @@
   contracts/
     README.md
     contract.user-service.create-user.json
+    contract.board-service.move-card.json
   plans/
     api-planning.md
 ```
@@ -67,6 +68,12 @@ seshflow mode set apifirst
 
 ```text
 .seshflow/contracts/contract.user-service.create-user.json
+```
+
+RPC 起始示例：
+
+```text
+.seshflow/contracts/contract.board-service.move-card.json
 ```
 
 版本号放在文件内容里，不放在文件名里。
@@ -180,6 +187,8 @@ seshflow mode set apifirst
 }
 ```
 
+当 `contracts add` 拒绝一个非法契约文件时，CLI 应返回 issue 级别的校验细节、字段提示以及起始示例路径，不能让 AI 去猜缺了哪些 RPC 字段。
+
 `v1.3.0` 中的 schema 语言统一为 JSON Schema 片段，不做 TypeScript 类型解析，也不引入自定义 DSL。
 
 ## “归属”是什么意思
@@ -258,6 +267,7 @@ seshflow mode set apifirst
 
 - `currentContract` 返回主契约
 - 其余放入 `relatedContracts`
+- `contractReminders` 与 `contractReminderSummary` 需要按主契约聚合，不只看当前单个任务
 
 未解决的协议问题来自：
 
@@ -310,6 +320,11 @@ seshflow mode set apifirst
       "title": "How should duplicate email conflicts be returned?"
     }
   ],
+  "contractReminderSummary": {
+    "total": 2,
+    "errors": 0,
+    "warnings": 2
+  },
   "relatedTasks": [
     "task_api_create_user_contract",
     "task_impl_create_user_route",
