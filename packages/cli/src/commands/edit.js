@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
 import { TaskManager } from '../core/task-manager.js';
+import { CONTRACT_ROLES } from '../../../shared/constants/contracts.js';
 import {
   isJSONMode,
   formatSuccessResponse,
@@ -51,7 +52,13 @@ export async function edit(taskId, options = {}) {
       options.tags !== undefined ||
       options.tag !== undefined ||
       options.addDep !== undefined ||
-      options.removeDep !== undefined;
+      options.removeDep !== undefined ||
+      options.contracts !== undefined ||
+      options.bindContract !== undefined ||
+      options.unbindContract !== undefined ||
+      options.contractRole !== undefined ||
+      options.bindFile !== undefined ||
+      options.unbindFile !== undefined;
 
     if (hasDirectOptions) {
       if (options.title) task.title = options.title;
@@ -75,6 +82,36 @@ export async function edit(taskId, options = {}) {
         const removeDeps = String(options.removeDep).split(',').map(dep => dep.trim()).filter(Boolean);
         for (const depId of removeDeps) {
           manager.removeDependency(task.id, depId);
+        }
+      }
+      if (options.contracts !== undefined) {
+        task.contractIds = String(options.contracts).split(',').map(value => value.trim()).filter(Boolean);
+      }
+      if (options.bindContract !== undefined) {
+        const contractIds = String(options.bindContract).split(',').map(value => value.trim()).filter(Boolean);
+        for (const contractId of contractIds) {
+          manager.addContractBinding(task.id, contractId);
+        }
+      }
+      if (options.unbindContract !== undefined) {
+        const contractIds = String(options.unbindContract).split(',').map(value => value.trim()).filter(Boolean);
+        for (const contractId of contractIds) {
+          manager.removeContractBinding(task.id, contractId);
+        }
+      }
+      if (options.contractRole !== undefined) {
+        task.contractRole = Object.values(CONTRACT_ROLES).includes(options.contractRole) ? options.contractRole : null;
+      }
+      if (options.bindFile !== undefined) {
+        const filePaths = String(options.bindFile).split(',').map(value => value.trim()).filter(Boolean);
+        for (const filePath of filePaths) {
+          manager.addBoundFile(task.id, filePath);
+        }
+      }
+      if (options.unbindFile !== undefined) {
+        const filePaths = String(options.unbindFile).split(',').map(value => value.trim()).filter(Boolean);
+        for (const filePath of filePaths) {
+          manager.removeBoundFile(task.id, filePath);
         }
       }
 

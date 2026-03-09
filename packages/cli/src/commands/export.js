@@ -45,8 +45,15 @@ function toMarkdown(tasks) {
       const deps = (task.dependencies || []).length
         ? ` [dependency:${task.dependencies.join(',')}]`
         : '';
+      const contracts = (task.contractIds || []).length
+        ? ` [contracts:${task.contractIds.join(',')}]`
+        : '';
+      const contractRole = task.contractRole ? ` [contract-role:${task.contractRole}]` : '';
+      const boundFiles = (task.boundFiles || []).length
+        ? ` [files:${task.boundFiles.join(',')}]`
+        : '';
 
-      sections.push(`- [${done}] ${task.title}${stableId} [${task.priority}]${tags}${hours}${assignee}${deps}`);
+      sections.push(`- [${done}] ${task.title}${stableId} [${task.priority}]${tags}${hours}${assignee}${deps}${contracts}${contractRole}${boundFiles}`);
 
       if (task.description) {
         task.description.split('\n').forEach(line => {

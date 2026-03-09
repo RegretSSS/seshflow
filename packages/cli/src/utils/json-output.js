@@ -21,6 +21,9 @@ export function formatTaskJSON(task) {
     updatedAt: task.updatedAt,
     startedAt: task.startedAt || null,
     completedAt: task.completedAt || null,
+    contractIds: task.contractIds || [],
+    contractRole: task.contractRole || null,
+    boundFiles: task.boundFiles || [],
   };
 }
 
@@ -37,6 +40,7 @@ export function formatTaskSummaryJSON(task) {
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
     blockedBy: task.blockedBy || [],
+    contractIds: task.contractIds || [],
     subtaskCount: task.subtasks?.length || 0,
     completedSubtasks: task.subtasks?.filter(st => st.completed).length || 0,
   };

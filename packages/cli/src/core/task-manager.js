@@ -12,6 +12,7 @@ import {
   isValidTaskId,
   sanitizeBranchName
 } from '../utils/helpers.js';
+import { CONTRACT_ROLES } from '../../../shared/constants/contracts.js';
 
 /**
  * TaskManager - Core task management logic
@@ -120,6 +121,9 @@ export class TaskManager {
       actualHours: 0,
       assignee: options.assignee || null,
       tags: options.tags || [],
+      contractIds: options.contractIds || [],
+      contractRole: options.contractRole || null,
+      boundFiles: options.boundFiles || [],
       gitBranch: options.branch || sanitizeBranchName(options.title),
       gitCommits: [],
       sessions: [],
@@ -138,6 +142,50 @@ export class TaskManager {
     this.data.tasks.push(task);
     this.refreshDerivedState();
     this.updateWorkspaceInfo();
+    return task;
+  }
+
+  addContractBinding(taskId, contractId) {
+    const task = this.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+
+    task.contractIds = [...new Set([...(task.contractIds || []), contractId])];
+    task.updatedAt = toISOString();
+    return task;
+  }
+
+  removeContractBinding(taskId, contractId) {
+    const task = this.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+
+    task.contractIds = (task.contractIds || []).filter(id => id !== contractId);
+    task.updatedAt = toISOString();
+    return task;
+  }
+
+  addBoundFile(taskId, filePath) {
+    const task = this.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+
+    task.boundFiles = [...new Set([...(task.boundFiles || []), filePath])];
+    task.updatedAt = toISOString();
+    return task;
+  }
+
+  removeBoundFile(taskId, filePath) {
+    const task = this.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+
+    task.boundFiles = (task.boundFiles || []).filter(path => path !== filePath);
+    task.updatedAt = toISOString();
     return task;
   }
 
@@ -740,6 +788,9 @@ export class TaskManager {
     task.dependencies = Array.isArray(task.dependencies) ? task.dependencies : [];
     task.subtasks = Array.isArray(task.subtasks) ? task.subtasks : [];
     task.tags = Array.isArray(task.tags) ? task.tags : [];
+    task.contractIds = Array.isArray(task.contractIds) ? [...new Set(task.contractIds)] : [];
+    task.contractRole = Object.values(CONTRACT_ROLES).includes(task.contractRole) ? task.contractRole : null;
+    task.boundFiles = Array.isArray(task.boundFiles) ? [...new Set(task.boundFiles)] : [];
     task.sessions = Array.isArray(task.sessions) ? task.sessions : [];
     task.context = {
       relatedFiles: Array.isArray(task.context?.relatedFiles) ? task.context.relatedFiles : [],
