@@ -68,6 +68,7 @@ describe('contracts commands', () => {
     expect(showResult.status).toBe(0);
     const showPayload = JSON.parse(showResult.stdout);
     expect(showPayload.contract.endpoint.path).toBe('/users');
+    expect(showPayload.boundTasks).toEqual([]);
 
     const checkResult = runCLI(workspacePath, ['contracts', 'check']);
     expect(checkResult.status).toBe(0);
@@ -154,6 +155,57 @@ describe('contracts commands', () => {
     expect(payload.reminderCount).toBeGreaterThanOrEqual(3);
     expect(payload.reminders.map(reminder => reminder.code)).toEqual(
       expect.arrayContaining(['OPEN_CONTRACT_QUESTIONS', 'BOUND_FILE_MISSING', 'MISSING_BOUND_CONTRACT'])
+    );
+  });
+
+  test('contracts show returns contract-linked task bindings and dependency chains', async () => {
+    const { workspacePath, manager } = await createWorkspace();
+    const sourceFile = path.join(workspacePath, 'create-user.contract.json');
+
+    await fs.writeJson(sourceFile, {
+      id: 'contract.user-service.create-user',
+      version: '1.0.0',
+      kind: 'api',
+      protocol: 'http-json',
+      name: 'Create User',
+      owner: {
+        service: 'user-service',
+        team: 'identity',
+        ownerTaskIds: ['task_contract']
+      },
+      endpoint: {
+        method: 'POST',
+        path: '/users'
+      },
+      requestSchema: { type: 'object' },
+      responseSchema: { type: 'object' }
+    }, { spaces: 2 });
+
+    const addResult = runCLI(workspacePath, ['contracts', 'add', sourceFile]);
+    expect(addResult.status).toBe(0);
+
+    const designTask = manager.createTask({
+      title: 'Draft create user contract',
+      id: 'task_contract',
+      contractIds: ['contract.user-service.create-user'],
+      contractRole: 'reviewer',
+    });
+    manager.createTask({
+      title: 'Implement create user route',
+      contractIds: ['contract.user-service.create-user'],
+      contractRole: 'producer',
+      dependencies: [designTask.id],
+    });
+    await manager.saveData();
+
+    const showResult = runCLI(workspacePath, ['contracts', 'show', 'contract.user-service.create-user']);
+    expect(showResult.status).toBe(0);
+    const payload = JSON.parse(showResult.stdout);
+    expect(payload.boundTasks).toHaveLength(2);
+    expect(payload.dependencyChains).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ fromTaskId: 'task_contract' })
+      ])
     );
   });
 });

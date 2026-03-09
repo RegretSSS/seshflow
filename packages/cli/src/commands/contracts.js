@@ -16,6 +16,32 @@ function printContractSummary(summary) {
   console.log(`CONTRACT | ${summary.id} | ${summary.kind} | ${summary.version} | ${summary.name}`);
 }
 
+function buildContractTaskBindings(manager, contractId) {
+  const boundTasks = manager.getTasks()
+    .filter(task => (task.contractIds || []).includes(contractId))
+    .map(task => ({
+      id: task.id,
+      title: task.title,
+      status: task.status,
+      priority: task.priority,
+      contractRole: task.contractRole || null,
+      boundFiles: task.boundFiles || [],
+      dependencies: (task.dependencies || []).filter(depId =>
+        manager.getTask(depId)?.contractIds?.includes(contractId)
+      ),
+    }));
+
+  return {
+    boundTasks,
+    dependencyChains: boundTasks.flatMap(task =>
+      (task.dependencies || []).map(depId => ({
+        fromTaskId: depId,
+        toTaskId: task.id,
+      }))
+    ),
+  };
+}
+
 export async function addContract(file, options = {}) {
   const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Registering contract').start() : null;
 
@@ -96,6 +122,9 @@ export async function showContract(contractId, options = {}) {
     await storage.init();
     const registry = new ContractRegistry(storage);
     const contract = await registry.getContract(contractId);
+    const manager = new TaskManager(storage.getWorkspacePath());
+    await manager.init();
+    const bindings = buildContractTaskBindings(manager, contractId);
     spinner?.succeed('Contract loaded');
 
     if (isJSONMode(options)) {
@@ -103,11 +132,15 @@ export async function showContract(contractId, options = {}) {
       outputJSON(formatSuccessResponse({
         action: 'contracts.show',
         contract,
+        ...bindings,
       }, workspace));
       return;
     }
 
     printContractSummary(registry.summarizeContract(contract));
+    if (bindings.boundTasks.length > 0) {
+      console.log(chalk.gray(`BOUND_TASKS | ${bindings.boundTasks.length}`));
+    }
   } catch (error) {
     spinner?.fail('Failed to load contract');
     if (isJSONMode(options)) {

@@ -72,6 +72,8 @@ describe('contract binding flows', () => {
     const { workspacePath } = await createWorkspace();
     const markdownPath = path.join(workspacePath, 'contract-plan.md');
     const exportPath = path.join(workspacePath, 'contract-plan-export.md');
+    const modeResult = runCLI(workspacePath, ['mode', 'set', 'apifirst']);
+    expect(modeResult.status).toBe(0);
 
     await fs.writeFile(markdownPath, [
       '# API planning',
@@ -103,6 +105,8 @@ describe('contract binding flows', () => {
     const exportResult = runCLI(workspacePath, ['export', exportPath, '--md']);
     expect(exportResult.status).toBe(0);
     const exported = await fs.readFile(exportPath, 'utf8');
+    expect(exported).toContain('## Contract: contract.user-service.create-user');
+    expect(exported).toContain('### backlog');
     expect(exported).toContain('[contracts:contract.user-service.create-user]');
     expect(exported).toContain('[contract-role:producer]');
     expect(exported).toContain('[files:src/api/users.ts]');
