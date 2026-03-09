@@ -56,6 +56,7 @@ function displayPrettyFooter(taskCount) {
 export async function list(options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
+  const jsonMode = isJSONMode(options);
   const spinner = compactMode ? null : ora('Loading tasks').start();
 
   try {
@@ -86,7 +87,7 @@ export async function list(options = {}) {
       tasks = tasks.filter(task => task.assignee === options.assignee);
     }
 
-    if (!options.all && !hasExplicitFilter) {
+    if (!jsonMode && !options.all && !hasExplicitFilter) {
       tasks = tasks.filter(task => task.status === 'in-progress' || task.status === 'todo');
     }
 
@@ -105,7 +106,7 @@ export async function list(options = {}) {
         throw new Error('Invalid --limit value, expected a positive integer');
       }
       limit = parsedLimit;
-    } else if (!options.all) {
+    } else if (!options.all && !jsonMode) {
       limit = 10;
     }
 
@@ -141,7 +142,7 @@ export async function list(options = {}) {
         completedSubtasks: task.subtasks?.filter(st => st.completed).length || 0,
         createdAt: task.createdAt
       }));
-      const workspaceJSON = await formatWorkspaceJSON(manager.storage, tasks.length);
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
 
       outputJSON(formatSuccessResponse({
         tasks: formattedTasks,

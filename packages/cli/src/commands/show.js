@@ -140,7 +140,7 @@ export async function show(taskId, options = {}) {
     spinner?.stop();
 
     if (isJSONMode(options)) {
-      const workspaceJSON = await formatWorkspaceJSON(manager.storage, 1);
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
       outputJSON(formatSuccessResponse({
         task: formatTaskJSON(task),
         subtasks: task.subtasks || [],

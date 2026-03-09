@@ -62,7 +62,7 @@ export async function query(options = {}) {
       filteredTasks = filteredTasks.filter(t => t.priority === options.priority);
     }
 
-    if (options.status) {
+    if (options.status && options.status.toLowerCase() !== 'all') {
       const statuses = options.status.split(',');
       filteredTasks = filteredTasks.filter(t => statuses.includes(t.status));
     }

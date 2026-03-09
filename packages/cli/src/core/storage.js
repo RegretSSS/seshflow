@@ -65,6 +65,27 @@ export class Storage {
   static resolveWorkspace(startPath = process.cwd(), options = {}) {
     const fromPath = path.resolve(startPath);
 
+    if (options.ignoreExistingWorkspace) {
+      if (options.preferGitRoot) {
+        const gitRoot = Storage.findUpward(fromPath, candidate => existsSync(path.join(candidate, '.git')));
+        if (gitRoot) {
+          return {
+            path: gitRoot,
+            source: 'git-root',
+            sourcePath: path.join(gitRoot, '.git'),
+            requestedPath: fromPath
+          };
+        }
+      }
+
+      return {
+        path: fromPath,
+        source: 'cwd',
+        sourcePath: fromPath,
+        requestedPath: fromPath
+      };
+    }
+
     const existingWorkspaceRoot = Storage.findUpward(fromPath, candidate => {
       const tasksFile = path.join(candidate, PATHS.TASKS_FILE);
       const configFile = path.join(candidate, PATHS.CONFIG_FILE);

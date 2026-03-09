@@ -217,7 +217,8 @@ export async function init(options = {}) {
   const spinner = process.stderr.isTTY ? ora('Initializing Seshflow workspace').start() : null;
 
   try {
-    const storage = new Storage(process.cwd(), { preferGitRoot: true });
+    const initOptions = { preferGitRoot: true, ignoreExistingWorkspace: true };
+    const storage = new Storage(process.cwd(), initOptions);
 
     if (storage.isInitialized() && !options.force) {
       spinner?.warn('Seshflow already initialized');
@@ -227,7 +228,7 @@ export async function init(options = {}) {
 
     await storage.init();
 
-    const manager = new TaskManager(process.cwd(), { preferGitRoot: true });
+    const manager = new TaskManager(process.cwd(), initOptions);
     await manager.init();
 
     spinner && (spinner.text = 'Copying template files...');
