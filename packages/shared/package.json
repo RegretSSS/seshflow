@@ -1,6 +1,6 @@
 {
   "name": "@seshflow/shared",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "description": "Seshflow shared contracts and workspace snapshot utilities",
   "type": "module",
   "exports": {
@@ -9,6 +9,10 @@
     "./constants/transitions.js": "./constants/transitions.js",
     "./constants/hooks.js": "./constants/hooks.js",
     "./constants/announcements.js": "./constants/announcements.js",
+    "./constants/contracts.js": "./constants/contracts.js",
+    "./constants/modes.js": "./constants/modes.js",
+    "./constants/integration.js": "./constants/integration.js",
+    "./constants/context-priority.js": "./constants/context-priority.js",
     "./workspace-snapshot.js": "./workspace-snapshot.js"
   },
   "files": [

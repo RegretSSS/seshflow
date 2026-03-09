@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.3.0] - 2026-03-09
+
+### Added
+
+- Contract-first workspace bootstrap through `seshflow init contractfirst`.
+- First-class API/RPC contract registry with validation, single-file add, and bundle import.
+- Explicit task, Markdown, and file binding to contracts.
+- Contract-first context on `ncfr`, `next`, `show`, and `rpc shell`.
+- Contract drift reminders, workspace index, and mode capability payloads.
+- Hook taxonomy, hook payload envelopes, and hook result kinds for stable integration seams.
+- Boundary and package-consumption best-practices documentation.
+
+### Changed
+
+- Elevated `contractfirst` as the preferred public term while keeping `apifirst` compatible.
+- Relaxed contract handling to support broader payloads through `payload`, `metadata`, and `extensions`.
+- Omitted empty fields from `currentContract` and contract inspection payloads by default.
+- Added stable command aliases for common high-frequency flows.
+
+### Fixed
+
+- Reduced workspace and contract output noise for AI-first usage.
+- Aligned skills, README, CLI docs, and release status around the `v1.3.0` contract-first boundary.
+
 ## [1.2.0] - 2026-03-09
 
 ### Added
