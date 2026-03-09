@@ -464,6 +464,13 @@ Detailed hook seam guidance lives in `docs/hook-seams.md`.
 - mode capabilities summary
 - supported RPC shell surfaces
 
+`v1.3.0` may support bounded mode-profile overrides, but not a free-form mode DSL. Acceptable examples:
+
+- `seshflow mode set apifirst --drift-reminders off`
+- `seshflow mode set apifirst --context-priority basic-task`
+
+These overrides must stay field-scoped, validated, and serializable under a `profile` object.
+
 Contract-aware hook events that should exist by the end of `v1.3.0`:
 
 - `contract.bound`

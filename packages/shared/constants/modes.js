@@ -36,3 +36,19 @@ export const MODE_CAPABILITIES = {
     contextPriorityStrategy: 'contract-first',
   },
 };
+
+export const MODE_PROFILE_OVERRIDE_FIELDS = {
+  CONTRACT_DRIFT_REMINDERS: 'contractDriftReminders',
+  CONTEXT_PRIORITY_STRATEGY: 'contextPriorityStrategy',
+};
+
+export const MODE_PROFILE_ALLOWED_OVERRIDES = {
+  default: {
+    contractDriftReminders: [false],
+    contextPriorityStrategy: ['basic-task'],
+  },
+  apifirst: {
+    contractDriftReminders: [true, false],
+    contextPriorityStrategy: ['contract-first', 'basic-task'],
+  },
+};

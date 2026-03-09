@@ -28,6 +28,7 @@ export async function buildRpcShellPayload(manager, surface, targetId = null) {
     mode: modeInfo.mode,
     requestedMode: modeInfo.requestedMode,
     compatibility: modeInfo.compatibility,
+    profile: modeInfo.profile,
     capabilities: modeInfo.capabilities,
     supportedSurfaces: Object.values(RPC_SHELL_SURFACES),
   };

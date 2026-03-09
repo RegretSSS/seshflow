@@ -44,6 +44,7 @@ describe('mode compatibility', () => {
     expect(modePayload.requestedMode).toBe('broken-mode');
     expect(modePayload.fallbackMode).toBe('default');
     expect(modePayload.fallbackReason).toContain('Unsupported workspace mode');
+    expect(modePayload.profile.preset).toBe('default');
 
     const ncfrResult = runCLI(workspacePath, ['ncfr']);
     expect(ncfrResult.status).toBe(0);
@@ -66,7 +67,46 @@ describe('mode compatibility', () => {
     expect(payload.mode).toBe('default');
     expect(payload.guidance.migrationAvailable).toBe(true);
     expect(payload.guidance.recommendedCommand).toBe('seshflow mode set apifirst');
+    expect(payload.profile).toEqual(
+      expect.objectContaining({
+        preset: 'default',
+        overrides: {},
+      })
+    );
     expect(await fs.pathExists(path.join(workspacePath, '.seshflow/contracts/README.md'))).toBe(true);
+  });
+
+  test('mode set applies bounded overrides without introducing a custom mode DSL', async () => {
+    const { workspacePath } = await createWorkspace();
+
+    const result = runCLI(workspacePath, [
+      'mode',
+      'set',
+      'apifirst',
+      '--drift-reminders',
+      'off',
+      '--context-priority',
+      'basic-task'
+    ]);
+
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.mode).toBe('apifirst');
+    expect(payload.profile).toEqual(
+      expect.objectContaining({
+        preset: 'apifirst',
+        overrides: {
+          contractDriftReminders: false,
+          contextPriorityStrategy: 'basic-task',
+        },
+      })
+    );
+    expect(payload.capabilities).toEqual(
+      expect.objectContaining({
+        contractDriftReminders: false,
+        contextPriorityStrategy: 'basic-task',
+      })
+    );
   });
 
   test('next and show include resolved workspace mode in json output', async () => {

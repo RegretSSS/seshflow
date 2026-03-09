@@ -92,6 +92,9 @@ describe('integration seams', () => {
       expect.objectContaining({
         schemaVersion: 1,
         mode: 'apifirst',
+        profile: expect.objectContaining({
+          preset: 'apifirst',
+        }),
         capabilities: expect.objectContaining({
           contractFirstContext: true,
           contractDriftReminders: true,

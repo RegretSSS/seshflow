@@ -30,7 +30,7 @@ Use these boundaries as hard constraints, not inspiration.
 - No WebSocket or realtime sync in `v1.2.0` or `v1.3.0`.
 - No dependency graph visualization in `v1.2.0` or `v1.3.0`.
 - No automatic rollback engine in `v1.2.0`.
-- No custom mode DSL in `v1.3.0`.
+- No custom mode DSL in `v1.3.0`; only bounded profile overrides are allowed.
 - No automatic bidirectional Markdown/JSON sync in `v1.2.0`.
 - No free-form Markdown patch reconciliation engine in `v1.2.0` or `v1.3.0`.
 - No model routing, prompt orchestration, autonomous agent loop management, or cross-tool conversation control inside Seshflow.

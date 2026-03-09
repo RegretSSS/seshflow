@@ -89,6 +89,24 @@ async function ensureApiFirstScaffold(storage) {
   }
 }
 
+function parseModeOverrides(options = {}) {
+  const overrides = {};
+
+  if (typeof options.driftReminders === 'string') {
+    if (options.driftReminders === 'on') {
+      overrides.contractDriftReminders = true;
+    } else if (options.driftReminders === 'off') {
+      overrides.contractDriftReminders = false;
+    }
+  }
+
+  if (typeof options.contextPriority === 'string' && options.contextPriority !== 'inherit') {
+    overrides.contextPriorityStrategy = options.contextPriority;
+  }
+
+  return overrides;
+}
+
 export async function setMode(mode, options = {}) {
   const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Updating workspace mode').start() : null;
 
@@ -104,6 +122,10 @@ export async function setMode(mode, options = {}) {
     const previousModeInfo = await resolveWorkspaceMode(storage);
     const config = await storage.readConfigFile();
     config.mode = mode;
+    config.modeProfile = {
+      preset: mode,
+      overrides: parseModeOverrides(options),
+    };
     await storage.writeConfigFile(config);
 
     if (mode === WORKSPACE_MODES.APIFIRST) {
@@ -129,6 +151,7 @@ export async function setMode(mode, options = {}) {
         requestedMode: modeInfo.requestedMode,
         compatibility: modeInfo.compatibility,
         capabilities: modeInfo.capabilities,
+        profile: modeInfo.profile,
         guidance,
       }, workspace));
       return;
@@ -169,6 +192,7 @@ export async function showMode(options = {}) {
         fallbackReason: modeInfo.fallbackReason,
         compatibility: modeInfo.compatibility,
         capabilities: modeInfo.capabilities,
+        profile: modeInfo.profile,
         guidance,
       }, workspace));
       return;

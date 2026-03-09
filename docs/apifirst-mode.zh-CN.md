@@ -463,6 +463,13 @@ seshflow contracts check
 - mode capabilities 摘要
 - 支持的 RPC shell surface
 
+`v1.3.0` 可以支持“有限的 mode profile override”，但不能演化成自由 DSL。可接受示例：
+
+- `seshflow mode set apifirst --drift-reminders off`
+- `seshflow mode set apifirst --context-priority basic-task`
+
+这些 override 必须字段范围明确、可校验，并落在 `profile` 对象里。
+
 到 `v1.3.0` 结束时，至少应有这些 contract-aware hook 事件：
 
 - `contract.bound`

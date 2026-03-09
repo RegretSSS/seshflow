@@ -261,6 +261,8 @@ contractsCommand
 modeCommand
   .command('set <mode>')
   .description('Set workspace mode')
+  .option('--drift-reminders <inherit|on|off>', 'Override contract drift reminders for this mode profile')
+  .option('--context-priority <inherit|basic-task|contract-first>', 'Override context priority strategy for this mode profile')
   .option('--json', 'Output as JSON')
   .option('--no-json', 'Disable JSON output')
   .action(lazyAction(() => import('../src/commands/mode.js'), 'setMode'));
