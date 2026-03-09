@@ -30,6 +30,16 @@ export function generateSessionId() {
 }
 
 /**
+ * Generate a unique runtime record ID
+ * @returns {string} Runtime record ID
+ */
+export function generateRuntimeRecordId() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 6);
+  return `run_${timestamp}_${random}`;
+}
+
+/**
  * Format date to ISO string
  * @param {Date} date - Date object
  * @returns {string} ISO 8601 timestamp

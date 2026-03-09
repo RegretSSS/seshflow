@@ -21,6 +21,7 @@ import { validateMarkdown } from '../src/commands/validate.js';
 import { start } from '../src/commands/start.js';
 import { skip } from '../src/commands/skip.js';
 import { suspend } from '../src/commands/suspend.js';
+import { record } from '../src/commands/record.js';
 import { spawnSync } from 'node:child_process';
 
 const program = new Command();
@@ -135,6 +136,24 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .action(suspend);
+
+program
+  .command('record [taskId]')
+  .description('Record runtime context for a task')
+  .option('-c, --command <command>', 'Executed command')
+  .option('--cwd <path>', 'Working directory used')
+  .option('--log <path>', 'Log file path')
+  .option('--output-root <path>', 'Output root directory')
+  .option('--artifact <paths>', 'Comma-separated artifact paths')
+  .option('-n, --note <text>', 'Note for this runtime step')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
+  .option('--json', 'Output as JSON')
+  .action((taskId, options) => {
+    const resolvedTaskId = typeof taskId === 'string' ? taskId : options;
+    const resolvedOptions = typeof taskId === 'string' ? options : taskId;
+    return record(resolvedTaskId, resolvedOptions);
+  });
 
 // Import command
 program

@@ -58,6 +58,7 @@ After `ncfr --json`, suggest one next step based on detected state:
 Only reveal commands that match the immediate user intent:
 
 - Execution: `next`, `start`, `done`, `suspend`
+- Runtime capture: `record`
 - Inspection: `show`, `list`, `query`, `stats`, `deps`
 - Data flow: `import`, `export`, `validate`
 
@@ -67,6 +68,10 @@ When switching away from an active task, prefer explicit intent:
 - direct task handoff: `seshflow start <taskId> --switch`
 
 Prefer `--json` for machine steps.
+
+When an executed command, log file, output directory, or produced artifact matters for resuming work, persist it explicitly:
+
+- `seshflow record --json --command "<cmd>" --cwd "<dir>" --log "<logfile>" --output-root "<dir>" --artifact "<file1,file2>"`
 
 ## Guardrails
 

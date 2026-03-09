@@ -109,6 +109,14 @@ function compactTaskContext(task, manager) {
   if (dependents.length > 0) {
     console.log(`unlocks=${dependents.map(formatTaskRef).join(',')}`);
   }
+  const runtimeSummary = manager.getRuntimeSummary(task);
+  if (runtimeSummary.recordCount > 0) {
+    const parts = [`count=${runtimeSummary.recordCount}`];
+    if (runtimeSummary.lastCommand) parts.push(`cmd=${truncate(runtimeSummary.lastCommand, 48)}`);
+    if (runtimeSummary.lastOutputRoot) parts.push(`out=${truncate(runtimeSummary.lastOutputRoot, 32)}`);
+    if (runtimeSummary.lastArtifacts.length > 0) parts.push(`artifacts=${runtimeSummary.lastArtifacts.length}`);
+    console.log(`runtime=${parts.join(' | ')}`);
+  }
 }
 
 export async function next(options = {}) {
@@ -127,6 +135,7 @@ export async function next(options = {}) {
         const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
         outputJSON(formatSuccessResponse({
           task: formatTaskJSON(currentTask),
+          runtimeSummary: manager.getRuntimeSummary(currentTask),
           hasActiveSession: true,
         }, workspaceJSON));
         return;
@@ -158,6 +167,7 @@ export async function next(options = {}) {
           title: d.title,
           status: d.status,
         })),
+        runtimeSummary: manager.getRuntimeSummary(nextTask),
         hasActiveSession: false,
       }, workspaceJSON));
       return;

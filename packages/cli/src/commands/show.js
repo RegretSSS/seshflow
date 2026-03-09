@@ -35,9 +35,12 @@ function displayCompact(task, blockers = []) {
   if (blockers.length) {
     console.log(`blocked_by=${blockers.map(t => t.id).join(',')}`);
   }
+  if (task.runtime?.runs?.length) {
+    console.log(`runtime_records=${task.runtime.runs.length}`);
+  }
 }
 
-function displayPretty(task, blockers = []) {
+function displayPretty(task, blockers = [], runtimeEntries = []) {
   const progress = subtaskProgress(task);
 
   console.log(chalk.bold.cyan(`\n- ${task.title}`));
@@ -97,6 +100,18 @@ function displayPretty(task, blockers = []) {
       console.log(chalk.cyan(`    - ${note}`));
     });
   }
+
+  if (runtimeEntries.length > 0) {
+    console.log(chalk.cyan(`\n  Recent Runtime (${runtimeEntries.length}):`));
+    runtimeEntries.forEach(entry => {
+      const parts = [];
+      if (entry.command) parts.push(`cmd=${truncate(entry.command, 48)}`);
+      if (entry.outputRoot) parts.push(`out=${truncate(entry.outputRoot, 32)}`);
+      if (entry.logFile) parts.push(`log=${truncate(entry.logFile, 32)}`);
+      if (entry.artifacts?.length) parts.push(`artifacts=${entry.artifacts.length}`);
+      console.log(chalk.cyan(`    - ${parts.join(' | ') || 'recorded context'}`));
+    });
+  }
 }
 
 export async function show(taskId, options = {}) {
@@ -119,6 +134,8 @@ export async function show(taskId, options = {}) {
     const blockers = manager.getBlockedBy(task)
       .map(id => manager.getTask(id))
       .filter(Boolean);
+    const runtimeEntries = manager.getRecentRuntimeEntries(task);
+    const runtimeSummary = manager.getRuntimeSummary(task);
 
     spinner?.stop();
 
@@ -129,6 +146,8 @@ export async function show(taskId, options = {}) {
         subtasks: task.subtasks || [],
         dependencies: task.dependencies || [],
         blockedBy: blockers.map(t => ({ id: t.id, title: t.title, status: t.status })),
+        runtimeSummary,
+        recentRuntime: runtimeEntries,
       }, workspaceJSON));
       return;
     }
@@ -138,7 +157,7 @@ export async function show(taskId, options = {}) {
       return;
     }
 
-    displayPretty(task, blockers);
+    displayPretty(task, blockers, runtimeEntries);
 
     console.log(chalk.blue('\nCommands:'));
     if (task.status === 'backlog' || task.status === 'todo') {
