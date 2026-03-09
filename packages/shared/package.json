@@ -7,11 +7,13 @@
     "./types/task.d.ts": "./types/task.d.ts",
     "./constants/statuses.js": "./constants/statuses.js",
     "./constants/transitions.js": "./constants/transitions.js",
-    "./constants/hooks.js": "./constants/hooks.js"
+    "./constants/hooks.js": "./constants/hooks.js",
+    "./workspace-snapshot.js": "./workspace-snapshot.js"
   },
   "files": [
     "types",
     "constants",
+    "workspace-snapshot.js",
     "dist"
   ],
   "scripts": {

@@ -68,4 +68,21 @@ describe('task transition service', () => {
     const eventTypes = reloaded.getTransitionEvents().map(event => event.type);
     expect(eventTypes).toEqual(['task.suspend', 'task.start', 'task.skip']);
   }, 15000);
+
+  test('starting the already active task is a structured no-op without duplicate transition events', async () => {
+    const { workspacePath, manager } = await createWorkspace();
+    const task = manager.createTask({ title: 'Already active', priority: 'P0', status: 'todo' });
+    manager.startSession(task.id);
+    await manager.saveData();
+
+    const result = runCLI(workspacePath, ['start', task.id, '--json']);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.changed).toBe(false);
+    expect(payload.transitionEvent).toBeNull();
+
+    const reloaded = new TaskManager(workspacePath);
+    await reloaded.init();
+    expect(reloaded.getTransitionEvents()).toHaveLength(0);
+  });
 });

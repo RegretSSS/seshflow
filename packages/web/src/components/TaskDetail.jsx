@@ -87,8 +87,8 @@ const TaskDetail = ({ task, onClose }) => {
               </div>
               <div className="summary-card">
                 <span className="summary-label">Runtime events</span>
-                <strong>{task.runtimeEventSummary?.count || 0}</strong>
-                <span>{task.runtimeEventSummary?.lastType || 'No events yet'}</span>
+                <strong>{task.runtimeEventSummary?.recordCount || 0}</strong>
+                <span>{task.runtimeEventSummary?.lastEventType || 'No events yet'}</span>
               </div>
             </div>
           </section>
