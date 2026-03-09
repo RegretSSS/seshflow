@@ -66,6 +66,7 @@ export const DEFAULT_TASK_FILE = {
   columns: DEFAULT_COLUMNS,
   tasks: [],
   transitions: [],
+  runtimeEvents: [],
   currentSession: null,
   statistics: {
     totalTasks: 0,

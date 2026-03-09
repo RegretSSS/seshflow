@@ -152,6 +152,8 @@ export async function show(taskId, options = {}) {
     const runtimeSummary = manager.getRuntimeSummary(task);
     const processEntries = manager.getRecentProcessEntries(task);
     const processSummary = manager.getProcessSummary(task);
+    const runtimeEvents = manager.getTaskRuntimeEvents(task.id, 5);
+    const runtimeEventSummary = manager.getRuntimeEventSummary(task);
 
     spinner?.stop();
 
@@ -166,6 +168,8 @@ export async function show(taskId, options = {}) {
         recentRuntime: runtimeEntries,
         processSummary,
         recentProcesses: processEntries,
+        runtimeEventSummary,
+        recentRuntimeEvents: runtimeEvents,
       }, workspaceJSON));
       return;
     }

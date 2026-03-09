@@ -9,9 +9,10 @@ export async function start(taskId, options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const spinner = (!compactMode && process.stdout.isTTY) ? ora('Starting task').start() : null;
+  let manager;
 
   try {
-    const manager = new TaskManager();
+    manager = new TaskManager();
     await manager.init();
     const transitions = new TaskTransitionService(manager);
 
@@ -74,6 +75,13 @@ export async function start(taskId, options = {}) {
       console.log(chalk.gray(`  Subtasks: ${subDone}/${subTotal}`));
     }
   } catch (error) {
+    if (manager) {
+      try {
+        await manager.saveData();
+      } catch {
+        // Best-effort persistence for hook/runtime failures.
+      }
+    }
     spinner?.fail('Failed to start task');
     if (isJSONMode(options)) {
       const code = error.message.includes('Session conflict')

@@ -6,6 +6,7 @@ import {
   generateRuntimeRecordId,
   generateProcessRecordId,
   generateTransitionEventId,
+  generateRuntimeEventId,
   toISOString,
   isValidPriority,
   isValidTaskId,
@@ -59,6 +60,22 @@ export class TaskManager {
 
   getTransitionEvents(limit = null) {
     const events = this.data?.transitions || [];
+    if (!limit) {
+      return events;
+    }
+    return events.slice(-limit);
+  }
+
+  getRuntimeEvents(limit = null) {
+    const events = this.data?.runtimeEvents || [];
+    if (!limit) {
+      return events;
+    }
+    return events.slice(-limit);
+  }
+
+  getTaskRuntimeEvents(taskId, limit = null) {
+    const events = this.getRuntimeEvents().filter(event => event.taskId === taskId);
     if (!limit) {
       return events;
     }
@@ -688,6 +705,17 @@ export class TaskManager {
     };
   }
 
+  getRuntimeEventSummary(task) {
+    const events = this.getTaskRuntimeEvents(task?.id);
+    return {
+      recordCount: events.length,
+      warningCount: events.filter(event => event.level === 'warn').length,
+      errorCount: events.filter(event => event.level === 'error').length,
+      lastEventType: events.at(-1)?.type || null,
+      lastOccurredAt: events.at(-1)?.occurredAt || null,
+    };
+  }
+
   /**
    * Refresh derived fields that should never become stale on disk
    */
@@ -698,6 +726,9 @@ export class TaskManager {
 
     this.data.transitions = Array.isArray(this.data.transitions)
       ? this.data.transitions.map(event => this.normalizeTransitionEvent(event))
+      : [];
+    this.data.runtimeEvents = Array.isArray(this.data.runtimeEvents)
+      ? this.data.runtimeEvents.map(event => this.normalizeRuntimeEvent(event))
       : [];
 
     this.data.tasks.forEach(task => {
@@ -762,6 +793,14 @@ export class TaskManager {
     return normalizedEvent;
   }
 
+  appendRuntimeEvent(event = {}) {
+    const normalizedEvent = this.normalizeRuntimeEvent(event);
+    this.data.runtimeEvents = Array.isArray(this.data.runtimeEvents) ? this.data.runtimeEvents : [];
+    this.data.runtimeEvents.push(normalizedEvent);
+    this.data.metadata.updatedAt = toISOString();
+    return normalizedEvent;
+  }
+
   normalizeTransitionEvent(event = {}) {
     return {
       id: event.id || generateTransitionEventId(),
@@ -772,6 +811,24 @@ export class TaskManager {
       statusTo: event.statusTo || null,
       changed: typeof event.changed === 'boolean' ? event.changed : true,
       context: event.context && typeof event.context === 'object' ? event.context : {},
+      occurredAt: event.occurredAt || toISOString(),
+    };
+  }
+
+  normalizeRuntimeEvent(event = {}) {
+    return {
+      id: event.id || generateRuntimeEventId(),
+      schemaVersion: Number.isInteger(event.schemaVersion) ? event.schemaVersion : 1,
+      type: event.type || 'runtime.event',
+      taskId: event.taskId || null,
+      transitionEventId: event.transitionEventId || null,
+      hookName: event.hookName || null,
+      hookId: event.hookId || null,
+      level: event.level || 'info',
+      status: event.status || 'recorded',
+      message: event.message || '',
+      attempts: Number.isInteger(event.attempts) ? event.attempts : 0,
+      data: event.data && typeof event.data === 'object' ? event.data : {},
       occurredAt: event.occurredAt || toISOString(),
     };
   }

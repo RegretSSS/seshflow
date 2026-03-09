@@ -1,8 +1,13 @@
 import { TRANSITION_SCHEMA_VERSION, TRANSITION_TYPES } from '../../../shared/constants/transitions.js';
+import { HOOK_MODES, HOOK_NAMES } from '../../../shared/constants/hooks.js';
+import { HookRegistry } from './hook-registry.js';
+import { HookExecutor } from './hook-executor.js';
 
 export class TaskTransitionService {
   constructor(manager) {
     this.manager = manager;
+    this.registry = new HookRegistry(manager.storage);
+    this.executor = new HookExecutor(manager);
   }
 
   async startTask(taskId, options = {}) {
@@ -54,6 +59,9 @@ export class TaskTransitionService {
       this.manager.updateTask(task.id, { status: 'backlog', completedAt: null });
     }
 
+    const beforeResults = await this.runHookPhase(HOOK_NAMES.BEFORE_START, task, null, {
+      source: options.source || 'cli',
+    });
     this.manager.startSession(task.id);
     const transitionEvent = this.manager.appendTransitionEvent({
       schemaVersion: TRANSITION_SCHEMA_VERSION,
@@ -69,6 +77,10 @@ export class TaskTransitionService {
         previousTaskId: currentTask && currentTask.id !== task.id ? currentTask.id : null,
       },
     });
+    this.appendTransitionRuntimeEvent(task.id, transitionEvent);
+    const afterResults = await this.runHookPhase(HOOK_NAMES.AFTER_START, task, transitionEvent, {
+      source: options.source || 'cli',
+    });
 
     return {
       action: 'start',
@@ -79,6 +91,7 @@ export class TaskTransitionService {
       switched: Boolean(options.switch),
       unmetDependencies,
       transitionEvent,
+      hookResults: [...beforeResults, ...afterResults],
     };
   }
 
@@ -89,6 +102,11 @@ export class TaskTransitionService {
     }
 
     const statusFrom = task.status;
+    const beforeResults = await this.runHookPhase(HOOK_NAMES.BEFORE_DONE, task, null, {
+      source: options.source || 'cli',
+      hours: options.hours ? Number.parseFloat(options.hours) : null,
+      note: options.note || '',
+    });
     await this.manager.completeTask(taskId, options);
     const transitionEvent = this.manager.appendTransitionEvent({
       schemaVersion: TRANSITION_SCHEMA_VERSION,
@@ -103,12 +121,19 @@ export class TaskTransitionService {
         note: options.note || '',
       },
     });
+    this.appendTransitionRuntimeEvent(taskId, transitionEvent);
+    const afterResults = await this.runHookPhase(HOOK_NAMES.AFTER_DONE, this.manager.getTask(taskId), transitionEvent, {
+      source: options.source || 'cli',
+      hours: options.hours ? Number.parseFloat(options.hours) : null,
+      note: options.note || '',
+    });
 
     return {
       action: 'done',
       changed: true,
       task: this.manager.getTask(taskId),
       transitionEvent,
+      hookResults: [...beforeResults, ...afterResults],
     };
   }
 
@@ -143,6 +168,7 @@ export class TaskTransitionService {
       changed: true,
       task,
       transitionEvent,
+      hookResults: [],
     };
   }
 
@@ -184,6 +210,71 @@ export class TaskTransitionService {
       changed: true,
       task: currentTask,
       transitionEvent,
+      hookResults: [],
     };
+  }
+
+  async runHookPhase(hookName, task, transitionEvent, context = {}) {
+    const hooks = await this.registry.getHooks(hookName);
+    if (hooks.length === 0) {
+      return [];
+    }
+
+    const executionContext = {
+      ...context,
+      taskId: task.id,
+      transitionEventId: transitionEvent?.id || null,
+      hookName,
+    };
+
+    let results;
+    try {
+      results = await this.executor.runHooks(hooks, executionContext);
+    } catch (error) {
+      if (error.hookResult) {
+        this.appendHookRuntimeEvent(task.id, transitionEvent?.id || null, error.hookResult);
+      }
+      throw error;
+    }
+
+    results.forEach(result => {
+      this.appendHookRuntimeEvent(task.id, transitionEvent?.id || null, result);
+    });
+
+    return results;
+  }
+
+  appendTransitionRuntimeEvent(taskId, transitionEvent) {
+    this.manager.appendRuntimeEvent({
+      type: 'transition.execution',
+      taskId,
+      transitionEventId: transitionEvent.id,
+      level: 'info',
+      status: 'recorded',
+      message: `${transitionEvent.type} ${transitionEvent.statusFrom || 'unknown'} -> ${transitionEvent.statusTo || 'unknown'}`,
+      attempts: 0,
+      data: {
+        type: transitionEvent.type,
+        statusFrom: transitionEvent.statusFrom,
+        statusTo: transitionEvent.statusTo,
+      },
+    });
+  }
+
+  appendHookRuntimeEvent(taskId, transitionEventId, result) {
+    this.manager.appendRuntimeEvent({
+      type: 'hook.execution',
+      taskId,
+      transitionEventId,
+      hookName: result.hookName,
+      hookId: result.hookId,
+      level: result.ok ? 'info' : (result.mode === HOOK_MODES.NON_BLOCKING ? 'warn' : 'error'),
+      status: result.ok ? 'succeeded' : 'failed',
+      message: result.message,
+      attempts: result.attempts,
+      data: {
+        mode: result.mode,
+      },
+    });
   }
 }

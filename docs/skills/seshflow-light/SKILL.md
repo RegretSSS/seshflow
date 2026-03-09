@@ -110,6 +110,8 @@ When a long-running background job matters for resuming work, register and refre
 - `seshflow process add --json --pid <pid> --command "<cmd>" --cwd "<dir>" --output-root "<dir>"`
 - `seshflow process list --json --refresh`
 
+Transition-triggered hooks now write persisted runtime events. Treat blocking `before_*` hook failures as authoritative and inspect `show <taskId> --json` for `recentRuntimeEvents` when a transition fails unexpectedly.
+
 ## Guardrails
 
 - Keep command set minimal in each turn.

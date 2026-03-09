@@ -28,6 +28,12 @@ const DEFAULT_CONFIG = {
     interval: 3000,
     strategy: 'last-write-wins'
   },
+  hooks: {
+    before_start: [],
+    after_start: [],
+    before_done: [],
+    after_done: []
+  },
   git: {
     autoHook: true,
     commitTemplate: 'feat({taskId}): {message}'
@@ -452,6 +458,7 @@ export class Storage {
     normalized.workspace.tasksFile = workspaceInfo.tasksFile;
     normalized.tasks = Array.isArray(data.tasks) ? data.tasks : [];
     normalized.transitions = Array.isArray(data.transitions) ? data.transitions : [];
+    normalized.runtimeEvents = Array.isArray(data.runtimeEvents) ? data.runtimeEvents : [];
     normalized.currentSession = data.currentSession || null;
 
     return normalized;

@@ -63,9 +63,10 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const spinner = compactMode ? null : ora('Loading workspace').start();
+  let manager;
 
   try {
-    const manager = new TaskManager();
+    manager = new TaskManager();
     await manager.init();
     const transitions = new TaskTransitionService(manager);
 
@@ -209,6 +210,13 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
       console.log(chalk.green('\nAll tasks completed.'));
     }
   } catch (error) {
+    if (manager) {
+      try {
+        await manager.saveData();
+      } catch {
+        // Best-effort persistence for hook/runtime failures.
+      }
+    }
     if (isJSONMode(options)) {
       outputJSON(formatErrorResponse(error, 'DONE_FAILED'));
     }

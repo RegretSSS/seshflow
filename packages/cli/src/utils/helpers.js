@@ -69,6 +69,16 @@ export function generateTransitionEventId() {
 }
 
 /**
+ * Generate a unique runtime event ID
+ * @returns {string} Runtime event ID
+ */
+export function generateRuntimeEventId() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 6);
+  return `revt_${timestamp}_${random}`;
+}
+
+/**
  * Format date to ISO string
  * @param {Date} date - Date object
  * @returns {string} ISO 8601 timestamp
