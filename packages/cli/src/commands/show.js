@@ -5,6 +5,7 @@ import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 import { loadTextUI } from '../utils/text-ui.js';
 import { resolveWorkspaceMode } from '../core/workspace-mode.js';
+import { buildApiFirstContext } from '../core/apifirst-context.js';
 
 function subtaskProgress(task) {
   const total = task.subtasks?.length || 0;
@@ -152,6 +153,8 @@ export async function show(taskId, options = {}) {
       process.exit(1);
     }
 
+    const apiFirstContext = await buildApiFirstContext(manager, modeInfo, task);
+
     const blockers = manager.getBlockedBy(task)
       .map(id => manager.getTask(id))
       .filter(Boolean);
@@ -171,6 +174,10 @@ export async function show(taskId, options = {}) {
         mode: modeInfo.mode,
         detailLevel: includeFullJSON ? 'full' : 'summary',
         task: formatTaskJSON(task),
+        currentContract: apiFirstContext?.currentContract || null,
+        relatedContracts: apiFirstContext?.relatedContracts || [],
+        openContractQuestions: apiFirstContext?.openContractQuestions || [],
+        relatedContractTasks: apiFirstContext?.relatedTasks || [],
         subtasks: task.subtasks || [],
         dependencies: task.dependencies || [],
         blockedBy: blockers.map(t => ({ id: t.id, title: t.title, status: t.status })),

@@ -6,6 +6,7 @@ import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 import { loadTextUI } from '../utils/text-ui.js';
 import { resolveWorkspaceMode } from '../core/workspace-mode.js';
+import { buildApiFirstContext } from '../core/apifirst-context.js';
 
 function displayTask(task, chalk, showFull = false) {
   console.log(chalk.bold.cyan(`\n- ${task.title}`));
@@ -145,10 +146,14 @@ export async function next(options = {}) {
       const currentTask = manager.getCurrentTask();
       if (currentTask) {
         spinner?.stop();
+        const apiFirstContext = await buildApiFirstContext(manager, modeInfo, currentTask);
         const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
         outputJSON(formatSuccessResponse({
           mode: modeInfo.mode,
           task: formatTaskJSON(currentTask),
+          currentContract: apiFirstContext?.currentContract || null,
+          relatedContracts: apiFirstContext?.relatedContracts || [],
+          openContractQuestions: apiFirstContext?.openContractQuestions || [],
           runtimeSummary: manager.getRuntimeSummary(currentTask),
           processSummary: manager.getProcessSummary(currentTask),
           hasActiveSession: true,
@@ -175,10 +180,14 @@ export async function next(options = {}) {
       }
 
       const unmetDeps = manager.getUnmetDependencies(nextTask);
+      const apiFirstContext = await buildApiFirstContext(manager, modeInfo, nextTask);
       const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
       outputJSON(formatSuccessResponse({
         mode: modeInfo.mode,
         task: formatTaskJSON(nextTask),
+        currentContract: apiFirstContext?.currentContract || null,
+        relatedContracts: apiFirstContext?.relatedContracts || [],
+        openContractQuestions: apiFirstContext?.openContractQuestions || [],
         unmetDependencies: unmetDeps.map(d => ({
           id: d.id,
           title: d.title,
