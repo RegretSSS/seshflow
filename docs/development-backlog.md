@@ -108,6 +108,12 @@
 - Scope: make `ncfr`, `next`, and `show` surface the active contract, related tasks, and unresolved protocol questions before broader repo context.
 - Done: AI receives protocol truth first when working inside API-first mode.
 
+### 1.3.0-03a Explicit AI Context Priority
+
+- Priority: P0
+- Scope: make context-priority ordering explicit in API-first payloads and RPC shell seams so Agent code does not need to infer which sections are primary, secondary, or suppressed.
+- Done: `ncfr`, `next`, `show`, and `rpc shell` expose a stable context-priority contract instead of relying on implicit field order.
+
 ### 1.3.0-04 Contract Drift and Conflict Reminders
 
 - Priority: P0

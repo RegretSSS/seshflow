@@ -262,6 +262,7 @@ export async function newchatfirstround(options = {}) {
       };
 
       if (apiFirstContext) {
+        responseData.contextPriority = apiFirstContext.contextPriority;
         responseData.currentContract = apiFirstContext.currentContract;
         responseData.relatedContracts = apiFirstContext.relatedContracts;
         responseData.openContractQuestions = apiFirstContext.openContractQuestions;

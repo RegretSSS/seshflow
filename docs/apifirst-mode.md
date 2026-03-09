@@ -267,6 +267,52 @@ If the active task binds multiple contracts:
 - return the rest in `relatedContracts`
 - aggregate `contractReminders` and `contractReminderSummary` across tasks bound to the primary contract
 
+API-first surfaces must not rely on field order alone to communicate importance. `ncfr`, `next`, `show`, and `rpc shell` should expose an explicit `contextPriority` object that tells Agent code:
+
+- which section is primary
+- which sections are required before broader repo/runtime context
+- which sections are supplemental
+- which sections were suppressed because they were empty
+
+Target shape:
+
+```json
+{
+  "strategy": "contract-first",
+  "primarySection": "currentContract",
+  "activeSections": [
+    {
+      "section": "currentContract",
+      "rank": 1,
+      "tier": "primary",
+      "state": "present",
+      "reason": "focus-task-bound-contract"
+    },
+    {
+      "section": "contractReminders",
+      "rank": 2,
+      "tier": "primary",
+      "state": "present",
+      "reason": "active-contract-reminders"
+    },
+    {
+      "section": "openContractQuestions",
+      "rank": 3,
+      "tier": "secondary",
+      "state": "present",
+      "reason": "unresolved-contract-questions"
+    }
+  ],
+  "suppressedSections": [
+    {
+      "section": "relatedContracts",
+      "tier": "secondary",
+      "reason": "empty"
+    }
+  ]
+}
+```
+
 Unresolved protocol questions come from:
 
 - contract `openQuestions`
@@ -296,6 +342,10 @@ Default mode `ncfr`:
 {
   "mode": "apifirst",
   "focus": "contract-first",
+  "contextPriority": {
+    "strategy": "contract-first",
+    "primarySection": "currentContract"
+  },
   "currentTask": {
     "id": "task_impl_create_user_route",
     "title": "Implement POST /users route",
@@ -401,6 +451,7 @@ This milestone reserves stable seams. It does not require shipping a full RPC se
 
 - documented JSON payloads for contract objects
 - documented task-to-contract binding fields
+- documented context-priority payloads for contract-first surfaces
 - documented hook payload shape for contract-aware events
 - documented RPC/API shell boundary for future Agent integration
 

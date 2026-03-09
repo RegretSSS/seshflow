@@ -96,6 +96,16 @@ describe('api-first context resolution', () => {
     const ncfrPayload = JSON.parse(ncfrResult.stdout);
     expect(ncfrPayload.mode).toBe('apifirst');
     expect(ncfrPayload.focus).toBe('contract-first');
+    expect(ncfrPayload.contextPriority).toEqual(
+      expect.objectContaining({
+        strategy: 'contract-first',
+        primarySection: 'currentContract',
+        activeSections: expect.arrayContaining([
+          expect.objectContaining({ section: 'currentContract', rank: 1, tier: 'primary' }),
+          expect.objectContaining({ section: 'contractReminders', rank: 2, tier: 'primary' }),
+        ]),
+      })
+    );
     expect(ncfrPayload.currentContract.id).toBe('contract.user-service.create-user');
     expect(ncfrPayload.openContractQuestions).toHaveLength(1);
     expect(ncfrPayload.relatedTasks.map(task => task.id)).toContain(taskA.id);
@@ -116,6 +126,12 @@ describe('api-first context resolution', () => {
     expect(nextResult.status).toBe(0);
     const nextPayload = JSON.parse(nextResult.stdout);
     expect(nextPayload.mode).toBe('apifirst');
+    expect(nextPayload.contextPriority).toEqual(
+      expect.objectContaining({
+        strategy: 'contract-first',
+        primarySection: 'currentContract',
+      })
+    );
     expect(nextPayload.currentContract.id).toBe('contract.user-service.create-user');
     expect(nextPayload.relatedContracts).toHaveLength(1);
     expect(nextPayload.contractReminders.map(reminder => reminder.code)).toEqual(
@@ -132,6 +148,12 @@ describe('api-first context resolution', () => {
     expect(showResult.status).toBe(0);
     const showPayload = JSON.parse(showResult.stdout);
     expect(showPayload.mode).toBe('apifirst');
+    expect(showPayload.contextPriority).toEqual(
+      expect.objectContaining({
+        strategy: 'contract-first',
+        primarySection: 'currentContract',
+      })
+    );
     expect(showPayload.currentContract.id).toBe('contract.user-service.create-user');
     expect(showPayload.relatedContracts).toHaveLength(1);
     expect(showPayload.openContractQuestions[0].id).toBe('question_duplicate_email');

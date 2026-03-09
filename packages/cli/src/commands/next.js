@@ -151,6 +151,7 @@ export async function next(options = {}) {
         outputJSON(formatSuccessResponse({
           mode: modeInfo.mode,
           task: formatTaskJSON(currentTask),
+          contextPriority: apiFirstContext?.contextPriority || null,
           currentContract: apiFirstContext?.currentContract || null,
           relatedContracts: apiFirstContext?.relatedContracts || [],
           openContractQuestions: apiFirstContext?.openContractQuestions || [],
@@ -187,6 +188,7 @@ export async function next(options = {}) {
       outputJSON(formatSuccessResponse({
         mode: modeInfo.mode,
         task: formatTaskJSON(nextTask),
+        contextPriority: apiFirstContext?.contextPriority || null,
         currentContract: apiFirstContext?.currentContract || null,
         relatedContracts: apiFirstContext?.relatedContracts || [],
         openContractQuestions: apiFirstContext?.openContractQuestions || [],

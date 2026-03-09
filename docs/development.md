@@ -108,6 +108,7 @@ Use these boundaries as hard constraints, not inspiration.
   - contract storage and identity rules
   - task-to-contract binding
   - contract-aware context resolution
+  - explicit AI context-priority contract for contract-first surfaces
   - conflict/drift reminder rules
 - Supporting API/Web work is allowed only insofar as it serves this development mode.
 - Multi-workspace overview is a secondary control-plane concern, not the definition of `API-first`.
@@ -123,7 +124,7 @@ Use these boundaries as hard constraints, not inspiration.
 
 - Required: transition contract, hook integration, timeout/retry, persistence adapter, mode resolver, CLI/Web parity tests.
 - Required for planning/domain work: dependency validation tests, cycle detection tests, Markdown identity/update contract tests.
-- Required for `API-first`: contract binding tests, conflict reminder tests, context-priority tests, and mode-init tests.
+- Required for `API-first`: contract binding tests, conflict reminder tests, context-priority tests, RPC shell parity tests, and mode-init tests.
 - Release gates: `pnpm lint`, `pnpm test`, `pnpm build`.
 
 ## 12. Engineering Red Lines

@@ -88,18 +88,36 @@ describe('integration seams', () => {
     const workspacePayload = JSON.parse(workspaceResult.stdout);
     expect(workspacePayload.surface).toBe('workspace');
     expect(workspacePayload.workspace.mode).toBe('apifirst');
+    expect(workspacePayload.contextPriority).toEqual(
+      expect.objectContaining({
+        strategy: 'contract-first',
+        primarySection: 'currentContract',
+      })
+    );
 
     const taskResult = runCLI(workspacePath, ['rpc', 'shell', 'task', task.id]);
     expect(taskResult.status).toBe(0);
     const taskPayload = JSON.parse(taskResult.stdout);
     expect(taskPayload.surface).toBe('task');
     expect(taskPayload.task.id).toBe(task.id);
+    expect(taskPayload.contextPriority).toEqual(
+      expect.objectContaining({
+        strategy: 'contract-first',
+        primarySection: 'currentContract',
+      })
+    );
     expect(taskPayload.currentContract.id).toBe('contract.user-service.create-user');
 
     const contractResult = runCLI(workspacePath, ['rpc', 'shell', 'contract', 'contract.user-service.create-user']);
     expect(contractResult.status).toBe(0);
     const contractPayload = JSON.parse(contractResult.stdout);
     expect(contractPayload.surface).toBe('contract');
+    expect(contractPayload.contextPriority).toEqual(
+      expect.objectContaining({
+        strategy: 'contract-first',
+        primarySection: 'contract',
+      })
+    );
     expect(contractPayload.contract.id).toBe('contract.user-service.create-user');
     expect(contractPayload.relatedTasks.map(item => item.id)).toContain(task.id);
   });

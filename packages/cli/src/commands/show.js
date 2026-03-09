@@ -174,6 +174,7 @@ export async function show(taskId, options = {}) {
         mode: modeInfo.mode,
         detailLevel: includeFullJSON ? 'full' : 'summary',
         task: formatTaskJSON(task),
+        contextPriority: apiFirstContext?.contextPriority || null,
         currentContract: apiFirstContext?.currentContract || null,
         relatedContracts: apiFirstContext?.relatedContracts || [],
         openContractQuestions: apiFirstContext?.openContractQuestions || [],

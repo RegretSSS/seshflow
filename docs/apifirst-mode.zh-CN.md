@@ -269,6 +269,52 @@ RPC 起始示例：
 - 其余放入 `relatedContracts`
 - `contractReminders` 与 `contractReminderSummary` 需要按主契约聚合，不只看当前单个任务
 
+API-first 的这些输出面不能靠“字段出现顺序”来暗示重要性。`ncfr`、`next`、`show` 和 `rpc shell` 应显式返回一个 `contextPriority` 对象，让 Agent 侧不用猜：
+
+- 哪个 section 是主上下文
+- 哪些 section 必须先看
+- 哪些 section 只是补充信息
+- 哪些 section 因为空值被压掉了
+
+目标结构：
+
+```json
+{
+  "strategy": "contract-first",
+  "primarySection": "currentContract",
+  "activeSections": [
+    {
+      "section": "currentContract",
+      "rank": 1,
+      "tier": "primary",
+      "state": "present",
+      "reason": "focus-task-bound-contract"
+    },
+    {
+      "section": "contractReminders",
+      "rank": 2,
+      "tier": "primary",
+      "state": "present",
+      "reason": "active-contract-reminders"
+    },
+    {
+      "section": "openContractQuestions",
+      "rank": 3,
+      "tier": "secondary",
+      "state": "present",
+      "reason": "unresolved-contract-questions"
+    }
+  ],
+  "suppressedSections": [
+    {
+      "section": "relatedContracts",
+      "tier": "secondary",
+      "reason": "empty"
+    }
+  ]
+}
+```
+
 未解决的协议问题来自：
 
 - 契约对象内的 `openQuestions`
@@ -298,6 +344,10 @@ RPC 起始示例：
 {
   "mode": "apifirst",
   "focus": "contract-first",
+  "contextPriority": {
+    "strategy": "contract-first",
+    "primarySection": "currentContract"
+  },
   "currentTask": {
     "id": "task_impl_create_user_route",
     "title": "Implement POST /users route",
@@ -400,6 +450,7 @@ seshflow contracts check
 
 - 契约对象的 JSON payload 规范
 - task-to-contract binding 字段规范
+- contract-first context-priority payload 规范
 - contract-aware hook payload 规范
 - 给未来 Agent 用的 RPC/API shell 边界说明
 
