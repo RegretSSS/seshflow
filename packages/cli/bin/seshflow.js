@@ -22,6 +22,7 @@ import { start } from '../src/commands/start.js';
 import { skip } from '../src/commands/skip.js';
 import { suspend } from '../src/commands/suspend.js';
 import { record } from '../src/commands/record.js';
+import { addDependency, removeDependency } from '../src/commands/dependency-mutation.js';
 import { spawnSync } from 'node:child_process';
 
 const program = new Command();
@@ -166,6 +167,20 @@ program
     return record(resolvedTaskId, resolvedOptions);
   });
 
+program
+  .command('add-dep <taskId> <dependsOnTaskId>')
+  .alias('add-dependency')
+  .description('Add a task dependency')
+  .option('--json', 'Output as JSON')
+  .action(addDependency);
+
+program
+  .command('remove-dep <taskId> <dependsOnTaskId>')
+  .alias('remove-dependency')
+  .description('Remove a task dependency')
+  .option('--json', 'Output as JSON')
+  .action(removeDependency);
+
 // Import command
 program
   .command('import <file>')
@@ -272,6 +287,8 @@ program
   .option('--desc <description>', 'Alias for --description')
   .option('--tags <tags>', 'Comma-separated tags')
   .option('--tag <tags>', 'Alias for --tags')
+  .option('--add-dep <taskIds>', 'Comma-separated dependency task IDs to add')
+  .option('--remove-dep <taskIds>', 'Comma-separated dependency task IDs to remove')
   .option('--hours <hours>', 'Advanced: alias for --estimate')
   .option('-e, --estimate <hours>', 'Advanced: new estimated hours')
   .option('-a, --assignee <name>', 'New assignee')

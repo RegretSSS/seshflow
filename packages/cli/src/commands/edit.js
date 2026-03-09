@@ -38,7 +38,9 @@ export async function edit(taskId, options = {}) {
       options.assignee !== undefined ||
       options.branch !== undefined ||
       options.tags !== undefined ||
-      options.tag !== undefined;
+      options.tag !== undefined ||
+      options.addDep !== undefined ||
+      options.removeDep !== undefined;
 
     if (hasDirectOptions) {
       if (options.title) task.title = options.title;
@@ -51,6 +53,18 @@ export async function edit(taskId, options = {}) {
       if (options.tags !== undefined || options.tag !== undefined) {
         const rawTags = options.tags ?? options.tag ?? '';
         task.tags = rawTags.split(',').map(tag => tag.trim()).filter(Boolean);
+      }
+      if (options.addDep !== undefined) {
+        const addDeps = String(options.addDep).split(',').map(dep => dep.trim()).filter(Boolean);
+        for (const depId of addDeps) {
+          manager.addDependency(task.id, depId);
+        }
+      }
+      if (options.removeDep !== undefined) {
+        const removeDeps = String(options.removeDep).split(',').map(dep => dep.trim()).filter(Boolean);
+        for (const depId of removeDeps) {
+          manager.removeDependency(task.id, depId);
+        }
       }
 
       await manager.saveData();

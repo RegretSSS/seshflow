@@ -436,6 +436,92 @@ export class TaskManager {
     return this.getUnmetDependencies(task).map(dep => dep.id);
   }
 
+  hasDependencyPath(fromTaskId, targetTaskId, visited = new Set()) {
+    if (fromTaskId === targetTaskId) {
+      return true;
+    }
+
+    if (visited.has(fromTaskId)) {
+      return false;
+    }
+    visited.add(fromTaskId);
+
+    const fromTask = this.getTask(fromTaskId);
+    if (!fromTask?.dependencies?.length) {
+      return false;
+    }
+
+    return fromTask.dependencies.some(depId => this.hasDependencyPath(depId, targetTaskId, visited));
+  }
+
+  validateDependencyMutation(taskId, dependencyId) {
+    const task = this.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+
+    const dependencyTask = this.getTask(dependencyId);
+    if (!dependencyTask) {
+      throw new Error(`Dependency task not found: ${dependencyId}`);
+    }
+
+    if (taskId === dependencyId) {
+      throw new Error(`Task cannot depend on itself: ${taskId}`);
+    }
+
+    if (this.hasDependencyPath(dependencyId, taskId)) {
+      throw new Error(`Dependency cycle detected: ${taskId} -> ${dependencyId}`);
+    }
+
+    return { task, dependencyTask };
+  }
+
+  addDependency(taskId, dependencyId) {
+    const { task, dependencyTask } = this.validateDependencyMutation(taskId, dependencyId);
+
+    if (task.dependencies.includes(dependencyId)) {
+      return {
+        task,
+        dependencyTask,
+        added: false,
+      };
+    }
+
+    task.dependencies = [...task.dependencies, dependencyId];
+    task.updatedAt = toISOString();
+    this.refreshDerivedState();
+    this.updateWorkspaceInfo();
+
+    return {
+      task,
+      dependencyTask,
+      added: true,
+    };
+  }
+
+  removeDependency(taskId, dependencyId) {
+    const task = this.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+
+    const beforeCount = task.dependencies.length;
+    task.dependencies = task.dependencies.filter(depId => depId !== dependencyId);
+    const removed = task.dependencies.length !== beforeCount;
+
+    if (removed) {
+      task.updatedAt = toISOString();
+      this.refreshDerivedState();
+      this.updateWorkspaceInfo();
+    }
+
+    return {
+      task,
+      dependencyTask: this.getTask(dependencyId) || null,
+      removed,
+    };
+  }
+
   getActiveSessionForTask(taskId) {
     if (this.data?.currentSession?.taskId !== taskId) {
       return null;

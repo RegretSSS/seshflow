@@ -170,6 +170,8 @@ export async function deps(taskId, options = {}) {
 
     console.log(chalk.blue('\nTips:'));
     console.log(chalk.gray('  seshflow deps <task-id>')); 
+    console.log(chalk.gray('  seshflow add-dep <task-id> <depends-on-task-id>'));
+    console.log(chalk.gray('  seshflow remove-dep <task-id> <depends-on-task-id>'));
     console.log(chalk.gray('  seshflow deps --graph'));
     console.log(chalk.gray('  seshflow deps --json'));
     console.log('');
