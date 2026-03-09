@@ -8,8 +8,9 @@ Seshflow is not a generic project board. It keeps planning state, active-task co
 
 - `v1.2.0` is the current release line.
 - `v1.2.0` scope: execution core, managed planning import/update, runtime event capture, and a minimal runtime-backed web control plane.
-- `v1.3.0` is reserved for `apifirst`, meaning a contract-first development mode rather than a generic HTTP platform rewrite.
+- `v1.3.0` implementation is complete on `development` and represents the next unreleased line: `apifirst`, a contract-first development mode rather than a generic HTTP platform rewrite.
 - `v1.3.0` design target is documented in `docs/apifirst-mode.md`.
+- `v1.4.0` remains planned and has not started.
 
 ## Install
 
@@ -33,7 +34,7 @@ seshflow next
 
 Use `ncfr` as the first step of a new AI conversation. AI-facing commands now default to structured JSON, so `ncfr` already returns the minimal workspace snapshot needed to decide what to do next.
 
-## API-first flow (`v1.3.0` in progress)
+## API-first flow (`v1.3.0` implemented on `development`)
 
 ```bash
 seshflow init apifirst

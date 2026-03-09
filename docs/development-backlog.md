@@ -156,13 +156,13 @@
 
 - Priority: P1
 - Scope: realtime events with reconnect and ordering policy.
-- Done: multi-tab propagation and reconnect behavior are reliable.
+- Target: multi-tab propagation and reconnect behavior are reliable.
 
 ### 1.4.0-02 Dependency Graph and Advanced Observability
 
 - Priority: P2
 - Scope: dependency graph and richer analytics views based on real runtime events.
-- Done: rendering remains responsive for medium datasets.
+- Target: rendering remains responsive for medium datasets.
 
 ## Deferred / Not This Stage
 
