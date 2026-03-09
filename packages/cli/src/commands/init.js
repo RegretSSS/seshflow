@@ -378,11 +378,19 @@ export async function init(modeOrOptions = {}, maybeOptions = {}) {
 
     console.log(chalk.blue('\nQuick start:'));
     if (mode === 'apifirst') {
+      console.log(chalk.gray('  # Contract and planning phase'));
       console.log(chalk.gray('  seshflow contracts add .seshflow/contracts/contract.user-service.create-user.json'));
       console.log(chalk.gray('  seshflow validate .seshflow/plans/api-planning.md'));
       console.log(chalk.gray('  seshflow import .seshflow/plans/api-planning.md --update'));
       console.log(chalk.gray('  seshflow ncfr'));
       console.log(chalk.gray('  seshflow contracts check'));
+      console.log('');
+      console.log(chalk.gray('  # Execution phase'));
+      console.log(chalk.gray('  seshflow next'));
+      console.log(chalk.gray('  seshflow start <taskId>'));
+      console.log(chalk.gray('  seshflow show <taskId>'));
+      console.log(chalk.gray('  seshflow record --note "implementation progress"'));
+      console.log(chalk.gray('  seshflow done <taskId>'));
     } else {
       console.log(chalk.gray('  seshflow ncfr'));
       console.log(chalk.gray('  seshflow add "My first task"'));
