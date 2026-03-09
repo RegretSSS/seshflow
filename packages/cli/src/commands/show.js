@@ -4,6 +4,7 @@ import { TaskManager } from '../core/task-manager.js';
 import { truncate } from '../utils/helpers.js';
 import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
+import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 
 function subtaskProgress(task) {
   const total = task.subtasks?.length || 0;
@@ -159,15 +160,17 @@ export async function show(taskId, options = {}) {
 
     displayPretty(task, blockers, runtimeEntries);
 
-    console.log(chalk.blue('\nCommands:'));
-    if (task.status === 'backlog' || task.status === 'todo') {
-      console.log(chalk.gray('  seshflow next - Start this task'));
+    if (await shouldShowWorkspaceHint(manager.storage, 'show:pretty-hint')) {
+      console.log(chalk.blue('\nCommands:'));
+      if (task.status === 'backlog' || task.status === 'todo') {
+        console.log(chalk.gray('  seshflow next - Start this task'));
+      }
+      if (task.status === 'in-progress') {
+        console.log(chalk.gray('  seshflow done [options] - Complete this task'));
+      }
+      console.log(chalk.gray(`  seshflow deps ${taskId} - Show dependencies`));
+      console.log(chalk.gray(`  seshflow delete ${taskId} - Delete this task`));
     }
-    if (task.status === 'in-progress') {
-      console.log(chalk.gray('  seshflow done [options] - Complete this task'));
-    }
-    console.log(chalk.gray(`  seshflow deps ${taskId} - Show dependencies`));
-    console.log(chalk.gray(`  seshflow delete ${taskId} - Delete this task`));
   } catch (error) {
     spinner?.fail('Failed to show task');
     console.error(chalk.red(`\nError: ${error.message}`));

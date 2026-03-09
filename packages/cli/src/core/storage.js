@@ -130,6 +130,7 @@ export class Storage {
     this.seshflowDir = path.join(this.workspacePath, PATHS.SEHSFLOW_DIR);
     this.tasksFile = path.join(this.workspacePath, PATHS.TASKS_FILE);
     this.configFile = path.join(this.workspacePath, PATHS.CONFIG_FILE);
+    this.uiStateFile = path.join(this.workspacePath, PATHS.UI_STATE_FILE);
   }
 
   /**
@@ -148,6 +149,10 @@ export class Storage {
       // Create default config if it doesn't exist
       if (!(await this.exists(this.configFile))) {
         await this.writeConfigFile(this.createDefaultConfig());
+      }
+
+      if (!(await this.exists(this.uiStateFile))) {
+        await this.writeUIState({ hintsShown: {} });
       }
 
       return true;
@@ -231,6 +236,52 @@ export class Storage {
     } catch (error) {
       throw new Error(`Failed to read config file: ${error.message}`);
     }
+  }
+
+  async readUIState() {
+    try {
+      if (!(await this.exists(this.uiStateFile))) {
+        return { hintsShown: {} };
+      }
+
+      const content = await fs.readFile(this.uiStateFile, 'utf-8');
+      const parsed = JSON.parse(content);
+      return {
+        hintsShown: {
+          ...(parsed?.hintsShown || {})
+        }
+      };
+    } catch (error) {
+      throw new Error(`Failed to read UI state file: ${error.message}`);
+    }
+  }
+
+  async writeUIState(data = {}) {
+    try {
+      const normalized = {
+        hintsShown: {
+          ...(data?.hintsShown || {})
+        }
+      };
+      await fs.writeFile(this.uiStateFile, JSON.stringify(normalized, null, 2), 'utf-8');
+      return true;
+    } catch (error) {
+      throw new Error(`Failed to write UI state file: ${error.message}`);
+    }
+  }
+
+  async shouldShowHint(key, cooldownMs = 15 * 60 * 1000) {
+    const uiState = await this.readUIState();
+    const lastShown = uiState.hintsShown[key];
+    const now = Date.now();
+
+    if (lastShown && (now - new Date(lastShown).getTime()) < cooldownMs) {
+      return false;
+    }
+
+    uiState.hintsShown[key] = new Date(now).toISOString();
+    await this.writeUIState(uiState);
+    return true;
   }
 
   /**

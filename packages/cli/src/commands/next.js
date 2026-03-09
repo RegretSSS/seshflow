@@ -5,6 +5,7 @@ import simpleGit from 'simple-git';
 import { TaskManager } from '../core/task-manager.js';
 import { truncate } from '../utils/helpers.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
+import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 
 function displayTask(task, showFull = false) {
   console.log(chalk.bold.cyan(`\n- ${task.title}`));
@@ -275,18 +276,20 @@ export async function next(options = {}) {
       return;
     }
 
-    console.log(chalk.bold('\nAI Context:'));
-    console.log(chalk.white(`Current Task: ${nextTask.title}`));
-    console.log(chalk.white(`Description: ${truncate(nextTask.description, 200)}`));
-    if (nextTask.context.relatedFiles.length > 0) {
-      console.log(chalk.white(`Related Files: ${nextTask.context.relatedFiles.join(', ')}`));
-    }
-    if (nextTask.sessions.length > 0) {
-      const lastSession = nextTask.sessions[nextTask.sessions.length - 1];
-      console.log(chalk.white(`Last Session: ${lastSession.note || 'No notes from last session'}`));
-    }
+    if (await shouldShowWorkspaceHint(manager.storage, 'next:pretty-hint')) {
+      console.log(chalk.bold('\nAI Context:'));
+      console.log(chalk.white(`Current Task: ${nextTask.title}`));
+      console.log(chalk.white(`Description: ${truncate(nextTask.description, 200)}`));
+      if (nextTask.context.relatedFiles.length > 0) {
+        console.log(chalk.white(`Related Files: ${nextTask.context.relatedFiles.join(', ')}`));
+      }
+      if (nextTask.sessions.length > 0) {
+        const lastSession = nextTask.sessions[nextTask.sessions.length - 1];
+        console.log(chalk.white(`Last Session: ${lastSession.note || 'No notes from last session'}`));
+      }
 
-    console.log(chalk.blue('\nCommands:'), chalk.gray('seshflow done [options]'));
+      console.log(chalk.blue('\nCommands:'), chalk.gray('seshflow done [options]'));
+    }
   } catch (error) {
     spinner?.fail('Failed to get next task');
     console.error(chalk.red(`\nError: ${error.message}`));

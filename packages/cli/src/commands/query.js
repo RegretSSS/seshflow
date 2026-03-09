@@ -1,9 +1,10 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
-import { formatTaskJSON, formatSuccessResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
+import { formatTaskJSON, formatTaskSummaryJSON, formatSuccessResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { truncate } from '../utils/helpers.js';
+import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 
 function matchesTag(taskTag, inputTag) {
   const taskValue = String(taskTag || '').toLowerCase();
@@ -90,8 +91,9 @@ export async function query(options = {}) {
 
     if (isJSONMode(options)) {
       outputJSON(formatSuccessResponse({
-        tasks: filteredTasks.map(t => formatTaskJSON(t)),
+        tasks: filteredTasks.map(t => (options.full ? formatTaskJSON(t) : formatTaskSummaryJSON(t))),
         totalTasks: filteredTasks.length,
+        detailLevel: options.full ? 'full' : 'summary',
         filters: {
           priority: options.priority || null,
           status: options.status || null,
@@ -136,7 +138,11 @@ export async function query(options = {}) {
     if (filteredTasks.length > 0) {
       console.log(chalk.gray(`  seshflow show ${filteredTasks[0].id}`));
     }
-    console.log(chalk.gray('  seshflow query --json\n'));
+    if (await shouldShowWorkspaceHint(manager.storage, 'query:pretty-hint')) {
+      console.log(chalk.gray('  seshflow query --json'));
+      console.log(chalk.gray('  seshflow query --json --full'));
+    }
+    console.log('');
   } catch (error) {
     spinner?.fail('Failed to query tasks');
     console.error(chalk.red(`\nError: ${error.message}`));

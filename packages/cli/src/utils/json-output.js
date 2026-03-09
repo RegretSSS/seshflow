@@ -24,6 +24,24 @@ export function formatTaskJSON(task) {
   };
 }
 
+export function formatTaskSummaryJSON(task) {
+  return {
+    id: task.id,
+    title: task.title,
+    status: task.status,
+    priority: task.priority,
+    tags: task.tags || [],
+    estimatedHours: task.estimatedHours || 0,
+    actualHours: task.actualHours || 0,
+    assignee: task.assignee || null,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+    blockedBy: task.blockedBy || [],
+    subtaskCount: task.subtasks?.length || 0,
+    completedSubtasks: task.subtasks?.filter(st => st.completed).length || 0,
+  };
+}
+
 function pickWorkspaceFields(info, fields) {
   return fields.reduce((result, field) => {
     if (info[field] !== undefined) {

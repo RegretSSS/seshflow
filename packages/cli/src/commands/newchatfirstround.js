@@ -3,9 +3,10 @@ import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { existsSync } from 'fs';
 import path from 'path';
-import { formatTaskJSON, formatWorkspaceJSON, formatSuccessResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
+import { formatTaskJSON, formatTaskSummaryJSON, formatWorkspaceJSON, formatSuccessResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { truncate } from '../utils/helpers.js';
+import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 
 function collectStats(tasks) {
   return {
@@ -82,7 +83,7 @@ function printCompactContext(data) {
 }
 
 function printPrettyContext(data, options = {}) {
-  const { project, stats, currentTask, nextReadyTask, dependencies, dependents, keyFiles, blockedTasks, recentlyCompleted, fullMode } = data;
+  const { project, stats, currentTask, nextReadyTask, dependencies, dependents, keyFiles, blockedTasks, recentlyCompleted, fullMode, showCommandHints } = data;
 
   console.log(chalk.bold.cyan('\nSeshflow Project Context\n'));
   console.log(chalk.bold('Project'));
@@ -157,11 +158,13 @@ function printPrettyContext(data, options = {}) {
     });
   }
 
-  console.log(chalk.blue('\nQuick Commands:'));
-  console.log(chalk.gray('  seshflow next --compact'));
-  console.log(chalk.gray('  seshflow list --compact'));
-  console.log(chalk.gray('  seshflow show <task-id> --json'));
-  console.log('');
+  if (showCommandHints) {
+    console.log(chalk.blue('\nQuick Commands:'));
+    console.log(chalk.gray('  seshflow next --compact'));
+    console.log(chalk.gray('  seshflow list --compact'));
+    console.log(chalk.gray('  seshflow show <task-id> --json'));
+    console.log('');
+  }
 }
 
 export async function newchatfirstround(options = {}) {
@@ -184,13 +187,13 @@ export async function newchatfirstround(options = {}) {
 
     const currentTask = manager.getCurrentTask();
     const nextTask = manager.getNextTask();
-    const task = currentTask || nextTask;
+    const focusTask = currentTask || nextTask;
 
     let dependencies = [];
     let dependents = [];
-    if (task) {
-      dependencies = manager.getUnmetDependencies(task);
-      dependents = allTasks.filter(t => t.dependencies && t.dependencies.includes(task.id));
+    if (focusTask) {
+      dependencies = currentTask ? manager.getUnmetDependencies(currentTask) : [];
+      dependents = allTasks.filter(t => t.dependencies && t.dependencies.includes(focusTask.id));
     }
 
     const blockedTasks = allTasks
@@ -226,7 +229,6 @@ export async function newchatfirstround(options = {}) {
     const contextData = {
       project,
       stats,
-      task,
       currentTask,
       nextReadyTask: nextTask,
       dependencies,
@@ -235,21 +237,22 @@ export async function newchatfirstround(options = {}) {
       recentlyCompleted,
       keyFiles,
       fullMode,
+      showCommandHints: await shouldShowWorkspaceHint(manager.storage, 'ncfr:pretty-hints'),
     };
 
     if (isJSONMode(options)) {
       spinner?.stop();
       const responseData = {
-        project: contextData.project,
         statistics: stats,
-        currentTask: task ? formatTaskJSON(task) : null,
+        currentTask: currentTask ? formatTaskJSON(currentTask) : null,
         dependencies: dependencies.map(t => ({
           id: t.id,
           title: t.title,
           status: t.status,
           priority: t.priority,
         })),
-        nextReadyTask: nextTask ? formatTaskJSON(nextTask) : null,
+        nextReadyTask: nextTask ? formatTaskSummaryJSON(nextTask) : null,
+        focus: currentTask ? 'current-task' : (nextTask ? 'next-ready-task' : 'none'),
       };
 
       if (fullMode) {

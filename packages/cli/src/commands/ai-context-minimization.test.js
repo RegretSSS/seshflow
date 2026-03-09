@@ -82,7 +82,8 @@ describe('AI context minimization', () => {
     expect(minimalResult.status).toBe(0);
     const minimalPayload = JSON.parse(minimalResult.stdout);
 
-    expect(minimalPayload.project.source).toBeTruthy();
+    expect(minimalPayload.project).toBeUndefined();
+    expect(minimalPayload.focus).toBe('current-task');
     expect(minimalPayload.dependents).toBeUndefined();
     expect(minimalPayload.blockedTasks).toBeUndefined();
     expect(minimalPayload.recentlyCompleted).toBeUndefined();
@@ -98,7 +99,6 @@ describe('AI context minimization', () => {
     expect(fullPayload.recentlyCompleted).toBeDefined();
     expect(fullPayload.workspace.tasksFile).toBeTruthy();
     expect(fullPayload.workspace.configPath).toBeTruthy();
-    expect(fullPayload.project.configPath).toBeTruthy();
     expect(fullPayload.dependents.map(task => task.id)).toContain(dependentTask.id);
   });
 });

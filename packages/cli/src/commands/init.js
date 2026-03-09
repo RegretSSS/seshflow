@@ -249,24 +249,19 @@ export async function init(options = {}) {
 
     const shellHints = getShellHints();
 
-    console.log(chalk.blue(`\nQuick start (${shellHints.shellName}):`));
-    console.log(chalk.gray('  # Option 1: Add a single task'));
+    console.log(chalk.blue('\nQuick start:'));
+    console.log(chalk.gray('  seshflow ncfr --json'));
     console.log(chalk.gray('  seshflow add "My first task"'));
-    console.log(chalk.gray('  seshflow next'));
+    console.log(chalk.gray('  seshflow next --json'));
     console.log('');
-    console.log(chalk.gray('  # Option 2: Batch import tasks'));
+    console.log(chalk.gray('  # Batch import from the provided template'));
     console.log(chalk.gray(`  ${shellHints.copyCmd}`));
-    console.log(chalk.gray('  # Edit my-tasks.md (or use AI to generate it)'));
+    console.log(chalk.gray('  seshflow validate my-tasks.md'));
     console.log(chalk.gray('  seshflow import my-tasks.md'));
-    console.log(chalk.gray('  seshflow next'));
-    console.log('');
-    console.log(chalk.gray(`  # ${shellHints.altShellLabel}`));
-    console.log(chalk.gray(`  ${shellHints.altCopyCmd}`));
+    console.log(chalk.gray('  seshflow next --json'));
 
-    console.log(chalk.blue('\nLearn more:'));
+    console.log(chalk.blue('\nReference:'));
     console.log(chalk.gray(`  ${shellHints.viewCmd}`));
-    console.log(chalk.gray(`  # ${shellHints.altShellLabel}`));
-    console.log(chalk.gray(`  ${shellHints.altViewCmd}`));
   } catch (error) {
     spinner?.fail('Initialization failed');
     console.error(chalk.red(`\nError: ${error.message}`));

@@ -2,8 +2,9 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { truncate } from '../utils/helpers.js';
-import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON } from '../utils/json-output.js';
+import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON, formatTaskSummaryJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
+import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 
 function subtaskProgress(task) {
   if (!task.subtasks || task.subtasks.length === 0) {
@@ -129,24 +130,13 @@ export async function list(options = {}) {
     spinner?.stop();
 
     if (isJSONMode(options)) {
-      const formattedTasks = tasks.map(task => ({
-        id: task.id,
-        title: task.title,
-        status: task.status,
-        priority: task.priority,
-        tags: task.tags,
-        estimatedHours: task.estimatedHours,
-        actualHours: task.actualHours,
-        assignee: task.assignee,
-        subtaskCount: task.subtasks?.length || 0,
-        completedSubtasks: task.subtasks?.filter(st => st.completed).length || 0,
-        createdAt: task.createdAt
-      }));
+      const formattedTasks = tasks.map(task => (options.full ? formatTaskJSON(task) : formatTaskSummaryJSON(task)));
       const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
 
       outputJSON(formatSuccessResponse({
         tasks: formattedTasks,
-        total: formattedTasks.length
+        total: formattedTasks.length,
+        detailLevel: options.full ? 'full' : 'summary'
       }, workspaceJSON));
       return;
     }
@@ -196,6 +186,13 @@ export async function list(options = {}) {
       if (options.limit) console.log(chalk.gray(`  Limit: ${options.limit}`));
       if (options.offset) console.log(chalk.gray(`  Offset: ${options.offset}`));
       if (options.all) console.log(chalk.gray('  All: true'));
+      console.log('');
+    }
+
+    if (await shouldShowWorkspaceHint(manager.storage, 'list:pretty-hint')) {
+      console.log(chalk.blue('Machine step:'));
+      console.log(chalk.gray('  seshflow list --json'));
+      console.log(chalk.gray('  seshflow list --json --full'));
       console.log('');
     }
   } catch (error) {

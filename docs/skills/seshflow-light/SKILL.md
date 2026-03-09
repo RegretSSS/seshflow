@@ -28,8 +28,9 @@ Run these at most once per new conversation:
 Notes:
 
 - Both commands may be run from a nested subdirectory; `seshflow` resolves the active workspace upward.
-- Read the returned `workspace.source` / `project.source` metadata when repository roots may have moved or when multiple workspaces are possible.
+- Read the returned `workspace.source` metadata when repository roots may have moved or when multiple workspaces are possible.
 - `seshflow ncfr --json` is intentionally minimal by default; only use `seshflow ncfr --json --full` when the task actually needs dependency snapshots, recent completions, or extra path metadata.
+- In `ncfr --json`, `currentTask` is only non-null when a real active session exists. Otherwise, use `nextReadyTask`.
 
 Do not repeatedly run `init` or `ncfr` unless user asks to refresh context explicitly.
 
@@ -61,6 +62,16 @@ Only reveal commands that match the immediate user intent:
 - Runtime capture: `record`
 - Inspection: `show`, `list`, `query`, `stats`, `deps`
 - Data flow: `import`, `export`, `validate`
+
+For high-frequency inspection commands, prefer the summary JSON shape first:
+
+- `seshflow list --json`
+- `seshflow query --json`
+
+Only request full task payloads when the next step actually needs them:
+
+- `seshflow list --json --full`
+- `seshflow query --json --full`
 
 When switching away from an active task, prefer explicit intent:
 
