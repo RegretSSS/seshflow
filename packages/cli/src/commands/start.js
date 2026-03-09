@@ -44,6 +44,7 @@ export async function start(taskId, options = {}) {
         changed: result.changed,
         task: formatTaskJSON(task),
         runtimeSummary: manager.getRuntimeSummary(task),
+        announcementResults: result.announcementResults || [],
         hasActiveSession: true,
         switched: result.switched,
         previousTask: result.previousTask ? formatTaskJSON(result.previousTask) : null,
@@ -61,7 +62,8 @@ export async function start(taskId, options = {}) {
     if (compactMode) {
       const subInfo = subTotal ? ` | subtasks=${subDone}/${subTotal}` : '';
       const switchInfo = result.switched ? ' | switched=true' : '';
-      console.log(`${result.changed ? 'STARTED' : 'ACTIVE'} | ${task.id} | in-progress | ${task.priority} | ${task.title}${subInfo}${switchInfo}`);
+      const announcementInfo = result.announcementResults?.length ? ` | announcements=${result.announcementResults.length}` : '';
+      console.log(`${result.changed ? 'STARTED' : 'ACTIVE'} | ${task.id} | in-progress | ${task.priority} | ${task.title}${subInfo}${switchInfo}${announcementInfo}`);
       return;
     }
 

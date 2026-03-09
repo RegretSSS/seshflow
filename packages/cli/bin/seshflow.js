@@ -24,6 +24,7 @@ import { suspend } from '../src/commands/suspend.js';
 import { record } from '../src/commands/record.js';
 import { addProcess, listProcesses } from '../src/commands/process.js';
 import { addDependency, removeDependency } from '../src/commands/dependency-mutation.js';
+import { announceProgress } from '../src/commands/announce.js';
 import { spawnSync } from 'node:child_process';
 
 const program = new Command();
@@ -171,6 +172,22 @@ program
 const processCommand = program
   .command('process')
   .description('Register and inspect task-scoped background processes');
+
+const announceCommand = program
+  .command('announce')
+  .description('Emit task-scoped announcement events');
+
+announceCommand
+  .command('progress [taskId]')
+  .description('Emit a progress announcement for a task or the current active task')
+  .option('-p, --percent <number>', 'Progress percentage')
+  .option('-n, --note <text>', 'Progress note')
+  .option('--json', 'Output as JSON')
+  .action((taskId, options) => {
+    const resolvedTaskId = typeof taskId === 'string' ? taskId : options;
+    const resolvedOptions = typeof taskId === 'string' ? options : taskId;
+    return announceProgress(resolvedTaskId, resolvedOptions);
+  });
 
 processCommand
   .command('add [taskId]')

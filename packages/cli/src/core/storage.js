@@ -4,6 +4,7 @@ import yaml from 'yaml';
 import { PATHS, DEFAULT_TASK_FILE } from '../constants.js';
 import { existsSync } from 'fs';
 import simpleGit from 'simple-git';
+import { ANNOUNCEMENT_KINDS, ANNOUNCEMENT_ACTIONS } from '../../../shared/constants/announcements.js';
 
 /**
  * Default configuration
@@ -33,6 +34,29 @@ const DEFAULT_CONFIG = {
     after_start: [],
     before_done: [],
     after_done: []
+  },
+  announcements: {
+    [ANNOUNCEMENT_KINDS.START]: [
+      {
+        id: 'announce_start_log',
+        action: ANNOUNCEMENT_ACTIONS.LOG,
+        template: 'Started {taskId} {title}',
+      }
+    ],
+    [ANNOUNCEMENT_KINDS.PROGRESS]: [
+      {
+        id: 'announce_progress_log',
+        action: ANNOUNCEMENT_ACTIONS.LOG,
+        template: 'Progress {percent}% on {taskId} {title}',
+      }
+    ],
+    [ANNOUNCEMENT_KINDS.DONE]: [
+      {
+        id: 'announce_done_log',
+        action: ANNOUNCEMENT_ACTIONS.LOG,
+        template: 'Completed {taskId} {title}',
+      }
+    ]
   },
   git: {
     autoHook: true,

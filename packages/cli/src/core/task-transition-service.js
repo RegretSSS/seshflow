@@ -1,13 +1,16 @@
 import { TRANSITION_SCHEMA_VERSION, TRANSITION_TYPES } from '../../../shared/constants/transitions.js';
 import { HOOK_MODES, HOOK_NAMES } from '../../../shared/constants/hooks.js';
+import { ANNOUNCEMENT_KINDS } from '../../../shared/constants/announcements.js';
 import { HookRegistry } from './hook-registry.js';
 import { HookExecutor } from './hook-executor.js';
+import { AnnouncementService } from './announcement-service.js';
 
 export class TaskTransitionService {
   constructor(manager) {
     this.manager = manager;
     this.registry = new HookRegistry(manager.storage);
     this.executor = new HookExecutor(manager);
+    this.announcements = new AnnouncementService(manager);
   }
 
   async startTask(taskId, options = {}) {
@@ -81,6 +84,10 @@ export class TaskTransitionService {
     const afterResults = await this.runHookPhase(HOOK_NAMES.AFTER_START, task, transitionEvent, {
       source: options.source || 'cli',
     });
+    const announcementResults = await this.announcements.announce(ANNOUNCEMENT_KINDS.START, task, {
+      source: options.source || 'cli',
+      transitionEventId: transitionEvent.id,
+    });
 
     return {
       action: 'start',
@@ -92,6 +99,7 @@ export class TaskTransitionService {
       unmetDependencies,
       transitionEvent,
       hookResults: [...beforeResults, ...afterResults],
+      announcementResults,
     };
   }
 
@@ -127,6 +135,12 @@ export class TaskTransitionService {
       hours: options.hours ? Number.parseFloat(options.hours) : null,
       note: options.note || '',
     });
+    const announcementResults = await this.announcements.announce(ANNOUNCEMENT_KINDS.DONE, this.manager.getTask(taskId), {
+      source: options.source || 'cli',
+      transitionEventId: transitionEvent.id,
+      hours: options.hours ? Number.parseFloat(options.hours) : null,
+      note: options.note || '',
+    });
 
     return {
       action: 'done',
@@ -134,6 +148,7 @@ export class TaskTransitionService {
       task: this.manager.getTask(taskId),
       transitionEvent,
       hookResults: [...beforeResults, ...afterResults],
+      announcementResults,
     };
   }
 

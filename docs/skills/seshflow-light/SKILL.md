@@ -63,6 +63,7 @@ Only reveal commands that match the immediate user intent:
 - Execution: `next`, `start`, `done`, `suspend`
 - Runtime capture: `record`
 - Background processes: `process add`, `process list`
+- Announcements: `announce progress`
 - Inspection: `show`, `list`, `query`, `stats`, `deps`
 - Data flow: `import`, `export`, `validate`
 
@@ -109,6 +110,10 @@ When a long-running background job matters for resuming work, register and refre
 
 - `seshflow process add --json --pid <pid> --command "<cmd>" --cwd "<dir>" --output-root "<dir>"`
 - `seshflow process list --json --refresh`
+
+When a progress checkpoint should be made explicit for downstream recovery or notification plumbing, emit a task-scoped announcement event:
+
+- `seshflow announce progress --json --percent <number> --note "<checkpoint>"`
 
 Transition-triggered hooks now write persisted runtime events. Treat blocking `before_*` hook failures as authoritative and inspect `show <taskId> --json` for `recentRuntimeEvents` when a transition fails unexpectedly.
 

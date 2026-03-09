@@ -158,6 +158,7 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
         changed: true,
         task: formatTaskJSON(targetTask),
         runtimeSummary: manager.getRuntimeSummary(targetTask),
+        announcementResults: result.announcementResults || [],
         transitionEvent: result.transitionEvent,
         hasActiveSession: false,
         hours: hours ? Number.parseFloat(hours) : null,
@@ -173,7 +174,8 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
     }
 
     if (compactMode) {
-      console.log(`DONE | ${targetTask.id} | ${targetTask.title}${hours ? ` | hours=${hours}` : ''}`);
+      const announcementInfo = result.announcementResults?.length ? ` | announcements=${result.announcementResults.length}` : '';
+      console.log(`DONE | ${targetTask.id} | ${targetTask.title}${hours ? ` | hours=${hours}` : ''}${announcementInfo}`);
       console.log(`PROGRESS | ${progressBefore.done}/${progressBefore.total} -> ${progressAfter.done}/${progressAfter.total} (${progressAfter.percent}%)`);
       if (unlockedTasks.length > 0) {
         console.log(`UNLOCKED | ${unlockedTasks.map(task => task.id).join(',')}`);

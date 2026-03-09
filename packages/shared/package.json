@@ -8,6 +8,7 @@
     "./constants/statuses.js": "./constants/statuses.js",
     "./constants/transitions.js": "./constants/transitions.js",
     "./constants/hooks.js": "./constants/hooks.js",
+    "./constants/announcements.js": "./constants/announcements.js",
     "./workspace-snapshot.js": "./workspace-snapshot.js"
   },
   "files": [

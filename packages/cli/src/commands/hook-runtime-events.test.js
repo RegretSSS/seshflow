@@ -73,8 +73,9 @@ describe('hook registry and runtime event log', () => {
     await reloaded.init();
     expect(reloaded.getTask(task.id).status).toBe('done');
     const runtimeEvents = reloaded.getTaskRuntimeEvents(task.id);
-    expect(runtimeEvents.map(event => event.type)).toEqual(['transition.execution', 'hook.execution']);
-    expect(runtimeEvents.at(-1).level).toBe('warn');
-    expect(runtimeEvents.at(-1).attempts).toBe(2);
+    expect(runtimeEvents.map(event => event.type)).toEqual(['transition.execution', 'hook.execution', 'announcement.execution']);
+    const hookEvent = runtimeEvents.find(event => event.type === 'hook.execution');
+    expect(hookEvent.level).toBe('warn');
+    expect(hookEvent.attempts).toBe(2);
   }, 15000);
 });
