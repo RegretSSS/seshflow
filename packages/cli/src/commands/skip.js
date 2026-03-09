@@ -1,6 +1,7 @@
 ﻿import chalk from 'chalk';
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
+import { formatErrorResponse, formatSuccessResponse, formatTaskJSON, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 
 export async function skip(options = {}) {
@@ -15,6 +16,18 @@ export async function skip(options = {}) {
     const currentTask = manager.getCurrentTask();
     if (!currentTask) {
       spinner?.stop();
+      if (isJSONMode(options)) {
+        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
+        const nextTask = manager.getNextTask();
+        outputJSON(formatSuccessResponse({
+          action: 'skip',
+          changed: false,
+          task: null,
+          hasActiveSession: false,
+          nextTask: nextTask ? formatTaskJSON(nextTask) : null,
+        }, workspaceJSON));
+        return;
+      }
       if (compactMode) {
         console.log('NO_ACTIVE_SESSION');
       } else {
@@ -37,6 +50,20 @@ export async function skip(options = {}) {
     const nextTask = manager.getNextTask();
     spinner?.succeed('Task skipped');
 
+    if (isJSONMode(options)) {
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
+      outputJSON(formatSuccessResponse({
+        action: 'skip',
+        changed: true,
+        task: formatTaskJSON(currentTask),
+        runtimeSummary: manager.getRuntimeSummary(currentTask),
+        hasActiveSession: false,
+        reason,
+        nextTask: nextTask ? formatTaskJSON(nextTask) : null,
+      }, workspaceJSON));
+      return;
+    }
+
     if (compactMode) {
       console.log(`SKIPPED | ${currentTask.id} | ${currentTask.title} | reason=${reason}`);
       if (nextTask) {
@@ -55,6 +82,9 @@ export async function skip(options = {}) {
     }
   } catch (error) {
     spinner?.fail('Failed to skip task');
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'SKIP_FAILED'));
+    }
     console.error(chalk.red(`\nError: ${error.message}`));
     process.exit(1);
   }

@@ -69,6 +69,13 @@ When switching away from an active task, prefer explicit intent:
 
 Prefer `--json` for machine steps.
 
+For state-changing machine steps, prefer structured output too:
+
+- `seshflow start <taskId> --json`
+- `seshflow done [taskId] --json`
+- `seshflow suspend --json`
+- `seshflow skip --json`
+
 When an executed command, log file, output directory, or produced artifact matters for resuming work, persist it explicitly:
 
 - `seshflow record --json --command "<cmd>" --cwd "<dir>" --log "<logfile>" --output-root "<dir>" --artifact "<file1,file2>"`

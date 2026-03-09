@@ -95,7 +95,14 @@ program
   .option('-n, --note <text>', 'Completion notes')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
-  .action(done);
+  .option('--json', 'Output as JSON')
+  .action((taskId, options) => {
+    if (typeof taskId === 'string') {
+      return done(taskId, options);
+    }
+
+    return done(options || taskId);
+  });
 
 // Complete specific task (compatibility alias)
 program
@@ -105,6 +112,7 @@ program
   .option('-n, --note <text>', 'Completion notes')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
+  .option('--json', 'Output as JSON')
   .action(completeTask);
 
 // Start specific task
@@ -115,6 +123,7 @@ program
   .option('-s, --switch', 'Suspend the current task first if another session is active')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
+  .option('--json', 'Output as JSON')
   .action(start);
 
 // Skip current task
@@ -125,6 +134,7 @@ program
   .option('-n, --note <text>', 'Alias for --reason')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
+  .option('--json', 'Output as JSON')
   .action(skip);
 
 // Suspend current task
@@ -135,6 +145,7 @@ program
   .option('-n, --note <text>', 'Alias for --reason')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
+  .option('--json', 'Output as JSON')
   .action(suspend);
 
 program

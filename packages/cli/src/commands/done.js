@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
 import { TaskManager } from '../core/task-manager.js';
+import { formatErrorResponse, formatSuccessResponse, formatTaskJSON, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 
 function getProgress(tasks) {
@@ -31,17 +32,27 @@ function getUnlockedTasks(tasks, completedTaskId) {
 }
 
 function normalizeDoneInput(taskIdOrOptions, maybeOptions) {
+  const normalizeOptions = (rawOptions = {}) => {
+    if (rawOptions && typeof rawOptions.opts === 'function') {
+      return {
+        ...rawOptions.opts(),
+      };
+    }
+
+    return rawOptions || {};
+  };
+
   if (typeof taskIdOrOptions === 'string') {
     return {
       taskId: taskIdOrOptions,
-      options: maybeOptions || {},
+      options: normalizeOptions(maybeOptions),
       fromExplicitTaskId: true,
     };
   }
 
   return {
     taskId: null,
-    options: taskIdOrOptions || {},
+    options: normalizeOptions(taskIdOrOptions),
     fromExplicitTaskId: false,
   };
 }
@@ -62,6 +73,9 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
       targetTask = manager.getTask(taskId);
       if (!targetTask) {
         spinner?.stop();
+        if (isJSONMode(options)) {
+          outputJSON(formatErrorResponse(new Error(`Task not found: ${taskId}`), 'TASK_NOT_FOUND'));
+        }
         console.error(chalk.red(`\nTask not found: ${taskId}`));
         console.error(chalk.gray(`  Use 'seshflow list' to see all tasks`));
         process.exit(1);
@@ -72,6 +86,18 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
 
     if (!targetTask) {
       spinner?.stop();
+      if (isJSONMode(options)) {
+        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
+        const nextTask = manager.getNextTask();
+        outputJSON(formatSuccessResponse({
+          action: 'done',
+          changed: false,
+          task: null,
+          hasActiveSession: false,
+          nextTask: nextTask ? formatTaskJSON(nextTask) : null,
+        }, workspaceJSON));
+        return;
+      }
       if (compactMode) {
         console.log('NO_ACTIVE_SESSION');
       } else {
@@ -121,6 +147,26 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
     const unlockedTasks = getUnlockedTasks(allTasksAfter, targetTask.id);
     const nextTask = manager.getNextTask();
 
+    if (isJSONMode(options)) {
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
+      outputJSON(formatSuccessResponse({
+        action: 'done',
+        changed: true,
+        task: formatTaskJSON(targetTask),
+        runtimeSummary: manager.getRuntimeSummary(targetTask),
+        hasActiveSession: false,
+        hours: hours ? Number.parseFloat(hours) : null,
+        note: note || '',
+        progress: {
+          before: progressBefore,
+          after: progressAfter,
+        },
+        unlockedTasks: unlockedTasks.map(task => formatTaskJSON(task)),
+        nextTask: nextTask ? formatTaskJSON(nextTask) : null,
+      }, workspaceJSON));
+      return;
+    }
+
     if (compactMode) {
       console.log(`DONE | ${targetTask.id} | ${targetTask.title}${hours ? ` | hours=${hours}` : ''}`);
       console.log(`PROGRESS | ${progressBefore.done}/${progressBefore.total} -> ${progressAfter.done}/${progressAfter.total} (${progressAfter.percent}%)`);
@@ -159,6 +205,9 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
       console.log(chalk.green('\nAll tasks completed.'));
     }
   } catch (error) {
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'DONE_FAILED'));
+    }
     console.error(chalk.red(`\nError: ${error.message}`));
     process.exit(1);
   }
