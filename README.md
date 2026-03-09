@@ -9,6 +9,7 @@ Seshflow is not a generic project board. It keeps planning state, active-task co
 - `v1.2.0` is the current release line.
 - `v1.2.0` scope: execution core, managed planning import/update, runtime event capture, and a minimal runtime-backed web control plane.
 - `v1.3.0` is reserved for `apifirst`, meaning a contract-first development mode rather than a generic HTTP platform rewrite.
+- `v1.3.0` design target is documented in `docs/apifirst-mode.md`.
 
 ## Install
 

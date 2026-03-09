@@ -85,6 +85,8 @@ Use these boundaries as hard constraints, not inspiration.
 ## 10. API-first Boundary (`v1.3.0`)
 
 - `API-first` in Seshflow means a contract-first development mode, not merely an HTTP service layer.
+- The implementation target for this mode is defined in `docs/apifirst-mode.md`.
+- Chinese companion: `docs/apifirst-mode.zh-CN.md`.
 - Entry shape:
   - `seshflow init apifirst`
 - Purpose:
@@ -109,6 +111,7 @@ Use these boundaries as hard constraints, not inspiration.
   - conflict/drift reminder rules
 - Supporting API/Web work is allowed only insofar as it serves this development mode.
 - Multi-workspace overview is a secondary control-plane concern, not the definition of `API-first`.
+- `v1.3.0` must be implementable from concrete contract storage, CLI flow, and output examples rather than abstract feature labels alone.
 
 ## 10a. Product Stop Line
 

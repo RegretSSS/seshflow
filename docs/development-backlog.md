@@ -82,6 +82,8 @@
 
 ## v1.3.0 - API-first Contract-first Development Mode
 
+- Authoritative target model, contract examples, CLI walkthrough, and default-vs-apifirst output differences are defined in `docs/apifirst-mode.md` and `docs/apifirst-mode.zh-CN.md`.
+
 ### 1.3.0-00 `init apifirst` Mode Bootstrap
 
 - Priority: P0
@@ -133,7 +135,7 @@
 ### 1.3.0-08 Workspace Index and Multi-Workspace Overview
 
 - Priority: P2
-- Scope: add a workspace registry/index and overview path for multiple workspaces.
+- Scope: add a global workspace registry/index and overview path for multiple workspaces without redefining `apifirst`.
 - Done: multi-workspace visibility exists without redefining what API-first means.
 
 ## v1.4.0 - Realtime + Visualization
