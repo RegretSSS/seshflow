@@ -6,9 +6,8 @@ Seshflow is not a generic project board. It keeps planning state, active-task co
 
 ## Status
 
-- `v1.2.0` is the current release line.
-- `v1.2.0` scope: execution core, managed planning import/update, runtime event capture, and a minimal runtime-backed web control plane.
-- `v1.3.0` implementation is complete on `development` and represents the next unreleased line: `apifirst`, a contract-first development mode rather than a generic HTTP platform rewrite.
+- `v1.3.0` is the current release line.
+- `v1.3.0` scope: contract-first `apifirst` mode, explicit AI context priority, hook/RPC seams, workspace index, and boundary best practices on top of the `v1.2.0` execution core.
 - `v1.3.0` design target is documented in `docs/apifirst-mode.md`.
 - `v1.4.0` remains planned and has not started.
 
@@ -24,7 +23,7 @@ yarn global add @seshflow/cli
 
 The executable remains `seshflow`.
 
-## AI-first flow
+## Human-friendly starting flow
 
 ```bash
 seshflow init
@@ -32,9 +31,17 @@ seshflow ncfr
 seshflow next
 ```
 
-Use `ncfr` as the first step of a new AI conversation. AI-facing commands now default to structured JSON, so `ncfr` already returns the minimal workspace snapshot needed to decide what to do next.
+Use this path when the workspace is still ordinary task/execution management and no explicit API, RPC, or message contract has become the main coordination truth yet.
 
-## API-first flow (`v1.3.0` implemented on `development`)
+Recommended sequence:
+
+1. run `seshflow init` once per workspace
+2. start each new AI conversation with `seshflow ncfr`
+3. follow the returned focus into planning, inspection, or execution
+
+AI-facing commands now default to structured JSON, so `ncfr` already returns the minimal workspace snapshot needed to decide what to do next.
+
+## Contract-first mode (`v1.3.0`, command: `apifirst`)
 
 ```bash
 seshflow init apifirst
@@ -45,7 +52,15 @@ seshflow import .seshflow/plans/api-planning.md --update
 seshflow contracts check
 ```
 
-Use `seshflow mode set apifirst` to migrate an existing workspace without losing current tasks.
+Use this mode as soon as API, RPC, or message contracts become the thing multiple tasks or agents must agree on before implementation.
+
+For an existing workspace, migrate instead of re-initializing:
+
+```bash
+seshflow mode set apifirst
+```
+
+That preserves the current task/runtime state and upgrades the workspace into contract-first operation.
 
 ## Planning flow
 
@@ -122,6 +137,11 @@ Defaults:
 
 - `docs/skills/seshflow-light/SKILL.md`
 - `docs/skills/INSTALL.md`
+
+Skill guidance follows the same boundary:
+
+- start with `seshflow init` for ordinary task work
+- switch immediately to contract-first mode with `seshflow init apifirst` or `seshflow mode set apifirst` once API/RPC coordination becomes part of the work
 
 ## License
 

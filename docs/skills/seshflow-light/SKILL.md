@@ -18,6 +18,8 @@ When the repository clearly needs contract-first work, the allowed initializatio
 
 - `seshflow init apifirst`
 
+Treat `apifirst` as the current command name for Seshflow's contract-first mode, not as a claim that the work must be frontend/backend coding only.
+
 Everything else must be introduced only when needed by intent.
 
 ## One-time bootstrap per conversation
@@ -57,7 +59,7 @@ After `init`, suggest one next step based on user intent:
   - suggest editing a managed Markdown task file, then `seshflow validate <file>` and `seshflow import <file>`
 - If user wants contract-first setup for large API/RPC work:
   - suggest `seshflow init apifirst` for new workspaces
-  - suggest `seshflow mode set apifirst` for existing workspaces
+  - suggest `seshflow mode set apifirst` for existing workspaces as soon as API/RPC/message coordination becomes part of the task
 
 After `ncfr`, suggest one next step based on detected state:
 
