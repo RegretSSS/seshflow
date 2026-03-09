@@ -242,6 +242,13 @@ contractsCommand
   .action(lazyAction(() => import('../src/commands/contracts.js'), 'addContract'));
 
 contractsCommand
+  .command('import <file>')
+  .description('Import contracts from a JSON array, JSON object, or JSONL file')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/contracts.js'), 'importContracts'));
+
+contractsCommand
   .command('list')
   .description('List registered contracts')
   .option('--json', 'Output as JSON')

@@ -66,7 +66,7 @@ describe('mode compatibility', () => {
     const payload = JSON.parse(defaultResult.stdout);
     expect(payload.mode).toBe('default');
     expect(payload.guidance.migrationAvailable).toBe(true);
-    expect(payload.guidance.recommendedCommand).toBe('seshflow mode set apifirst');
+    expect(payload.guidance.recommendedCommand).toBe('seshflow mode set contractfirst');
     expect(payload.profile).toEqual(
       expect.objectContaining({
         preset: 'default',

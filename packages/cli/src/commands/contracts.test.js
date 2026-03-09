@@ -77,6 +77,161 @@ describe('contracts commands', () => {
     expect(checkPayload.issues).toEqual([]);
   });
 
+  test('contracts import supports json arrays and preserves metadata/extensions', async () => {
+    const { workspacePath } = await createWorkspace();
+    const sourceFile = path.join(workspacePath, 'contracts.bundle.json');
+
+    await fs.writeJson(sourceFile, [
+      {
+        id: 'contract.user-service.create-user',
+        version: '1.0.0',
+        kind: 'api',
+        protocol: 'http-json',
+        name: 'Create User',
+        owner: {
+          service: 'user-service',
+          team: 'identity',
+          ownerTaskIds: ['task_contract']
+        },
+        endpoint: {
+          method: 'POST',
+          path: '/users'
+        },
+        requestSchema: { type: 'object' },
+        responseSchema: { type: 'object' },
+        metadata: {
+          domain: 'identity',
+          rollout: 'beta'
+        },
+        extensions: {
+          'x-agent': {
+            reviewer: 'api-linter'
+          }
+        }
+      },
+      {
+        id: 'contract.board-service.move-card',
+        version: '1.1.0',
+        kind: 'rpc',
+        protocol: 'rpc-json',
+        name: 'Move Card',
+        owner: {
+          service: 'board-service',
+          team: 'collaboration',
+          ownerTaskIds: ['task_move_card']
+        },
+        rpc: {
+          service: 'board-service',
+          method: 'MoveCard'
+        },
+        requestSchema: { type: 'object' },
+        responseSchema: { type: 'object' }
+      }
+    ], { spaces: 2 });
+
+    const importResult = runCLI(workspacePath, ['contracts', 'import', sourceFile]);
+    expect(importResult.status).toBe(0);
+    const payload = JSON.parse(importResult.stdout);
+    expect(payload.action).toBe('contracts.import');
+    expect(payload.importedCount).toBe(2);
+    expect(payload.createdCount).toBe(2);
+
+    const showResult = runCLI(workspacePath, ['contracts', 'show', 'contract.user-service.create-user']);
+    expect(showResult.status).toBe(0);
+    const showPayload = JSON.parse(showResult.stdout);
+    expect(showPayload.contract.metadata).toEqual(
+      expect.objectContaining({
+        domain: 'identity',
+        rollout: 'beta',
+      })
+    );
+    expect(showPayload.contract.extensions).toEqual(
+      expect.objectContaining({
+        'x-agent': expect.objectContaining({
+          reviewer: 'api-linter',
+        })
+      })
+    );
+  });
+
+  test('contracts import supports jsonl bundles', async () => {
+    const { workspacePath } = await createWorkspace();
+    const sourceFile = path.join(workspacePath, 'contracts.bundle.jsonl');
+
+    await fs.writeFile(sourceFile, [
+      JSON.stringify({
+        id: 'contract.auth.register',
+        version: '1.0.0',
+        kind: 'api',
+        protocol: 'http-json',
+        name: 'Register User',
+        owner: { service: 'auth-service', team: 'identity', ownerTaskIds: [] },
+        endpoint: { method: 'POST', path: '/auth/register' },
+        requestSchema: { type: 'object' },
+        responseSchema: { type: 'object' }
+      }),
+      JSON.stringify({
+        id: 'contract.auth.login',
+        version: '1.0.0',
+        kind: 'api',
+        protocol: 'http-json',
+        name: 'Login User',
+        owner: { service: 'auth-service', team: 'identity', ownerTaskIds: [] },
+        endpoint: { method: 'POST', path: '/auth/login' },
+        requestSchema: { type: 'object' },
+        responseSchema: { type: 'object' }
+      })
+    ].join('\n'), 'utf8');
+
+    const importResult = runCLI(workspacePath, ['contracts', 'import', sourceFile]);
+    expect(importResult.status).toBe(0);
+    const payload = JSON.parse(importResult.stdout);
+    expect(payload.importedCount).toBe(2);
+    expect(payload.contracts.map(contract => contract.id)).toEqual(
+      expect.arrayContaining(['contract.auth.register', 'contract.auth.login'])
+    );
+  });
+
+  test('contracts import rejects duplicate contract ids in the same bundle', async () => {
+    const { workspacePath } = await createWorkspace();
+    const sourceFile = path.join(workspacePath, 'contracts.duplicate.json');
+
+    await fs.writeJson(sourceFile, [
+      {
+        id: 'contract.auth.login',
+        version: '1.0.0',
+        kind: 'api',
+        protocol: 'http-json',
+        name: 'Login User',
+        owner: { service: 'auth-service', team: 'identity', ownerTaskIds: [] },
+        endpoint: { method: 'POST', path: '/auth/login' },
+        requestSchema: { type: 'object' },
+        responseSchema: { type: 'object' }
+      },
+      {
+        id: 'contract.auth.login',
+        version: '1.1.0',
+        kind: 'api',
+        protocol: 'http-json',
+        name: 'Login User v2',
+        owner: { service: 'auth-service', team: 'identity', ownerTaskIds: [] },
+        endpoint: { method: 'POST', path: '/auth/login' },
+        requestSchema: { type: 'object' },
+        responseSchema: { type: 'object' }
+      }
+    ], { spaces: 2 });
+
+    const result = runCLI(workspacePath, ['contracts', 'import', sourceFile]);
+    expect(result.status).toBe(1);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.error.code).toBe('CONTRACT_VALIDATION_FAILED');
+    expect(payload.error.issues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'DUPLICATE_CONTRACT_ID', contractId: 'contract.auth.login' }),
+      ])
+    );
+  });
+
   test('contracts add returns structured validation errors for invalid contract files', async () => {
     const { workspacePath } = await createWorkspace();
     const sourceFile = path.join(workspacePath, 'invalid.contract.json');

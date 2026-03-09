@@ -102,9 +102,9 @@ export function buildModeGuidance(modeInfo) {
 
   return {
     migrationAvailable: true,
-    recommendedCommand: 'seshflow mode set apifirst',
-    note: 'Default mode is active. Switch to apifirst when you want contract-first planning and context.',
-    capabilitySummary: 'Task sequencing is active; contract-aware context stays opt-in until apifirst mode is enabled.',
+    recommendedCommand: 'seshflow mode set contractfirst',
+    note: 'Default mode is active. Switch to contractfirst when you want contract-first planning and context.',
+    capabilitySummary: 'Task sequencing is active; contract-aware context stays opt-in until contractfirst mode is enabled.',
     profileSummary: Object.keys(modeInfo.profile?.overrides || {}).length > 0
       ? 'Bounded mode overrides are active.'
       : 'Preset-only mode profile is active.',

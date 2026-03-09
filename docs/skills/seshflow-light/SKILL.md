@@ -1,6 +1,6 @@
 ---
 name: seshflow-light
-description: Lightweight progressive-disclosure workflow for repositories using seshflow. Use when an AI assistant should start each new conversation with minimal context cost by running seshflow init (or seshflow init apifirst when appropriate) and seshflow ncfr first, then reveal only one intent-matched next command at a time.
+description: Lightweight progressive-disclosure workflow for repositories using seshflow. Use when an AI assistant should start each new conversation with minimal context cost by running seshflow init (or seshflow init contractfirst when appropriate) and seshflow ncfr first, then reveal only one intent-matched next command at a time.
 ---
 
 # seshflow-light
@@ -16,9 +16,9 @@ Expose only two commands up front:
 
 When the repository clearly needs contract-first work, the allowed initialization variant is:
 
-- `seshflow init apifirst`
+- `seshflow init contractfirst`
 
-Treat `apifirst` as the current command name for Seshflow's contract-first mode, not as a claim that the work must be frontend/backend coding only.
+Treat `contractfirst` as the preferred command alias for Seshflow's contract-first mode. `apifirst` remains a compatible alias, not a claim that the work must be frontend/backend coding only.
 The accepted mode names are `apifirst`, `contractfirst`, and `contract-first`.
 
 Everything else must be introduced only when needed by intent.
@@ -29,7 +29,7 @@ Run these at most once per new conversation:
 
 1. Initialize workspace if missing:
    - `seshflow init`
-   - for large API/RPC projects, use `seshflow init apifirst`
+   - for large API/RPC projects, use `seshflow init contractfirst`
 2. Load context snapshot:
    - `seshflow ncfr`
 
@@ -38,7 +38,7 @@ Notes:
 - Both commands may be run from a nested subdirectory; `seshflow` resolves the active workspace upward.
 - Read the returned `workspace.source` metadata when repository roots may have moved or when multiple workspaces are possible.
 - `seshflow` now defaults to structured JSON for AI-facing commands. Use `--pretty` or `--compact` only when a human-readable view is actually needed.
-- When the workspace is explicitly in `apifirst` mode, treat contract truth as primary. Prefer `seshflow contracts add`, `seshflow contracts check`, and contract-linked Markdown planning before broad implementation work.
+- When the workspace is explicitly in contract-first mode, treat contract truth as primary. Prefer `seshflow contracts import`, `seshflow contracts add`, `seshflow contracts check`, and contract-linked Markdown planning before broad implementation work.
 - `seshflow ncfr` is intentionally minimal by default; only use `seshflow ncfr --full` when the task actually needs dependency snapshots, recent completions, or extra path metadata.
 - In `ncfr`, `currentTask` is only non-null when a real active session exists. Otherwise, use `nextReadyTask`.
 - In `apifirst`, read `contextPriority`, `currentContract`, `contractReminderSummary`, and `openContractQuestions` before broader repo context.
@@ -59,8 +59,8 @@ After `init`, suggest one next step based on user intent:
 - If user wants to plan many tasks or revise a plan:
   - suggest editing a managed Markdown task file, then `seshflow validate <file>` and `seshflow import <file>`
 - If user wants contract-first setup for large API/RPC work:
-  - suggest `seshflow init apifirst` for new workspaces
-  - suggest `seshflow mode set apifirst` for existing workspaces as soon as API/RPC/message coordination becomes part of the task
+  - suggest `seshflow init contractfirst` for new workspaces
+  - suggest `seshflow mode set contractfirst` for existing workspaces as soon as API/RPC/message coordination becomes part of the task
 
 After `ncfr`, suggest one next step based on detected state:
 
@@ -83,7 +83,7 @@ Only reveal commands that match the immediate user intent:
 - Runtime capture: `record`
 - Background processes: `process add`, `process list`
 - Announcements: `announce progress`
-- API-first contracts: `contracts add`, `contracts list`, `contracts show`, `contracts check`, `mode show`, `mode set`
+- API-first contracts: `contracts import`, `contracts add`, `contracts list`, `contracts show`, `contracts check`, `mode show`, `mode set`
 - Agent/RPC seams: `rpc shell`
 - Multi-workspace overview: `workspaces current`, `workspaces list`
 - Inspection: `show`, `list`, `query`, `stats`, `deps`

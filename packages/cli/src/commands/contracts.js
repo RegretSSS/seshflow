@@ -176,6 +176,69 @@ export async function addContract(file, options = {}) {
   }
 }
 
+export async function importContracts(file, options = {}) {
+  const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Importing contracts').start() : null;
+
+  try {
+    const storage = new Storage();
+    await storage.init();
+    const registry = new ContractRegistry(storage);
+    const result = await registry.importContractsFromFile(file);
+    const manager = new TaskManager(storage.getWorkspacePath());
+    await manager.init();
+    const eventService = new WorkspaceEventService(manager);
+
+    for (const entry of result.results) {
+      if (!entry.changed && entry.existed) {
+        continue;
+      }
+
+      await eventService.emit(INTEGRATION_EVENT_TYPES.CONTRACT_CHANGED, {
+        contractId: entry.contract.id,
+        message: entry.existed
+          ? `Contract updated: ${entry.contract.id}`
+          : `Contract registered: ${entry.contract.id}`,
+        existed: entry.existed,
+        changed: entry.changed,
+      });
+    }
+
+    await manager.saveData();
+    spinner?.succeed('Contracts imported');
+
+    if (isJSONMode(options)) {
+      const workspace = await formatWorkspaceJSON(storage);
+      outputJSON(formatSuccessResponse({
+        action: 'contracts.import',
+        importedCount: result.importedCount,
+        createdCount: result.createdCount,
+        updatedCount: result.updatedCount,
+        unchangedCount: result.unchangedCount,
+        contracts: result.results.map(entry => registry.summarizeContract(entry.contract)),
+      }, workspace));
+      return;
+    }
+
+    console.log(`CONTRACT_IMPORT | imported=${result.importedCount} | created=${result.createdCount} | updated=${result.updatedCount} | unchanged=${result.unchangedCount}`);
+  } catch (error) {
+    spinner?.fail('Failed to import contracts');
+    if (isJSONMode(options)) {
+      const storage = new Storage();
+      await storage.init();
+      const registry = new ContractRegistry(storage);
+      outputJSON(formatContractValidationError(error, registry));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+      if (Array.isArray(error.issues) && error.issues.length > 0) {
+        error.issues.forEach(issue => {
+          console.error(chalk.gray(`  - ${issue.message}`));
+        });
+      }
+    }
+    process.exit(1);
+  }
+}
+
 export async function listContracts(options = {}) {
   const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Loading contracts').start() : null;
 

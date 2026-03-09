@@ -22,7 +22,7 @@ export class ContractRegistry {
 
   async addContractFromFile(filePath) {
     const sourcePath = path.resolve(filePath);
-    const contract = await this.readExternalContract(sourcePath);
+    const [contract] = await this.readExternalContracts(sourcePath);
     const normalized = this.normalizeContract(contract);
     const issues = this.validateContract(normalized);
 
@@ -41,6 +41,75 @@ export class ContractRegistry {
       contract: normalized,
       storedPath: this.storage.getContractFilePath(normalized.id),
       existed: Boolean(existing),
+    };
+  }
+
+  async importContractsFromFile(filePath) {
+    const sourcePath = path.resolve(filePath);
+    const rawContracts = await this.readExternalContracts(sourcePath);
+
+    if (rawContracts.length === 0) {
+      const error = new Error(`No contracts found in ${path.basename(sourcePath)}`);
+      error.code = 'CONTRACT_IMPORT_EMPTY';
+      throw error;
+    }
+
+    const normalizedContracts = rawContracts.map(contract => this.normalizeContract(contract));
+    const seenIds = new Set();
+    const duplicateIssues = [];
+    for (const [index, contract] of normalizedContracts.entries()) {
+      if (!contract.id) {
+        continue;
+      }
+
+      if (seenIds.has(contract.id)) {
+        duplicateIssues.push({
+          code: CONTRACT_CHECK_CODES.DUPLICATE_CONTRACT_ID,
+          message: `Duplicate contract id in import bundle: ${contract.id}`,
+          contractId: contract.id,
+          index,
+          sourcePath,
+        });
+        continue;
+      }
+
+      seenIds.add(contract.id);
+    }
+
+    const issues = duplicateIssues.concat(normalizedContracts.flatMap((contract, index) =>
+      this.validateContract(contract).map(issue => ({
+        ...issue,
+        index,
+        sourcePath,
+      }))
+    ));
+
+    if (issues.length > 0) {
+      const error = new Error(`Contract validation failed for import bundle ${path.basename(sourcePath)}`);
+      error.code = 'CONTRACT_VALIDATION_FAILED';
+      error.issues = issues;
+      throw error;
+    }
+
+    const results = [];
+    for (const contract of normalizedContracts) {
+      const existing = await this.tryReadContract(contract.id);
+      await this.storage.writeContractFile(contract.id, contract);
+      const changed = JSON.stringify(existing) !== JSON.stringify(contract);
+      results.push({
+        changed,
+        existed: Boolean(existing),
+        contract,
+        storedPath: this.storage.getContractFilePath(contract.id),
+      });
+    }
+
+    return {
+      importedCount: results.length,
+      createdCount: results.filter(result => !result.existed).length,
+      updatedCount: results.filter(result => result.existed && result.changed).length,
+      unchangedCount: results.filter(result => result.existed && !result.changed).length,
+      results,
     };
   }
 
@@ -151,6 +220,8 @@ export class ContractRegistry {
       implementationBindings: Array.isArray(raw.implementationBindings) ? raw.implementationBindings : [],
       openQuestions: Array.isArray(raw.openQuestions) ? raw.openQuestions : [],
       notes: Array.isArray(raw.notes) ? raw.notes : [],
+      metadata: raw.metadata && typeof raw.metadata === 'object' && !Array.isArray(raw.metadata) ? raw.metadata : {},
+      extensions: raw.extensions && typeof raw.extensions === 'object' && !Array.isArray(raw.extensions) ? raw.extensions : {},
     };
 
     normalized.implementationBindings = normalized.implementationBindings.map(binding => ({
@@ -246,7 +317,29 @@ export class ContractRegistry {
   }
 
   async readExternalContract(filePath) {
+    const contracts = await this.readExternalContracts(filePath);
+    return contracts[0];
+  }
+
+  async readExternalContracts(filePath) {
     const content = await fs.readFile(filePath, 'utf-8');
-    return JSON.parse(content);
+    const trimmed = content.trim();
+
+    if (!trimmed) {
+      return [];
+    }
+
+    const isJsonl = path.extname(filePath).toLowerCase() === '.jsonl';
+
+    if (isJsonl) {
+      return trimmed
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(Boolean)
+        .map(line => JSON.parse(line));
+    }
+
+    const parsed = JSON.parse(trimmed);
+    return Array.isArray(parsed) ? parsed : [parsed];
   }
 }

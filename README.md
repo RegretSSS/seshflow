@@ -4,6 +4,22 @@ Runtime control plane for AI-assisted software development.
 
 Seshflow is not a generic project board. It keeps planning state, active-task context, runtime logs, process records, transition events, and recovery hints in one workspace so an AI can resume engineering work without re-deriving the entire repo state.
 
+## Why choose Seshflow
+
+Use Seshflow when you want an AI assistant to work like a consistent engineering collaborator instead of a stateless chat window.
+
+What it gives you:
+
+- task state that survives across chats
+- explicit "what should I do now" context through `seshflow ncfr`
+- recoverable runtime history: commands, logs, artifacts, background processes, transition events
+- contract-first planning when API, RPC, or message agreements must be established before implementation
+- contract bundles can be imported from a JSON array or JSONL file
+- controlled contract extension fields through `metadata` and `extensions`
+- thin CLI, Web, and RPC seams over the same workspace truth
+
+Seshflow is 100% AI-oriented, but the documentation and command flow should still be readable and operable by humans.
+
 ## Status
 
 - `v1.3.0` is the current release line.
@@ -23,6 +39,52 @@ yarn global add @seshflow/cli
 
 The executable remains `seshflow`.
 
+## Core features
+
+- AI-first workspace bootstrap:
+  - `seshflow init`
+  - `seshflow ncfr`
+  - `seshflow next`
+- managed planning:
+  - single-task add/edit flows
+  - batch Markdown planning with stable task ids and `import --update`
+- execution recovery:
+  - `start`, `suspend`, `done`
+  - `record` for commands, logs, output roots, artifacts
+  - `process add/list` for background jobs
+  - persisted runtime events and announcements
+- dependency control:
+  - explicit dependency mutation
+  - blocker derivation and dependency views
+- contract-first mode:
+  - contract registry
+  - single-file or batch contract import
+  - task/Markdown/file binding
+  - drift reminders
+  - contract-first context and explicit `contextPriority`
+- integration seams:
+  - hook taxonomy and result kinds
+  - RPC shell payloads
+  - workspace index and mode capabilities
+
+## Typical human-readable usage
+
+If you are driving Seshflow manually and do not want JSON on screen, use:
+
+```bash
+seshflow ncfr --pretty
+seshflow next --compact
+seshflow show <taskId> --pretty
+```
+
+You can also opt out globally:
+
+```bash
+SESHFLOW_OUTPUT=pretty
+```
+
+Default JSON remains the correct mode for AI, automation, and tool integrations.
+
 ## Human-friendly starting flow
 
 ```bash
@@ -41,10 +103,11 @@ Recommended sequence:
 
 AI-facing commands now default to structured JSON, so `ncfr` already returns the minimal workspace snapshot needed to decide what to do next.
 
-## Contract-first mode (`v1.3.0`, current command: `apifirst`)
+## Contract-first mode (`v1.3.0`, current command aliases: `contractfirst`, `apifirst`)
 
 ```bash
-seshflow init apifirst
+seshflow init contractfirst
+seshflow contracts import .seshflow/contracts/contracts.bundle.json
 seshflow contracts add .seshflow/contracts/contract.user-service.create-user.json
 seshflow contracts add .seshflow/contracts/contract.board-service.move-card.json
 seshflow validate .seshflow/plans/api-planning.md
@@ -57,7 +120,7 @@ Use this mode as soon as API, RPC, or message contracts become the thing multipl
 For an existing workspace, migrate instead of re-initializing:
 
 ```bash
-seshflow mode set apifirst
+seshflow mode set contractfirst
 ```
 
 That preserves the current task/runtime state and upgrades the workspace into contract-first operation.
@@ -67,6 +130,18 @@ Accepted mode names today:
 - `apifirst`
 - `contractfirst`
 - `contract-first`
+
+This mode is not limited to classic frontend/backend coding. Use it whenever multiple tasks or agents must align on a declared contract before execution.
+
+Contract authoring rules today:
+
+- one contract per JSON file still works well for small workspaces
+- batch contract bootstrap is supported through `seshflow contracts import <file>`
+- supported import bundle formats:
+  - JSON object
+  - JSON array
+  - JSONL
+- custom contract data should live inside `metadata` or `extensions`, not as arbitrary top-level fields
 
 ## Planning flow
 
@@ -85,6 +160,12 @@ seshflow import tasks.md --update
 ```
 
 Managed Markdown is the planning surface. `.seshflow/tasks.json` remains the runtime state store.
+
+For humans, the practical rule is:
+
+- use `add` for one-offs
+- use Markdown for large plans and repeated revisions
+- keep runtime state in Seshflow, not in free-form notes
 
 ## Execution flow
 
@@ -110,6 +191,14 @@ Key AI-facing commands:
 - `seshflow contracts list`
 - `seshflow contracts show <contractId>`
 - `seshflow mode show`
+
+Human-readable examples:
+
+```bash
+seshflow list --pretty
+seshflow show <taskId> --pretty
+seshflow stats --compact
+```
 
 ## Web control plane
 
@@ -147,7 +236,7 @@ Defaults:
 Skill guidance follows the same boundary:
 
 - start with `seshflow init` for ordinary task work
-- switch immediately to contract-first mode with `seshflow init apifirst` or `seshflow mode set apifirst` once API/RPC coordination becomes part of the work
+- switch immediately to contract-first mode with `seshflow init contractfirst` or `seshflow mode set contractfirst` once API/RPC coordination becomes part of the work
 
 Stable convenience aliases:
 
