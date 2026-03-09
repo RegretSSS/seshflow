@@ -17,3 +17,22 @@ export const MODE_COMPATIBILITY = {
     starterPlan: '.seshflow/plans/api-planning.md',
   },
 };
+
+export const MODE_CAPABILITIES = {
+  default: {
+    contractCommands: true,
+    contractFirstContext: false,
+    contractDriftReminders: false,
+    hookFamilies: ['task-transition'],
+    rpcShellSurfaces: ['workspace', 'task', 'contract'],
+    contextPriorityStrategy: 'basic-task',
+  },
+  apifirst: {
+    contractCommands: true,
+    contractFirstContext: true,
+    contractDriftReminders: true,
+    hookFamilies: ['task-transition', 'contract', 'mode'],
+    rpcShellSurfaces: ['workspace', 'task', 'contract'],
+    contextPriorityStrategy: 'contract-first',
+  },
+};

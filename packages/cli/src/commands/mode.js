@@ -128,6 +128,7 @@ export async function setMode(mode, options = {}) {
         mode: modeInfo.mode,
         requestedMode: modeInfo.requestedMode,
         compatibility: modeInfo.compatibility,
+        capabilities: modeInfo.capabilities,
         guidance,
       }, workspace));
       return;
@@ -167,6 +168,7 @@ export async function showMode(options = {}) {
         fallbackMode: modeInfo.fallbackMode,
         fallbackReason: modeInfo.fallbackReason,
         compatibility: modeInfo.compatibility,
+        capabilities: modeInfo.capabilities,
         guidance,
       }, workspace));
       return;

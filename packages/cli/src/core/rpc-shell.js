@@ -1,4 +1,4 @@
-import { RPC_SHELL_SCHEMA_VERSION, RPC_SHELL_SURFACES } from '../../../shared/constants/integration.js';
+import { RPC_SHELL_CAPABILITIES_SCHEMA_VERSION, RPC_SHELL_SCHEMA_VERSION, RPC_SHELL_SURFACES } from '../../../shared/constants/integration.js';
 import { CONTEXT_PRIORITY_STRATEGIES, CONTEXT_PRIORITY_TIERS } from '../../../shared/constants/context-priority.js';
 import { resolveWorkspaceMode } from './workspace-mode.js';
 import { buildApiFirstContext } from './apifirst-context.js';
@@ -23,9 +23,18 @@ function formatTask(task) {
 export async function buildRpcShellPayload(manager, surface, targetId = null) {
   const modeInfo = await resolveWorkspaceMode(manager.storage);
   const workspace = await manager.storage.getWorkspaceInfo(manager.getTasks().length);
+  const capabilities = {
+    schemaVersion: RPC_SHELL_CAPABILITIES_SCHEMA_VERSION,
+    mode: modeInfo.mode,
+    requestedMode: modeInfo.requestedMode,
+    compatibility: modeInfo.compatibility,
+    capabilities: modeInfo.capabilities,
+    supportedSurfaces: Object.values(RPC_SHELL_SURFACES),
+  };
   const base = {
     schemaVersion: RPC_SHELL_SCHEMA_VERSION,
     surface,
+    capabilities,
     workspace: {
       path: workspace.path,
       name: workspace.name,

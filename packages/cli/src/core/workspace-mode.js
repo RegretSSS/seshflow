@@ -1,4 +1,4 @@
-import { MODE_COMPATIBILITY, VALID_WORKSPACE_MODES, WORKSPACE_MODES } from '../../../shared/constants/modes.js';
+import { MODE_CAPABILITIES, MODE_COMPATIBILITY, VALID_WORKSPACE_MODES, WORKSPACE_MODES } from '../../../shared/constants/modes.js';
 
 function createFallback(mode, fallbackReason = null) {
   return {
@@ -7,6 +7,7 @@ function createFallback(mode, fallbackReason = null) {
     fallbackMode: null,
     fallbackReason,
     compatibility: MODE_COMPATIBILITY[mode] || MODE_COMPATIBILITY[WORKSPACE_MODES.DEFAULT],
+    capabilities: MODE_CAPABILITIES[mode] || MODE_CAPABILITIES[WORKSPACE_MODES.DEFAULT],
   };
 }
 
@@ -20,6 +21,7 @@ export function resolveModeFromConfig(config = {}) {
       fallbackMode: null,
       fallbackReason: null,
       compatibility: MODE_COMPATIBILITY[requestedMode] || MODE_COMPATIBILITY[WORKSPACE_MODES.DEFAULT],
+      capabilities: MODE_CAPABILITIES[requestedMode] || MODE_CAPABILITIES[WORKSPACE_MODES.DEFAULT],
     };
   }
 
@@ -29,6 +31,7 @@ export function resolveModeFromConfig(config = {}) {
     fallbackMode: WORKSPACE_MODES.DEFAULT,
     fallbackReason: `Unsupported workspace mode "${requestedMode}"`,
     compatibility: MODE_COMPATIBILITY[WORKSPACE_MODES.DEFAULT],
+    capabilities: MODE_CAPABILITIES[WORKSPACE_MODES.DEFAULT],
   };
 }
 
@@ -43,6 +46,7 @@ export function buildModeGuidance(modeInfo) {
       migrationAvailable: false,
       recommendedCommand: null,
       note: 'Contract-first mode is active.',
+      capabilitySummary: 'Contract-first context, drift reminders, and contract-aware hook families are enabled.',
     };
   }
 
@@ -50,6 +54,7 @@ export function buildModeGuidance(modeInfo) {
     migrationAvailable: true,
     recommendedCommand: 'seshflow mode set apifirst',
     note: 'Default mode is active. Switch to apifirst when you want contract-first planning and context.',
+    capabilitySummary: 'Task sequencing is active; contract-aware context stays opt-in until apifirst mode is enabled.',
   };
 }
 

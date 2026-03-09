@@ -457,6 +457,13 @@ This milestone reserves stable seams. It does not require shipping a full RPC se
 
 Detailed hook seam guidance lives in `docs/hook-seams.md`.
 
+`rpc shell` should also expose a compact `capabilities` block so external Agent code can tell, without probing multiple commands, which mode profile is active and which seams are enabled. At minimum this block should expose:
+
+- active mode
+- mode compatibility summary
+- mode capabilities summary
+- supported RPC shell surfaces
+
 Contract-aware hook events that should exist by the end of `v1.3.0`:
 
 - `contract.bound`

@@ -88,6 +88,17 @@ describe('integration seams', () => {
     const workspacePayload = JSON.parse(workspaceResult.stdout);
     expect(workspacePayload.surface).toBe('workspace');
     expect(workspacePayload.workspace.mode).toBe('apifirst');
+    expect(workspacePayload.capabilities).toEqual(
+      expect.objectContaining({
+        schemaVersion: 1,
+        mode: 'apifirst',
+        capabilities: expect.objectContaining({
+          contractFirstContext: true,
+          contractDriftReminders: true,
+          hookFamilies: expect.arrayContaining(['contract', 'mode']),
+        }),
+      })
+    );
     expect(workspacePayload.contextPriority).toEqual(
       expect.objectContaining({
         strategy: 'contract-first',
@@ -100,6 +111,7 @@ describe('integration seams', () => {
     const taskPayload = JSON.parse(taskResult.stdout);
     expect(taskPayload.surface).toBe('task');
     expect(taskPayload.task.id).toBe(task.id);
+    expect(taskPayload.capabilities.capabilities.contextPriorityStrategy).toBe('contract-first');
     expect(taskPayload.contextPriority).toEqual(
       expect.objectContaining({
         strategy: 'contract-first',
@@ -112,6 +124,9 @@ describe('integration seams', () => {
     expect(contractResult.status).toBe(0);
     const contractPayload = JSON.parse(contractResult.stdout);
     expect(contractPayload.surface).toBe('contract');
+    expect(contractPayload.capabilities.supportedSurfaces).toEqual(
+      expect.arrayContaining(['workspace', 'task', 'contract'])
+    );
     expect(contractPayload.contextPriority).toEqual(
       expect.objectContaining({
         strategy: 'contract-first',

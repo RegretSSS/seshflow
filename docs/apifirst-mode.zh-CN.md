@@ -456,6 +456,13 @@ seshflow contracts check
 
 更详细的 hook seam 说明见 `docs/hook-seams.zh-CN.md`。
 
+`rpc shell` 还应返回一个紧凑的 `capabilities` 区块，让外部 Agent 不用额外探测多条命令，就能知道当前 mode profile 和可用接缝。最少应包含：
+
+- 当前激活的 mode
+- mode compatibility 摘要
+- mode capabilities 摘要
+- 支持的 RPC shell surface
+
 到 `v1.3.0` 结束时，至少应有这些 contract-aware hook 事件：
 
 - `contract.bound`

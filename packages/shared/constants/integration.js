@@ -6,6 +6,8 @@ export const RPC_SHELL_SURFACES = {
   CONTRACT: 'contract',
 };
 
+export const RPC_SHELL_CAPABILITIES_SCHEMA_VERSION = 1;
+
 export const INTEGRATION_EVENT_TYPES = {
   CONTRACT_BOUND: 'contract.bound',
   CONTRACT_UNBOUND: 'contract.unbound',
