@@ -87,6 +87,14 @@ Seshflow 的 hook 接缝目前服务于：
 - hook payload 必须可序列化，并适合落进 runtime event。
 - Agent 侧策略应消费这些接缝，而不是住进 Seshflow 内核。
 
+## 结果语义
+
+Hook 执行结果应暴露一个紧凑的 `resultKind`，让外部 Agent 能直接判断这次 hook 更像守卫、提醒，还是补充型步骤。
+
+- `guard`：会阻塞迁移的 blocking `before_*` hook
+- `advisory`：不改变状态真相、但应该被看见的 non-blocking hook 或失败信号
+- `enrichment`：成功执行、但不承担守卫语义的后置补充步骤
+
 ## 当前阶段边界
 
 - hook 仍然是本地串行执行

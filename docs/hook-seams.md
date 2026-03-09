@@ -89,6 +89,14 @@ Every hook execution should receive a compact envelope with:
 - Hook payloads should remain serializable and safe to persist in runtime events.
 - Agent-side policy should consume these seams; it should not live inside Seshflow.
 
+## Result kinds
+
+Hook execution results should expose a compact `resultKind` so external Agent code can tell whether a hook acted as a guard, an advisory signal, or an enrichment step.
+
+- `guard`: blocking `before_*` hooks that can stop a transition
+- `advisory`: non-blocking hooks or failures that should be surfaced but not treated as state truth
+- `enrichment`: successful non-guard hooks that add follow-up context or side effects
+
 ## Current implementation boundary
 
 - Hook execution remains serial and local.

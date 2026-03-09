@@ -295,6 +295,7 @@ export class TaskTransitionService {
         surface: result.hookSurface,
         phase: result.hookPhase,
         trigger: result.trigger,
+        resultKind: result.resultKind,
         schemaVersion: result.schemaVersion,
       },
     });

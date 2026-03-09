@@ -22,6 +22,12 @@ export const HOOK_ACTIONS = {
   FAIL: 'fail',
 };
 
+export const HOOK_RESULT_KINDS = {
+  GUARD: 'guard',
+  ADVISORY: 'advisory',
+  ENRICHMENT: 'enrichment',
+};
+
 export const HOOK_FAMILIES = {
   TASK_TRANSITION: 'task-transition',
   CONTRACT: 'contract',

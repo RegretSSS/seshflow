@@ -55,6 +55,7 @@ describe('hook registry and runtime event log', () => {
         surface: 'task',
         phase: 'before',
         trigger: 'task.start',
+        resultKind: 'guard',
         schemaVersion: 1,
       })
     );
@@ -92,6 +93,7 @@ describe('hook registry and runtime event log', () => {
         surface: 'task',
         phase: 'after',
         trigger: 'task.done',
+        resultKind: 'advisory',
         schemaVersion: 1,
       })
     );
@@ -140,6 +142,7 @@ describe('hook registry and runtime event log', () => {
           hookSurface: 'workspace',
           hookPhase: 'event',
           trigger: 'mode.changed',
+          resultKind: 'advisory',
         })
       ])
     );
