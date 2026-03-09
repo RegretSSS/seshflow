@@ -40,6 +40,7 @@ debug.log
 .seshflow/tasks.json
 .seshflow/sessions.json
 .seshflow/config.yaml
+.seshflow/ui-state.json
 
 # Scripts (development only)
 scripts/

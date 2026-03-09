@@ -2,29 +2,29 @@
 
 Runtime control plane for AI-assisted software development.
 
-Seshflow is not a generic project board. It keeps planning state, active-task context, runtime logs, process records, transition events, and recovery hints in one workspace so an AI can resume engineering work without re-deriving the entire state of the repo.
+Seshflow is not a generic project board. It keeps planning state, active-task context, runtime logs, process records, transition events, and recovery hints in one workspace so an AI can resume engineering work without re-deriving the entire repo state.
 
 ## Install
 
 ```bash
-npm install -g seshflow
+npm install -g @seshflow/cli
 # or
-pnpm install -g seshflow
+pnpm add -g @seshflow/cli
 # or
-yarn global add seshflow
+yarn global add @seshflow/cli
 ```
 
-Legacy package name remains available: `@seshflow/cli`.
+The executable remains `seshflow`.
 
 ## AI-first flow
 
 ```bash
 seshflow init
-seshflow ncfr --json
-seshflow next --json
+seshflow ncfr
+seshflow next
 ```
 
-Use `ncfr --json` as the first step of a new AI conversation. It gives the minimal workspace snapshot needed to decide what to do next.
+Use `ncfr` as the first step of a new AI conversation. AI-facing commands now default to structured JSON, so `ncfr` already returns the minimal workspace snapshot needed to decide what to do next.
 
 ## Planning flow
 
@@ -47,24 +47,24 @@ Managed Markdown is the planning surface. `.seshflow/tasks.json` remains the run
 ## Execution flow
 
 ```bash
-seshflow start <taskId> --json
-seshflow record --json --command "pnpm test" --cwd packages/cli
-seshflow process add --json --pid 12345 --command "vite dev"
-seshflow done <taskId> --json
+seshflow start <taskId>
+seshflow record --command "pnpm test" --cwd packages/cli
+seshflow process add --pid 12345 --command "vite dev"
+seshflow done <taskId>
 ```
 
-Key machine-friendly commands:
+Key AI-facing commands:
 
-- `seshflow ncfr --json`
-- `seshflow next --json`
-- `seshflow show <taskId> --json`
-- `seshflow list --json`
-- `seshflow query --json`
-- `seshflow start <taskId> --json`
-- `seshflow suspend --json`
-- `seshflow done <taskId> --json`
-- `seshflow add-dep <taskId> <dependsOnTaskId> --json`
-- `seshflow remove-dep <taskId> <dependsOnTaskId> --json`
+- `seshflow ncfr`
+- `seshflow next`
+- `seshflow show <taskId>`
+- `seshflow list`
+- `seshflow query`
+- `seshflow start <taskId>`
+- `seshflow suspend`
+- `seshflow done <taskId>`
+- `seshflow add-dep <taskId> <dependsOnTaskId>`
+- `seshflow remove-dep <taskId> <dependsOnTaskId>`
 
 ## Web control plane
 
@@ -72,15 +72,16 @@ The web package is a lightweight, read-only runtime surface over the same worksp
 
 ## Output modes
 
-- `--json`: structured output for AI/tooling
+- default: structured JSON for AI/tooling
 - `--compact`: low-noise text
 - `--pretty`: human-readable text
+- `--no-json`: explicit text fallback for commands that default to JSON
 
 Defaults:
 
-- TTY: `pretty`
-- non-TTY: `compact`
-- override with `SESHFLOW_OUTPUT=compact|pretty`
+- AI-facing commands: `json`
+- opt out per call with `--pretty`, `--compact`, or `--no-json`
+- override globally with `SESHFLOW_OUTPUT=json|compact|pretty`
 
 ## Skills
 

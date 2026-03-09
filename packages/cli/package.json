@@ -1,6 +1,6 @@
 {
   "name": "@seshflow/cli",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "description": "Seshflow CLI - Runtime control plane for AI-assisted development",
   "type": "module",
   "author": "Seshflow Contributors",
@@ -26,18 +26,21 @@
   },
   "files": [
     "bin",
-    "dist",
-    "src"
+    "src",
+    "!src/**/*.test.js"
   ],
   "scripts": {
     "dev": "node bin/seshflow.js",
     "build": "node -e \"console.log('CLI is plain JavaScript; no compilation step required.')\"",
-    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --passWithNoTests",
-    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage --passWithNoTests",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand --passWithNoTests --testTimeout=15000",
+    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand --coverage --passWithNoTests --testTimeout=15000",
     "lint": "eslint src/**/*.js",
     "lint:fix": "eslint src/**/*.js --fix",
     "clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});\"",
     "prepublishOnly": "npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "commander": "^12.0.0",

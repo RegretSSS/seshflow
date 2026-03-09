@@ -1,7 +1,7 @@
 {
   "name": "@seshflow/shared",
-  "version": "1.0.0",
-  "description": "Seshflow shared types and utilities",
+  "version": "1.2.0",
+  "description": "Seshflow shared contracts and workspace snapshot utilities",
   "type": "module",
   "exports": {
     "./types/task.d.ts": "./types/task.d.ts",
@@ -24,13 +24,26 @@
     "lint": "tsc --noEmit",
     "clean": "node -e \"const fs=require('fs');fs.rmSync('dist',{recursive:true,force:true});\""
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "devDependencies": {
     "typescript": "^5.3.3"
   },
   "keywords": [
-    "types",
-    "shared"
+    "runtime-control-plane",
+    "shared-contracts",
+    "workspace-snapshot",
+    "ai-assistant"
   ],
-  "author": "",
+  "author": "Seshflow Contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RegretSSS/seshflow.git"
+  },
+  "homepage": "https://github.com/RegretSSS/seshflow#readme",
+  "bugs": {
+    "url": "https://github.com/RegretSSS/seshflow/issues"
+  },
   "license": "MIT"
 }
