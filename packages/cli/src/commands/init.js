@@ -4,6 +4,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import { TaskManager } from '../core/task-manager.js';
 import { Storage } from '../core/storage.js';
+import { CONTRACT_KINDS, CONTRACT_PROTOCOLS } from '../../../shared/constants/contracts.js';
 
 export function getDefaultTaskTemplate() {
   const now = new Date().toISOString().split('T')[0];
@@ -104,7 +105,88 @@ function getMarkdownImportGuide() {
 `;
 }
 
-async function copyTemplateFiles(seshflowDir) {
+function getApiFirstContractReadme() {
+  return `# API-first Contracts
+
+Store one JSON contract per file in this directory.
+
+- Keep the filename aligned with the stable contract id
+- Keep the version inside the JSON payload, not in the filename
+- Start from \`contract.user-service.create-user.json\`
+- Validate contract-linked planning through \`seshflow validate\` and \`seshflow import --update\`
+`;
+}
+
+function getApiFirstExampleContract() {
+  return JSON.stringify({
+    schemaVersion: 1,
+    id: 'contract.user-service.create-user',
+    version: '1.0.0',
+    kind: CONTRACT_KINDS.API,
+    protocol: CONTRACT_PROTOCOLS.HTTP_JSON,
+    name: 'Create User',
+    owner: {
+      service: 'user-service',
+      team: 'identity',
+      ownerTaskIds: ['task_api_create_user_contract']
+    },
+    lifecycle: {
+      status: 'draft',
+      compatibility: 'backward-compatible',
+      supersedes: [],
+      replacedBy: null
+    },
+    endpoint: {
+      method: 'POST',
+      path: '/users'
+    },
+    requestSchema: {
+      type: 'object',
+      required: ['name', 'email'],
+      properties: {
+        name: { type: 'string' },
+        email: { type: 'string', format: 'email' }
+      }
+    },
+    responseSchema: {
+      type: 'object',
+      required: ['id', 'name', 'email'],
+      properties: {
+        id: { type: 'string' },
+        name: { type: 'string' },
+        email: { type: 'string', format: 'email' }
+      }
+    },
+    consumers: [{ name: 'web-app', role: 'caller' }],
+    implementationBindings: [],
+    openQuestions: [],
+    notes: []
+  }, null, 2);
+}
+
+function getApiFirstPlanningTemplate() {
+  return `# API-first Planning Template
+
+## Contract: contract.user-service.create-user
+
+- [ ] Draft request and response schema [id:task_api_create_user_contract] [contracts:contract.user-service.create-user] [P0]
+> Confirm status codes, error format, and backward compatibility notes.
+
+- [ ] Implement POST /users route [id:task_impl_create_user_route] [contracts:contract.user-service.create-user] [depends:task_api_create_user_contract] [P0]
+> Bind the implementation task to the contract before starting parallel work.
+
+- [ ] Update web caller [id:task_consume_create_user] [contracts:contract.user-service.create-user] [depends:task_impl_create_user_route] [P1]
+> Keep consumer work tied to the same contract group.
+`;
+}
+
+async function configureMode(storage, mode = 'default') {
+  const config = await storage.readConfigFile();
+  config.mode = mode;
+  await storage.writeConfigFile(config);
+}
+
+async function copyTemplateFiles(seshflowDir, mode = 'default') {
   const templates = [
     {
       target: path.join(seshflowDir, 'TASKS.template.md'),
@@ -120,8 +202,26 @@ async function copyTemplateFiles(seshflowDir) {
     }
   ];
 
+  if (mode === 'apifirst') {
+    templates.push(
+      {
+        target: path.join(seshflowDir, 'contracts', 'README.md'),
+        fallback: getApiFirstContractReadme()
+      },
+      {
+        target: path.join(seshflowDir, 'contracts', 'contract.user-service.create-user.json'),
+        fallback: getApiFirstExampleContract()
+      },
+      {
+        target: path.join(seshflowDir, 'plans', 'api-planning.md'),
+        fallback: getApiFirstPlanningTemplate()
+      }
+    );
+  }
+
   for (const template of templates) {
     try {
+      await fs.ensureDir(path.dirname(template.target));
       await fs.writeFile(template.target, template.fallback, 'utf-8');
     } catch {
       console.log(chalk.yellow(`  Failed to prepare ${path.basename(template.target)}`));
@@ -165,7 +265,22 @@ function getShellHints() {
   };
 }
 
-export async function init(options = {}) {
+function resolveInitArgs(modeOrOptions, maybeOptions) {
+  if (typeof modeOrOptions === 'string') {
+    return {
+      mode: modeOrOptions.trim() || 'default',
+      options: maybeOptions || {}
+    };
+  }
+
+  return {
+    mode: 'default',
+    options: modeOrOptions || {}
+  };
+}
+
+export async function init(modeOrOptions = {}, maybeOptions = {}) {
+  const { mode, options } = resolveInitArgs(modeOrOptions, maybeOptions);
   const spinner = process.stderr.isTTY ? ora('Initializing Seshflow workspace').start() : null;
 
   try {
@@ -183,8 +298,10 @@ export async function init(options = {}) {
     const manager = new TaskManager(process.cwd(), initOptions);
     await manager.init();
 
+    await configureMode(storage, mode);
+
     spinner && (spinner.text = 'Copying template files...');
-    await copyTemplateFiles(storage.getSeshflowDir());
+    await copyTemplateFiles(storage.getSeshflowDir(), mode);
 
     spinner?.succeed('Seshflow workspace initialized');
 
@@ -193,26 +310,40 @@ export async function init(options = {}) {
     console.log(chalk.gray(`  Root source: ${storage.getWorkspaceResolution().source}`));
     console.log(chalk.gray(`  Source path: ${storage.getWorkspaceResolution().sourcePath}`));
     console.log(chalk.gray('  Config: .seshflow/config.yaml'));
+    console.log(chalk.gray(`  Mode: ${mode}`));
 
     console.log(chalk.blue('\nTemplate files created:'));
     console.log(chalk.gray('  .seshflow/TASKS.template.md        - Managed planning template'));
     console.log(chalk.gray('  .seshflow/TASKS_TEMPLATE_SPEC.md   - Template syntax reference'));
     console.log(chalk.gray('  .seshflow/MARKDOWN_IMPORT_GUIDE.md - Markdown import guide'));
+    if (mode === 'apifirst') {
+      console.log(chalk.gray('  .seshflow/contracts/README.md      - Contract storage guide'));
+      console.log(chalk.gray('  .seshflow/contracts/*.json         - Starter contract files'));
+      console.log(chalk.gray('  .seshflow/plans/api-planning.md    - Contract-first planning template'));
+    }
 
     const shellHints = getShellHints();
 
     console.log(chalk.blue('\nQuick start:'));
-    console.log(chalk.gray('  seshflow ncfr'));
-    console.log(chalk.gray('  seshflow add "My first task"'));
-    console.log(chalk.gray('  seshflow next'));
-    console.log('');
-    console.log(chalk.gray('  # Batch planning with managed Markdown'));
-    console.log(chalk.gray(`  ${shellHints.copyCmd}`));
-    console.log(chalk.gray('  seshflow validate my-tasks.md'));
-    console.log(chalk.gray('  seshflow import my-tasks.md'));
-    console.log(chalk.gray('  # Later: edit the same file, then'));
-    console.log(chalk.gray('  seshflow import my-tasks.md --update'));
-    console.log(chalk.gray('  seshflow next'));
+    if (mode === 'apifirst') {
+      console.log(chalk.gray('  seshflow contracts add .seshflow/contracts/contract.user-service.create-user.json'));
+      console.log(chalk.gray('  seshflow validate .seshflow/plans/api-planning.md'));
+      console.log(chalk.gray('  seshflow import .seshflow/plans/api-planning.md --update'));
+      console.log(chalk.gray('  seshflow ncfr'));
+      console.log(chalk.gray('  seshflow contracts check'));
+    } else {
+      console.log(chalk.gray('  seshflow ncfr'));
+      console.log(chalk.gray('  seshflow add "My first task"'));
+      console.log(chalk.gray('  seshflow next'));
+      console.log('');
+      console.log(chalk.gray('  # Batch planning with managed Markdown'));
+      console.log(chalk.gray(`  ${shellHints.copyCmd}`));
+      console.log(chalk.gray('  seshflow validate my-tasks.md'));
+      console.log(chalk.gray('  seshflow import my-tasks.md'));
+      console.log(chalk.gray('  # Later: edit the same file, then'));
+      console.log(chalk.gray('  seshflow import my-tasks.md --update'));
+      console.log(chalk.gray('  seshflow next'));
+    }
 
     console.log(chalk.blue('\nReference:'));
     console.log(chalk.gray(`  ${shellHints.viewCmd}`));

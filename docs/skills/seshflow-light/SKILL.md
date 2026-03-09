@@ -30,6 +30,7 @@ Notes:
 - Both commands may be run from a nested subdirectory; `seshflow` resolves the active workspace upward.
 - Read the returned `workspace.source` metadata when repository roots may have moved or when multiple workspaces are possible.
 - `seshflow` now defaults to structured JSON for AI-facing commands. Use `--pretty` or `--compact` only when a human-readable view is actually needed.
+- When the workspace is explicitly in `apifirst` mode, prefer `seshflow contracts add`, `seshflow contracts check`, and contract-linked Markdown planning before broad implementation work.
 - `seshflow ncfr` is intentionally minimal by default; only use `seshflow ncfr --full` when the task actually needs dependency snapshots, recent completions, or extra path metadata.
 - In `ncfr`, `currentTask` is only non-null when a real active session exists. Otherwise, use `nextReadyTask`.
 
@@ -47,6 +48,9 @@ After `init`, suggest one next step based on user intent:
   - suggest `seshflow import <file>`
 - If user wants to plan many tasks or revise a plan:
   - suggest editing a managed Markdown task file, then `seshflow validate <file>` and `seshflow import <file>`
+- If user wants contract-first setup for large API/RPC work:
+  - suggest `seshflow init apifirst` for new workspaces
+  - suggest `seshflow mode set apifirst` for existing workspaces
 
 After `ncfr`, suggest one next step based on detected state:
 
@@ -65,6 +69,7 @@ Only reveal commands that match the immediate user intent:
 - Runtime capture: `record`
 - Background processes: `process add`, `process list`
 - Announcements: `announce progress`
+- API-first contracts: `contracts add`, `contracts list`, `contracts show`, `contracts check`, `mode show`, `mode set`
 - Inspection: `show`, `list`, `query`, `stats`, `deps`
 - Data flow: `import`, `export`, `validate`
 

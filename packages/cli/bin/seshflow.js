@@ -36,10 +36,15 @@ program
   .version(VERSION);
 
 program
-  .command('init')
+  .command('init [mode]')
   .description('Initialize seshflow workspace')
   .option('-f, --force', 'Reinitialize even if already initialized')
-  .action(lazyAction(() => import('../src/commands/init.js'), 'init'));
+  .action(async (mode, options) => {
+    const mod = await import('../src/commands/init.js');
+    const resolvedMode = typeof mode === 'string' ? mode : 'default';
+    const resolvedOptions = typeof mode === 'string' ? options : mode;
+    return mod.init(resolvedMode, resolvedOptions);
+  });
 
 program
   .command('add <title>')
@@ -160,6 +165,14 @@ const announceCommand = program
   .command('announce')
   .description('Emit task-scoped announcement events');
 
+const contractsCommand = program
+  .command('contracts')
+  .description('Manage API/RPC contracts for api-first workspaces');
+
+const modeCommand = program
+  .command('mode')
+  .description('Inspect or update workspace mode');
+
 announceCommand
   .command('progress [taskId]')
   .description('Emit a progress announcement for a task or the current active task')
@@ -205,6 +218,48 @@ processCommand
     const resolvedOptions = typeof taskId === 'string' ? options : taskId;
     return mod.listProcesses(resolvedTaskId, resolvedOptions);
   });
+
+contractsCommand
+  .command('add <file>')
+  .description('Register a contract from a JSON file')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/contracts.js'), 'addContract'));
+
+contractsCommand
+  .command('list')
+  .description('List registered contracts')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/contracts.js'), 'listContracts'));
+
+contractsCommand
+  .command('show <contractId>')
+  .description('Show a registered contract')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/contracts.js'), 'showContract'));
+
+contractsCommand
+  .command('check')
+  .description('Validate registered contract files')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/contracts.js'), 'checkContracts'));
+
+modeCommand
+  .command('set <mode>')
+  .description('Set workspace mode')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/mode.js'), 'setMode'));
+
+modeCommand
+  .command('show')
+  .description('Show current workspace mode')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/mode.js'), 'showMode'));
 
 program
   .command('add-dep <taskId> <dependsOnTaskId>')

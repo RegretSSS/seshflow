@@ -1,0 +1,156 @@
+import chalk from 'chalk';
+import ora from 'ora';
+import { Storage } from '../core/storage.js';
+import { ContractRegistry } from '../core/contract-registry.js';
+import {
+  formatErrorResponse,
+  formatSuccessResponse,
+  formatWorkspaceJSON,
+  isJSONMode,
+  outputJSON,
+} from '../utils/json-output.js';
+
+function printContractSummary(summary) {
+  console.log(`CONTRACT | ${summary.id} | ${summary.kind} | ${summary.version} | ${summary.name}`);
+}
+
+export async function addContract(file, options = {}) {
+  const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Registering contract').start() : null;
+
+  try {
+    const storage = new Storage();
+    await storage.init();
+    const registry = new ContractRegistry(storage);
+    const result = await registry.addContractFromFile(file);
+    spinner?.succeed('Contract registered');
+
+    if (isJSONMode(options)) {
+      const workspace = await formatWorkspaceJSON(storage);
+      outputJSON(formatSuccessResponse({
+        action: 'contracts.add',
+        changed: result.changed,
+        existed: result.existed,
+        contract: result.contract,
+        storedPath: result.storedPath,
+      }, workspace));
+      return;
+    }
+
+    printContractSummary(registry.summarizeContract(result.contract));
+  } catch (error) {
+    spinner?.fail('Failed to register contract');
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, error.code || 'CONTRACT_ADD_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
+    process.exit(1);
+  }
+}
+
+export async function listContracts(options = {}) {
+  const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Loading contracts').start() : null;
+
+  try {
+    const storage = new Storage();
+    await storage.init();
+    const registry = new ContractRegistry(storage);
+    const contracts = await registry.listContracts();
+    const summaries = contracts.map(contract => registry.summarizeContract(contract));
+    spinner?.succeed('Contracts loaded');
+
+    if (isJSONMode(options)) {
+      const workspace = await formatWorkspaceJSON(storage);
+      outputJSON(formatSuccessResponse({
+        action: 'contracts.list',
+        contracts: summaries,
+        total: summaries.length,
+      }, workspace));
+      return;
+    }
+
+    if (summaries.length === 0) {
+      console.log('NO_CONTRACTS');
+      return;
+    }
+
+    summaries.forEach(printContractSummary);
+  } catch (error) {
+    spinner?.fail('Failed to load contracts');
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, error.code || 'CONTRACT_LIST_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
+    process.exit(1);
+  }
+}
+
+export async function showContract(contractId, options = {}) {
+  const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Loading contract').start() : null;
+
+  try {
+    const storage = new Storage();
+    await storage.init();
+    const registry = new ContractRegistry(storage);
+    const contract = await registry.getContract(contractId);
+    spinner?.succeed('Contract loaded');
+
+    if (isJSONMode(options)) {
+      const workspace = await formatWorkspaceJSON(storage);
+      outputJSON(formatSuccessResponse({
+        action: 'contracts.show',
+        contract,
+      }, workspace));
+      return;
+    }
+
+    printContractSummary(registry.summarizeContract(contract));
+  } catch (error) {
+    spinner?.fail('Failed to load contract');
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'CONTRACT_NOT_FOUND'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
+    process.exit(1);
+  }
+}
+
+export async function checkContracts(options = {}) {
+  const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Checking contracts').start() : null;
+
+  try {
+    const storage = new Storage();
+    await storage.init();
+    const registry = new ContractRegistry(storage);
+    const result = await registry.checkContracts();
+    spinner?.succeed('Contracts checked');
+
+    if (isJSONMode(options)) {
+      const workspace = await formatWorkspaceJSON(storage);
+      outputJSON(formatSuccessResponse({
+        action: 'contracts.check',
+        ...result,
+      }, workspace));
+      return;
+    }
+
+    if (result.issues.length === 0) {
+      console.log(`CONTRACT_CHECK | ok | checked=${result.contractsChecked}`);
+      return;
+    }
+
+    result.issues.forEach(issue => {
+      console.log(`CONTRACT_ISSUE | ${issue.code} | ${issue.message}`);
+    });
+  } catch (error) {
+    spinner?.fail('Failed to check contracts');
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, error.code || 'CONTRACT_CHECK_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
+    process.exit(1);
+  }
+}

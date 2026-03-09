@@ -33,6 +33,18 @@ seshflow next
 
 Use `ncfr` as the first step of a new AI conversation. AI-facing commands now default to structured JSON, so `ncfr` already returns the minimal workspace snapshot needed to decide what to do next.
 
+## API-first flow (`v1.3.0` in progress)
+
+```bash
+seshflow init apifirst
+seshflow contracts add .seshflow/contracts/contract.user-service.create-user.json
+seshflow validate .seshflow/plans/api-planning.md
+seshflow import .seshflow/plans/api-planning.md --update
+seshflow contracts check
+```
+
+Use `seshflow mode set apifirst` to migrate an existing workspace without losing current tasks.
+
 ## Planning flow
 
 For one-off tasks:
@@ -72,6 +84,9 @@ Key AI-facing commands:
 - `seshflow done <taskId>`
 - `seshflow add-dep <taskId> <dependsOnTaskId>`
 - `seshflow remove-dep <taskId> <dependsOnTaskId>`
+- `seshflow contracts list`
+- `seshflow contracts show <contractId>`
+- `seshflow mode show`
 
 ## Web control plane
 

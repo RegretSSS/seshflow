@@ -8,10 +8,18 @@ import { ANNOUNCEMENT_KINDS, ANNOUNCEMENT_ACTIONS } from '../../../shared/consta
  * Default configuration
  */
 const DEFAULT_CONFIG = {
+  mode: 'default',
   workspace: {
     name: 'seshflow-workspace',
     type: 'linux',
     path: process.cwd()
+  },
+  contracts: {
+    dir: PATHS.CONTRACTS_DIR
+  },
+  planning: {
+    plansDir: PATHS.PLANS_DIR,
+    defaultPlan: '.seshflow/plans/api-planning.md'
   },
   network: {
     port: 5423,
@@ -159,6 +167,7 @@ export class Storage {
     this.tasksFile = path.join(this.workspacePath, PATHS.TASKS_FILE);
     this.configFile = path.join(this.workspacePath, PATHS.CONFIG_FILE);
     this.uiStateFile = path.join(this.workspacePath, PATHS.UI_STATE_FILE);
+    this.contractsDir = path.join(this.workspacePath, PATHS.CONTRACTS_DIR);
     this.cachedGitBranch = null;
   }
 
@@ -256,13 +265,21 @@ export class Storage {
       return {
         ...DEFAULT_CONFIG,
         ...parsed,
-        workspace: {
-          ...DEFAULT_CONFIG.workspace,
-          ...(parsed.workspace || {}),
-          name: parsed.workspace?.name || path.basename(this.workspacePath) || '',
-          path: this.workspacePath
-        }
-      };
+      workspace: {
+        ...DEFAULT_CONFIG.workspace,
+        ...(parsed.workspace || {}),
+        name: parsed.workspace?.name || path.basename(this.workspacePath) || '',
+        path: this.workspacePath
+      },
+      contracts: {
+        ...DEFAULT_CONFIG.contracts,
+        ...(parsed.contracts || {})
+      },
+      planning: {
+        ...DEFAULT_CONFIG.planning,
+        ...(parsed.planning || {})
+      }
+    };
     } catch (error) {
       throw new Error(`Failed to read config file: ${error.message}`);
     }
@@ -323,13 +340,21 @@ export class Storage {
       const normalizedConfig = {
         ...DEFAULT_CONFIG,
         ...config,
-        workspace: {
-          ...DEFAULT_CONFIG.workspace,
-          ...(config.workspace || {}),
-          name: config.workspace?.name || path.basename(this.workspacePath) || '',
-          path: this.workspacePath
-        }
-      };
+      workspace: {
+        ...DEFAULT_CONFIG.workspace,
+        ...(config.workspace || {}),
+        name: config.workspace?.name || path.basename(this.workspacePath) || '',
+        path: this.workspacePath
+      },
+      contracts: {
+        ...DEFAULT_CONFIG.contracts,
+        ...(config.contracts || {})
+      },
+      planning: {
+        ...DEFAULT_CONFIG.planning,
+        ...(config.planning || {})
+      }
+    };
       const content = yaml.stringify(normalizedConfig);
       await fs.writeFile(this.configFile, content, 'utf-8');
       return true;
@@ -420,6 +445,50 @@ export class Storage {
     return { ...this.workspaceResolution };
   }
 
+  getContractsDir() {
+    return this.contractsDir;
+  }
+
+  getContractFilePath(contractId) {
+    return path.join(this.contractsDir, `${contractId}.json`);
+  }
+
+  async ensureContractsDir() {
+    await fs.ensureDir(this.contractsDir);
+    return this.contractsDir;
+  }
+
+  async listContractFiles() {
+    if (!(await this.exists(this.contractsDir))) {
+      return [];
+    }
+
+    const entries = await fs.readdir(this.contractsDir);
+    return entries
+      .filter(entry => entry.endsWith('.json'))
+      .sort()
+      .map(entry => path.join(this.contractsDir, entry));
+  }
+
+  async readContractFile(contractId) {
+    try {
+      const content = await fs.readFile(this.getContractFilePath(contractId), 'utf-8');
+      return JSON.parse(content);
+    } catch (error) {
+      throw new Error(`Failed to read contract file: ${error.message}`);
+    }
+  }
+
+  async writeContractFile(contractId, data) {
+    try {
+      await this.ensureContractsDir();
+      await fs.writeFile(this.getContractFilePath(contractId), JSON.stringify(data, null, 2), 'utf-8');
+      return true;
+    } catch (error) {
+      throw new Error(`Failed to write contract file: ${error.message}`);
+    }
+  }
+
   getWorkspaceRecordSync(taskCount = 0) {
     return {
       path: this.workspacePath,
@@ -449,6 +518,12 @@ export class Storage {
         name: path.basename(this.workspacePath) || 'seshflow-workspace',
         type: process.platform,
         path: this.workspacePath
+      },
+      contracts: {
+        ...DEFAULT_CONFIG.contracts
+      },
+      planning: {
+        ...DEFAULT_CONFIG.planning
       }
     };
   }

@@ -33,6 +33,18 @@ seshflow next
 
 每次开启新的 AI 对话，都应先执行 `seshflow ncfr`。面向 AI 的命令现在默认输出结构化 JSON，可直接返回决定下一步所需的最小上下文。
 
+## API-first 流程（`v1.3.0` 进行中）
+
+```bash
+seshflow init apifirst
+seshflow contracts add .seshflow/contracts/contract.user-service.create-user.json
+seshflow validate .seshflow/plans/api-planning.md
+seshflow import .seshflow/plans/api-planning.md --update
+seshflow contracts check
+```
+
+如果是已有 workspace，需要迁移到契约先行模式，可执行 `seshflow mode set apifirst`，不会丢掉现有任务。
+
 ## 任务规划流程
 
 单条任务可直接添加：
@@ -72,6 +84,9 @@ seshflow done <taskId>
 - `seshflow done <taskId>`
 - `seshflow add-dep <taskId> <dependsOnTaskId>`
 - `seshflow remove-dep <taskId> <dependsOnTaskId>`
+- `seshflow contracts list`
+- `seshflow contracts show <contractId>`
+- `seshflow mode show`
 
 ## Web 控制面
 

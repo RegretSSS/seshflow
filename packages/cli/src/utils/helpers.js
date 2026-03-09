@@ -19,6 +19,15 @@ export function isValidTaskId(taskId) {
 }
 
 /**
+ * Validate contract ID format
+ * @param {string} contractId - Candidate contract ID
+ * @returns {boolean} True when the value matches the contract ID contract
+ */
+export function isValidContractId(contractId) {
+  return /^contract\.[a-z0-9.-]+$/i.test(String(contractId || '').trim());
+}
+
+/**
  * Generate a unique subtask ID
  * @returns {string} Subtask ID
  */
