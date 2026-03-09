@@ -106,6 +106,12 @@
 - Scope: `list/start/done/edit` routed through mode-aware orchestration.
 - Done: behavior differences are intentional and documented.
 
+### 1.3.0-03a Workspace Index and Multi-Workspace Control Plane
+
+- Priority: P1
+- Scope: add a workspace registry/index, workspace discovery contract, and a web overview/switching path so the control plane can summarize multiple workspaces instead of binding one dev-server port to one local workspace snapshot.
+- Done: multi-workspace overview and workspace switching no longer depend on manually starting a separate web port per workspace.
+
 ### 1.3.0-04 Custom Mode Definition and Validation
 
 - Priority: P1

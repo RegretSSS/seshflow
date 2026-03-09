@@ -152,14 +152,16 @@ export async function show(taskId, options = {}) {
     const runtimeSummary = manager.getRuntimeSummary(task);
     const processEntries = manager.getRecentProcessEntries(task);
     const processSummary = manager.getProcessSummary(task);
-    const runtimeEvents = manager.getTaskRuntimeEvents(task.id, 5);
     const runtimeEventSummary = manager.getRuntimeEventSummary(task);
+    const includeFullJSON = options.full === true;
+    const runtimeEvents = includeFullJSON ? manager.getTaskRuntimeEvents(task.id, 5) : [];
 
     spinner?.stop();
 
     if (isJSONMode(options)) {
       const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
       outputJSON(formatSuccessResponse({
+        detailLevel: includeFullJSON ? 'full' : 'summary',
         task: formatTaskJSON(task),
         subtasks: task.subtasks || [],
         dependencies: task.dependencies || [],
@@ -169,7 +171,7 @@ export async function show(taskId, options = {}) {
         processSummary,
         recentProcesses: processEntries,
         runtimeEventSummary,
-        recentRuntimeEvents: runtimeEvents,
+        ...(includeFullJSON ? { recentRuntimeEvents: runtimeEvents } : {}),
       }, workspaceJSON));
       return;
     }

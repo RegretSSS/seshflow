@@ -77,11 +77,13 @@ For high-frequency inspection commands, prefer the summary JSON shape first:
 
 - `seshflow list --json`
 - `seshflow query --json`
+- `seshflow show <taskId> --json`
 
 Only request full task payloads when the next step actually needs them:
 
 - `seshflow list --json --full`
 - `seshflow query --json --full`
+- `seshflow show <taskId> --json --full`
 
 For batch planning, treat managed Markdown as the planning surface and `.seshflow/tasks.json` as the runtime state store.
 Use stable task ids in Markdown (`[id:task_xxx]`) and prefer dependency ids (`[dependency:task_other]`).
@@ -115,7 +117,7 @@ When a progress checkpoint should be made explicit for downstream recovery or no
 
 - `seshflow announce progress --json --percent <number> --note "<checkpoint>"`
 
-Transition-triggered hooks now write persisted runtime events. Treat blocking `before_*` hook failures as authoritative and inspect `show <taskId> --json` for `recentRuntimeEvents` when a transition fails unexpectedly.
+Transition-triggered hooks now write persisted runtime events. Treat blocking `before_*` hook failures as authoritative and inspect `show <taskId> --json --full` for `recentRuntimeEvents` when a transition fails unexpectedly.
 
 When the lightweight web control plane is available, treat it as a read-only runtime surface backed by `.seshflow/tasks.json`:
 

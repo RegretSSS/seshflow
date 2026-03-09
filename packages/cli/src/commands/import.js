@@ -35,6 +35,7 @@ function parseTaskLine(line, lineNumber, isCompleted = false) {
 
   const task = {
     id: null,
+    lineNumber,
     title: '',
     description: '',
     status: isCompleted ? 'done' : 'backlog',
@@ -366,14 +367,26 @@ function validateTasks(tasks) {
 
     // Check required fields
     if (!task.title) {
-      errors.push(`Task ${taskNum}: title is required`);
+      errors.push({
+        line: task.lineNumber,
+        message: `Task ${taskNum}: title is required`,
+        suggestion: 'add text after "- [ ]"',
+      });
     }
 
     if (task.id) {
       if (!isValidTaskId(task.id)) {
-        errors.push(`${taskLabel}: invalid stable id ${task.id}`);
+        errors.push({
+          line: task.lineNumber,
+          message: `${taskLabel}: invalid stable id ${task.id}`,
+          suggestion: 'use ids like [id:task_example]',
+        });
       } else if (seenTaskIds.has(task.id)) {
-        errors.push(`${taskLabel}: duplicate stable id ${task.id}`);
+        errors.push({
+          line: task.lineNumber,
+          message: `${taskLabel}: duplicate stable id ${task.id}`,
+          suggestion: 'keep each [id:task_xxx] unique within the file',
+        });
       } else {
         seenTaskIds.set(task.id, taskLabel);
       }
@@ -381,21 +394,46 @@ function validateTasks(tasks) {
 
     // Check priority
     if (!['P0', 'P1', 'P2', 'P3'].includes(task.priority)) {
-      warnings.push(`${taskLabel}: invalid priority ${task.priority}`);
+      warnings.push({
+        line: task.lineNumber,
+        message: `${taskLabel}: invalid priority ${task.priority}`,
+        suggestion: 'use P0, P1, P2, or P3',
+      });
     }
 
     // Check hours
     if (task.estimatedHours < 0) {
-      errors.push(`${taskLabel}: estimated hours cannot be negative`);
+      errors.push({
+        line: task.lineNumber,
+        message: `${taskLabel}: estimated hours cannot be negative`,
+      });
     }
 
     // Warn if large task has no description
     if (!task.description && task.estimatedHours > 4) {
-      warnings.push(`${taskLabel}: large task (${task.estimatedHours}h) has no description`);
+      warnings.push({
+        line: task.lineNumber,
+        message: `${taskLabel}: large task (${task.estimatedHours}h) has no description`,
+        suggestion: 'add an indented description line or metadata block below the task',
+      });
     }
   });
 
   return { errors, warnings };
+}
+
+function formatValidationIssue(issue) {
+  const linePrefix = issue.line ? `Line ${issue.line}: ` : '';
+  const suggestion = issue.suggestion ? ` | fix: ${issue.suggestion}` : '';
+  return `${linePrefix}${issue.message}${suggestion}`;
+}
+
+function printMarkdownImportHints(logger = console.error) {
+  logger(chalk.blue('\nAccepted task patterns:'));
+  logger(chalk.gray('  - [ ] Task title [P1] [id:task_example] [dependency:task_other]'));
+  logger(chalk.gray('    priority: P1'));
+  logger(chalk.gray('    estimate: 2h'));
+  logger(chalk.gray('    depends: task_other'));
 }
 
 /**
@@ -468,8 +506,7 @@ export async function importTasks(filePath, options = {}) {
     if (tasks.length === 0) {
       spinner?.warn('No tasks found');
       console.log(chalk.yellow('\nNo tasks found in the file.'));
-      console.log(chalk.gray('Make sure your tasks follow the format:'));
-      console.log(chalk.gray('  - [ ] Task title [P0] [tag1,tag2] [4h]'));
+      printMarkdownImportHints(console.log);
       return;
     }
 
@@ -480,7 +517,12 @@ export async function importTasks(filePath, options = {}) {
     if (errors.length > 0) {
       spinner?.fail('Validation failed');
       console.error(chalk.red('\nValidation errors:'));
-      errors.forEach((error) => console.error(chalk.red(`  - ${error}`)));
+      errors.forEach((error) => console.error(chalk.red(`  - ${formatValidationIssue(error)}`)));
+      if (warnings.length > 0) {
+        console.error(chalk.yellow('\nWarnings:'));
+        warnings.forEach((warning) => console.error(chalk.yellow(`  - ${formatValidationIssue(warning)}`)));
+      }
+      printMarkdownImportHints(console.error);
       process.exit(1);
     }
 
@@ -488,7 +530,7 @@ export async function importTasks(filePath, options = {}) {
     if (warnings.length > 0 && !options.force) {
       spinner?.warn('Validation warnings');
       console.log(chalk.yellow('\nWarnings:'));
-      warnings.forEach((warning) => console.log(chalk.yellow(`  - ${warning}`)));
+      warnings.forEach((warning) => console.log(chalk.yellow(`  - ${formatValidationIssue(warning)}`)));
 
       if (!options.dryRun) {
         console.log(chalk.gray('\nUse --force to ignore warnings'));
@@ -698,8 +740,7 @@ export async function importTasks(filePath, options = {}) {
 
     if (error.message.includes('unexpected token')) {
       console.error(chalk.yellow('\nTip: Make sure your markdown file is properly formatted'));
-      console.error(chalk.gray('Example:'));
-      console.error(chalk.gray('  - [ ] Task title [P0] [tag1,tag2] [4h]'));
+      printMarkdownImportHints(console.error);
     }
 
     process.exit(1);

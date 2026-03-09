@@ -75,6 +75,7 @@ program
   .option('-e, --estimate <hours>', 'Advanced: estimated hours')
   .option('-a, --assignee <name>', 'Assignee name')
   .option('-b, --branch <branch>', 'Git branch name')
+  .option('--json', 'Output as JSON')
   .action(add);
 
 // Next command
@@ -314,6 +315,7 @@ program
 program
   .command('show <taskId>')
   .description('Show task details')
+  .option('--full', 'Include recent runtime/process/event history in JSON output')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')

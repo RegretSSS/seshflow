@@ -86,6 +86,8 @@ Use these boundaries as hard constraints, not inspiration.
 - Must keep dependency mutation and read contracts on the same orchestration path as CLI and Web.
 - Must define the managed Markdown sync boundary before any reverse-sync API is introduced.
 - Must keep CLI/Web parity through a shared orchestration path.
+- Must introduce a workspace index/resolver path before any multi-workspace web overview or switching UI is added.
+- Multi-workspace overview belongs to the API-first control plane, not the `v1.2.0` single-workspace dev server.
 
 ## 11. Testing and Release Boundary
 

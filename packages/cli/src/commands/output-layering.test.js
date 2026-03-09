@@ -68,6 +68,43 @@ describe('output layering', () => {
     expect(payload.project).toBeUndefined();
   });
 
+  test('show json is summary by default and exposes recent runtime events only with --full', async () => {
+    const { workspacePath, manager } = await createWorkspace();
+    const task = manager.createTask({
+      title: 'Show Target',
+      description: 'Detailed task',
+      priority: 'P0',
+      status: 'todo',
+    });
+    manager.startSession(task.id);
+    manager.recordRuntime(task.id, {
+      command: 'pnpm test',
+      outputRoot: 'packages/cli/coverage',
+    });
+    manager.appendRuntimeEvent({
+      taskId: task.id,
+      type: 'transition.execution',
+      action: 'start',
+      status: 'success',
+    });
+    await manager.saveData();
+
+    const summaryResult = runCLI(workspacePath, ['show', task.id, '--json']);
+    expect(summaryResult.status).toBe(0);
+    const summaryPayload = JSON.parse(summaryResult.stdout);
+
+    expect(summaryPayload.detailLevel).toBe('summary');
+    expect(summaryPayload.runtimeEventSummary.recordCount).toBeGreaterThan(0);
+    expect(summaryPayload.recentRuntimeEvents).toBeUndefined();
+
+    const fullResult = runCLI(workspacePath, ['show', task.id, '--json', '--full']);
+    expect(fullResult.status).toBe(0);
+    const fullPayload = JSON.parse(fullResult.stdout);
+
+    expect(fullPayload.detailLevel).toBe('full');
+    expect(fullPayload.recentRuntimeEvents).toHaveLength(1);
+  });
+
   test('storage throttles repeated workspace hints within the cooldown window', async () => {
     const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), 'seshflow-hints-'));
     const storage = new Storage(workspacePath);

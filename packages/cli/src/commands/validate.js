@@ -10,6 +10,34 @@ const TAG_PREFIX_RE = /^(\u6807\u7b7e|tags?)\s*[:\uff1a]\s*/i;
 const PRIORITY_PREFIX_RE = /^(\u4f18\u5148\u7ea7|priority)\s*[:\uff1a]\s*/i;
 const ESTIMATE_PREFIX_RE = /^(\u9884\u4f30|estimate)\s*[:\uff1a]\s*/i;
 
+function createIssue(message, line = null, suggestion = null) {
+  return { message, line, suggestion };
+}
+
+function formatIssue(issue) {
+  const linePrefix = issue.line ? `Line ${issue.line}: ` : '';
+  const suggestion = issue.suggestion ? ` | fix: ${issue.suggestion}` : '';
+  return `${linePrefix}${issue.message}${suggestion}`;
+}
+
+function printIssues(errors, warnings) {
+  console.error(chalk.red('\nErrors:'));
+  errors.forEach(issue => console.error(chalk.red(`  - ${formatIssue(issue)}`)));
+
+  if (warnings.length > 0) {
+    console.error(chalk.yellow('\nWarnings:'));
+    warnings.forEach(issue => console.error(chalk.yellow(`  - ${formatIssue(issue)}`)));
+  }
+}
+
+function printFormatHints() {
+  console.error(chalk.blue('\nAccepted task patterns:'));
+  console.error(chalk.gray('  - [ ] Task title [P1] [id:task_example] [dependency:task_other]'));
+  console.error(chalk.gray('    priority: P1'));
+  console.error(chalk.gray('    estimate: 2h'));
+  console.error(chalk.gray('    depends: task_other'));
+}
+
 function parseInlineTokens(text) {
   const result = {
     hasPriority: false,
@@ -106,7 +134,7 @@ export async function validateMarkdown(filePath) {
         if (/^P[0-3]$/i.test(value)) {
           currentTask.hasPriority = true;
         } else {
-          warnings.push(`Line ${i + 1}: unrecognized priority value "${value}"`);
+          warnings.push(createIssue(`unrecognized priority value "${value}"`, i + 1, 'use P0, P1, P2, or P3'));
         }
         continue;
       }
@@ -115,9 +143,9 @@ export async function validateMarkdown(filePath) {
         const value = normalized.replace(ESTIMATE_PREFIX_RE, '').trim();
         const hoursMatch = value.match(/^-?\d+(\.\d+)?h?$/i);
         if (!hoursMatch) {
-          errors.push(`Line ${i + 1}: invalid estimate value "${value}"`);
+          errors.push(createIssue(`invalid estimate value "${value}"`, i + 1, 'use number or number+h, for example 2 or 2h'));
         } else if (parseFloat(value) < 0) {
-          errors.push(`Line ${i + 1}: estimate cannot be negative`);
+          errors.push(createIssue('estimate cannot be negative', i + 1));
         } else {
           currentTask.hasEstimate = true;
         }
@@ -146,25 +174,25 @@ export async function validateMarkdown(filePath) {
     }
 
     if (tasks.length === 0) {
-      errors.push('No task lines found');
+      errors.push(createIssue('no task lines found', null, 'start each task with "- [ ] Task title [P1]"'));
     }
 
     const seenTaskIds = new Set();
     tasks.forEach(task => {
       if (!task.title) {
-        errors.push(`Line ${task.lineNo}: missing task title`);
+        errors.push(createIssue('missing task title', task.lineNo, 'add text after "- [ ]"'));
       }
       if (task.taskId && !/^task_[a-z0-9_]+$/i.test(task.taskId)) {
-        errors.push(`Line ${task.lineNo}: invalid task id "${task.taskId}"`);
+        errors.push(createIssue(`invalid task id "${task.taskId}"`, task.lineNo, 'use ids like task_example or task_login_api'));
       }
       if (task.taskId && seenTaskIds.has(task.taskId)) {
-        errors.push(`Line ${task.lineNo}: duplicate task id "${task.taskId}"`);
+        errors.push(createIssue(`duplicate task id "${task.taskId}"`, task.lineNo, 'keep each [id:task_xxx] unique within the file'));
       }
       if (task.taskId) {
         seenTaskIds.add(task.taskId);
       }
       if (!task.hasPriority) {
-        warnings.push(`Line ${task.lineNo}: missing priority [P0-P3]`);
+        warnings.push(createIssue('missing priority [P0-P3]', task.lineNo, 'append [P0], [P1], [P2], or [P3] to the task line'));
       }
     });
 
@@ -178,19 +206,15 @@ export async function validateMarkdown(filePath) {
         const byTitle = taskTitles.has(dep);
         const byTaskId = /^task_[a-z0-9_]+$/i.test(dep);
         if (!byIndex && !byTitle && !byTaskId) {
-          warnings.push(`Line ${task.lineNo}: unresolved dependency "${dep}"`);
+          warnings.push(createIssue(`unresolved dependency "${dep}"`, task.lineNo, 'reference a task number, title, or stable id like task_example'));
         }
       });
     });
 
     if (errors.length > 0) {
       spinner.fail('Validation failed');
-      console.error(chalk.red('\nErrors:'));
-      errors.forEach(error => console.error(chalk.red(`  - ${error}`)));
-      if (warnings.length > 0) {
-        console.error(chalk.yellow('\nWarnings:'));
-        warnings.forEach(warning => console.error(chalk.yellow(`  - ${warning}`)));
-      }
+      printIssues(errors, warnings);
+      printFormatHints();
       process.exit(1);
     }
 
@@ -198,7 +222,7 @@ export async function validateMarkdown(filePath) {
     console.log(chalk.green(`\nTasks found: ${tasks.length}`));
     if (warnings.length > 0) {
       console.log(chalk.yellow(`Warnings: ${warnings.length}`));
-      warnings.forEach(warning => console.log(chalk.yellow(`  - ${warning}`)));
+      warnings.forEach(warning => console.log(chalk.yellow(`  - ${formatIssue(warning)}`)));
     } else {
       console.log(chalk.green('Warnings: 0'));
     }
