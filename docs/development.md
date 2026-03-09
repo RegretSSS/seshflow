@@ -13,6 +13,7 @@ Use these boundaries as hard constraints, not inspiration.
 - Seshflow is not a generic Kanban product.
 - Seshflow is a cross-session task sequencer and runtime control layer for AI-assisted development.
 - Web capability is the visible control plane of Seshflow runtime, not a separate product.
+- Seshflow is the development kernel, not the future Agent application.
 
 ## 2. Core Architecture Boundary
 
@@ -32,6 +33,7 @@ Use these boundaries as hard constraints, not inspiration.
 - No custom mode DSL in `v1.3.0`.
 - No automatic bidirectional Markdown/JSON sync in `v1.2.0`.
 - No free-form Markdown patch reconciliation engine in `v1.2.0` or `v1.3.0`.
+- No model routing, prompt orchestration, autonomous agent loop management, or cross-tool conversation control inside Seshflow.
 
 ## 4. Planning Source-of-Truth Boundary
 
@@ -80,19 +82,45 @@ Use these boundaries as hard constraints, not inspiration.
 - Must define retention and truncation policy.
 - Web log view must read persisted events, not inferred UI state.
 
-## 10. API Boundary (`v1.3.0`)
+## 10. API-first Boundary (`v1.3.0`)
 
-- Must include task, hook, and mode contracts, versioning policy, resolver, and runtime switching.
-- Must keep dependency mutation and read contracts on the same orchestration path as CLI and Web.
-- Must define the managed Markdown sync boundary before any reverse-sync API is introduced.
-- Must keep CLI/Web parity through a shared orchestration path.
-- Must introduce a workspace index/resolver path before any multi-workspace web overview or switching UI is added.
-- Multi-workspace overview belongs to the API-first control plane, not the `v1.2.0` single-workspace dev server.
+- `API-first` in Seshflow means a contract-first development mode, not merely an HTTP service layer.
+- Entry shape:
+  - `seshflow init apifirst`
+- Purpose:
+  - large tasks must be organized around explicit API / RPC contracts before parallel implementation starts
+  - AI should recover the signed contract first, not rediscover protocol details from scattered code
+- Required contract objects:
+  - API / RPC name
+  - version
+  - owner task(s)
+  - producer/consumer or caller/callee mapping
+  - request/response schema or message schema
+  - compatibility notes and open questions
+- Required behavior in this mode:
+  - tasks can bind to one or more API / RPC contracts
+  - planning files can bind implementation tasks to the contract they serve
+  - `ncfr`, `next`, and `show` must surface the relevant contract before broad repo context
+  - when tasks or plans drift from a bound contract, Seshflow must raise an explicit reminder instead of making AI guess
+- Required implementation support:
+  - contract storage and identity rules
+  - task-to-contract binding
+  - contract-aware context resolution
+  - conflict/drift reminder rules
+- Supporting API/Web work is allowed only insofar as it serves this development mode.
+- Multi-workspace overview is a secondary control-plane concern, not the definition of `API-first`.
+
+## 10a. Product Stop Line
+
+- Seshflow should stop major scope growth once task/hook/mode/contract seams are stable enough for external Agent code to compose against them.
+- After that point, Seshflow work should bias toward optimization, hardening, compatibility, and carefully bounded extension points.
+- The future Agent project should consume Seshflow through RPC/API/hooks rather than forcing conversation policy or autonomous loop logic into the Seshflow core.
 
 ## 11. Testing and Release Boundary
 
 - Required: transition contract, hook integration, timeout/retry, persistence adapter, mode resolver, CLI/Web parity tests.
 - Required for planning/domain work: dependency validation tests, cycle detection tests, Markdown identity/update contract tests.
+- Required for `API-first`: contract binding tests, conflict reminder tests, context-priority tests, and mode-init tests.
 - Release gates: `pnpm lint`, `pnpm test`, `pnpm build`.
 
 ## 12. Engineering Red Lines

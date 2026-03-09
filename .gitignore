@@ -65,6 +65,7 @@ BUGFIX*.md
 FIXES*.md
 IMPLEMENTATION*.md
 IMPROVEMENT*.md
+docs/local/
 
 # Session files
 SESSION*.md

@@ -80,49 +80,61 @@
 - Scope: regression suites, release gates, docs sync.
 - Done: `pnpm lint`, `pnpm test`, and `pnpm build` pass.
 
-## v1.3.0 - API-first Development Modes
+## v1.3.0 - API-first Contract-first Development Mode
 
-### 1.3.0-00 Dependency and Planning Contracts on Shared API Path
-
-- Priority: P0
-- Scope: expose dependency mutation/read contracts and managed Markdown sync orchestration through the same API-first path as CLI/Web.
-- Done: dependency and planning orchestration no longer depend on CLI-only code paths.
-
-### 1.3.0-01 API Contract First (Task/Hook/Mode)
+### 1.3.0-00 `init apifirst` Mode Bootstrap
 
 - Priority: P0
-- Scope: orchestration contracts and versioning policy.
-- Done: contract conformance tests are in place.
+- Scope: add `seshflow init apifirst` and create the planning/contract scaffolding required for contract-first delivery.
+- Done: a new workspace can explicitly opt into API-first mode from initialization instead of relying on ad-hoc conventions.
 
-### 1.3.0-02 Mode Resolver and Runtime Switching
-
-- Priority: P0
-- Scope: `default/api/custom` resolver with validation and explicit fallback.
-- Done: unknown mode fails safely; default remains stable.
-
-### 1.3.0-03 API Orchestration Path for CLI/Web
+### 1.3.0-01 API / RPC Contract Model
 
 - Priority: P0
-- Scope: `list/start/done/edit` routed through mode-aware orchestration.
-- Done: behavior differences are intentional and documented.
+- Scope: define contract identity, versioning, request/response or message schema fields, ownership, and compatibility notes.
+- Done: contracts are first-class objects instead of prose scattered across markdown and code.
 
-### 1.3.0-03a Workspace Index and Multi-Workspace Control Plane
+### 1.3.0-02 Task-to-Contract Binding
+
+- Priority: P0
+- Scope: bind tasks, markdown planning items, and implementation work to one or more API / RPC contracts.
+- Done: Seshflow can answer which task serves which contract without repo-wide guesswork.
+
+### 1.3.0-03 Contract-first Context Resolution
+
+- Priority: P0
+- Scope: make `ncfr`, `next`, and `show` surface the active contract, related tasks, and unresolved protocol questions before broader repo context.
+- Done: AI receives protocol truth first when working inside API-first mode.
+
+### 1.3.0-04 Contract Drift and Conflict Reminders
+
+- Priority: P0
+- Scope: detect when task plans, bound files, or implementation notes diverge from the declared API / RPC contract and raise explicit reminders.
+- Done: AI is reminded of protocol drift instead of re-deriving or silently violating the contract.
+
+### 1.3.0-05 Dependency and Markdown Planning Alignment
 
 - Priority: P1
-- Scope: add a workspace registry/index, workspace discovery contract, and a web overview/switching path so the control plane can summarize multiple workspaces instead of binding one dev-server port to one local workspace snapshot.
-- Done: multi-workspace overview and workspace switching no longer depend on manually starting a separate web port per workspace.
+- Scope: align dependency management and managed Markdown planning with contract ownership and contract-linked task groups.
+- Done: dependency chains and planning updates stay anchored to the contract they implement.
 
-### 1.3.0-04 Custom Mode Definition and Validation
-
-- Priority: P1
-- Scope: validated custom-mode schema with safe subset and mode-level hook override.
-- Done: invalid configs are rejected with clear diagnostics.
-
-### 1.3.0-05 Migration Guide and Compatibility Tests
+### 1.3.0-06 Mode Resolver and Compatibility
 
 - Priority: P1
-- Scope: migration from `default` to `api`, plus compatibility matrix.
-- Done: migration steps are reproducible.
+- Scope: keep explicit mode resolution for `default` and `apifirst`, plus safe fallback and migration guidance.
+- Done: mode selection is explicit, documented, and testable.
+
+### 1.3.0-07 RPC/API/Hook Extension Surface
+
+- Priority: P1
+- Scope: reserve the RPC/API/hook seams that external Agent code will consume without pulling Agent-specific runtime policy into Seshflow.
+- Done: Agent integrations can bind to Seshflow through stable seams instead of patching the core.
+
+### 1.3.0-08 Workspace Index and Multi-Workspace Overview
+
+- Priority: P2
+- Scope: add a workspace registry/index and overview path for multiple workspaces.
+- Done: multi-workspace visibility exists without redefining what API-first means.
 
 ## v1.4.0 - Realtime + Visualization
 
@@ -143,3 +155,4 @@
 - Full bidirectional Markdown/JSON sync across arbitrary user edits.
 - Reverse-sync of runtime/session/process/artifact data back into free-form Markdown files.
 - Dependency graph visualization before dependency-management contracts are stable.
+- Agent-side model routing, prompt policy, autonomous loop logic, and general conversation orchestration inside Seshflow.

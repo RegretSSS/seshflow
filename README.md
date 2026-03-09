@@ -4,6 +4,12 @@ Runtime control plane for AI-assisted software development.
 
 Seshflow is not a generic project board. It keeps planning state, active-task context, runtime logs, process records, transition events, and recovery hints in one workspace so an AI can resume engineering work without re-deriving the entire repo state.
 
+## Status
+
+- `v1.2.0` is the current release line.
+- `v1.2.0` scope: execution core, managed planning import/update, runtime event capture, and a minimal runtime-backed web control plane.
+- `v1.3.0` is reserved for `apifirst`, meaning a contract-first development mode rather than a generic HTTP platform rewrite.
+
 ## Install
 
 ```bash
@@ -69,6 +75,15 @@ Key AI-facing commands:
 ## Web control plane
 
 The web package is a lightweight, read-only runtime surface over the same workspace data. It shows current focus, task summaries, runtime records, process summaries, and recent runtime events. State mutation remains CLI-first until the API mode is expanded.
+
+## Boundary
+
+Seshflow stops at the development kernel:
+
+- tasks, dependencies, runtime context, contracts, hooks, and modes
+- thin CLI/Web/RPC seams over the same domain rules
+
+Seshflow does not aim to become the full Agent product. Future Agent-specific concerns such as model routing, long-running autonomous loops, prompt policy, and cross-tool orchestration should live in the Agent project and integrate through Seshflow's RPC/API/hooks.
 
 ## Output modes
 
