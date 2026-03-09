@@ -4,6 +4,7 @@ import { isJSONMode, formatErrorResponse, formatSuccessResponse, formatWorkspace
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 import { loadTextUI } from '../utils/text-ui.js';
+import { resolveWorkspaceMode } from '../core/workspace-mode.js';
 
 function subtaskProgress(task) {
   const total = task.subtasks?.length || 0;
@@ -137,6 +138,7 @@ export async function show(taskId, options = {}) {
   try {
     const manager = new TaskManager();
     await manager.init();
+    const modeInfo = await resolveWorkspaceMode(manager.storage);
 
     const task = manager.getTask(taskId);
     if (!task) {
@@ -166,6 +168,7 @@ export async function show(taskId, options = {}) {
     if (jsonMode) {
       const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
       outputJSON(formatSuccessResponse({
+        mode: modeInfo.mode,
         detailLevel: includeFullJSON ? 'full' : 'summary',
         task: formatTaskJSON(task),
         subtasks: task.subtasks || [],

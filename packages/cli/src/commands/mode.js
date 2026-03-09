@@ -3,9 +3,11 @@ import ora from 'ora';
 import fs from 'fs-extra';
 import path from 'path';
 import { Storage } from '../core/storage.js';
+import { buildModeGuidance, resolveWorkspaceMode } from '../core/workspace-mode.js';
 import { formatErrorResponse, formatSuccessResponse, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
+import { VALID_WORKSPACE_MODES, WORKSPACE_MODES } from '../../../shared/constants/modes.js';
 
-const VALID_MODES = new Set(['default', 'apifirst']);
+const VALID_MODES = new Set(VALID_WORKSPACE_MODES);
 
 function getApiFirstContractReadme() {
   return `# API-first Contracts
@@ -98,22 +100,30 @@ export async function setMode(mode, options = {}) {
     config.mode = mode;
     await storage.writeConfigFile(config);
 
-    if (mode === 'apifirst') {
+    if (mode === WORKSPACE_MODES.APIFIRST) {
       await ensureApiFirstScaffold(storage);
     }
 
     spinner?.succeed('Workspace mode updated');
+    const modeInfo = await resolveWorkspaceMode(storage);
+    const guidance = buildModeGuidance(modeInfo);
 
     if (isJSONMode(options)) {
       const workspace = await formatWorkspaceJSON(storage);
       outputJSON(formatSuccessResponse({
         action: 'mode.set',
-        mode,
+        mode: modeInfo.mode,
+        requestedMode: modeInfo.requestedMode,
+        compatibility: modeInfo.compatibility,
+        guidance,
       }, workspace));
       return;
     }
 
-    console.log(`MODE | ${mode}`);
+    console.log(`MODE | ${modeInfo.mode}`);
+    if (guidance.note) {
+      console.log(chalk.gray(guidance.note));
+    }
   } catch (error) {
     spinner?.fail('Failed to update workspace mode');
     if (isJSONMode(options)) {
@@ -131,20 +141,34 @@ export async function showMode(options = {}) {
   try {
     const storage = new Storage();
     await storage.init();
-    const config = await storage.readConfigFile();
-    const mode = config.mode || 'default';
+    const modeInfo = await resolveWorkspaceMode(storage);
+    const guidance = buildModeGuidance(modeInfo);
     spinner?.succeed('Workspace mode loaded');
 
     if (isJSONMode(options)) {
       const workspace = await formatWorkspaceJSON(storage);
       outputJSON(formatSuccessResponse({
         action: 'mode.show',
-        mode,
+        mode: modeInfo.mode,
+        requestedMode: modeInfo.requestedMode,
+        fallbackMode: modeInfo.fallbackMode,
+        fallbackReason: modeInfo.fallbackReason,
+        compatibility: modeInfo.compatibility,
+        guidance,
       }, workspace));
       return;
     }
 
-    console.log(`MODE | ${mode}`);
+    console.log(`MODE | ${modeInfo.mode}`);
+    if (modeInfo.fallbackReason) {
+      console.log(chalk.yellow(`FALLBACK | ${modeInfo.fallbackReason}`));
+    }
+    if (guidance.note) {
+      console.log(chalk.gray(guidance.note));
+    }
+    if (guidance.recommendedCommand) {
+      console.log(chalk.gray(`Next: ${guidance.recommendedCommand}`));
+    }
   } catch (error) {
     spinner?.fail('Failed to load workspace mode');
     if (isJSONMode(options)) {

@@ -6,6 +6,7 @@ import { resolveOutputMode } from '../utils/output-mode.js';
 import { truncate } from '../utils/helpers.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 import { loadTextUI } from '../utils/text-ui.js';
+import { resolveWorkspaceMode } from '../core/workspace-mode.js';
 
 function collectStats(tasks) {
   return {
@@ -179,6 +180,7 @@ export async function newchatfirstround(options = {}) {
     await manager.init();
 
     const workspaceInfo = await manager.storage.getWorkspaceInfo();
+    const modeInfo = await resolveWorkspaceMode(manager.storage);
     const workspacePath = workspaceInfo.path;
     const projectName = workspaceInfo.name;
     const gitBranch = workspaceInfo.gitBranch;
@@ -245,6 +247,7 @@ export async function newchatfirstround(options = {}) {
       spinner?.stop();
       const responseData = {
         statistics: stats,
+        mode: modeInfo.mode,
         currentTask: currentTask ? formatTaskJSON(currentTask) : null,
         dependencies: dependencies.map(t => ({
           id: t.id,

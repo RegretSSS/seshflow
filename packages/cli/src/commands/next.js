@@ -5,6 +5,7 @@ import { truncate } from '../utils/helpers.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 import { loadTextUI } from '../utils/text-ui.js';
+import { resolveWorkspaceMode } from '../core/workspace-mode.js';
 
 function displayTask(task, chalk, showFull = false) {
   console.log(chalk.bold.cyan(`\n- ${task.title}`));
@@ -138,6 +139,7 @@ export async function next(options = {}) {
     const manager = new TaskManager();
     await manager.init();
     const transitions = new TaskTransitionService(manager);
+    const modeInfo = await resolveWorkspaceMode(manager.storage);
 
     if (jsonMode) {
       const currentTask = manager.getCurrentTask();
@@ -145,6 +147,7 @@ export async function next(options = {}) {
         spinner?.stop();
         const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
         outputJSON(formatSuccessResponse({
+          mode: modeInfo.mode,
           task: formatTaskJSON(currentTask),
           runtimeSummary: manager.getRuntimeSummary(currentTask),
           processSummary: manager.getProcessSummary(currentTask),
@@ -164,6 +167,7 @@ export async function next(options = {}) {
       if (!nextTask) {
         const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
         outputJSON(formatSuccessResponse({
+          mode: modeInfo.mode,
           task: null,
           message: 'No tasks to work on',
         }, workspaceJSON));
@@ -173,6 +177,7 @@ export async function next(options = {}) {
       const unmetDeps = manager.getUnmetDependencies(nextTask);
       const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
       outputJSON(formatSuccessResponse({
+        mode: modeInfo.mode,
         task: formatTaskJSON(nextTask),
         unmetDependencies: unmetDeps.map(d => ({
           id: d.id,
