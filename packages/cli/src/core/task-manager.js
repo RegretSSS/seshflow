@@ -264,6 +264,25 @@ export class TaskManager {
     return task;
   }
 
+  async suspendCurrentTask(reason = 'Suspended') {
+    if (!this.data?.currentSession) {
+      throw new Error('No active session');
+    }
+
+    const task = this.getTask(this.data.currentSession.taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${this.data.currentSession.taskId}`);
+    }
+
+    await this.endSession(reason);
+    task.status = 'todo';
+    task.updatedAt = toISOString();
+    task.suspendedAt = toISOString();
+    task.suspendedReason = reason;
+    this.updateWorkspaceInfo();
+    return task;
+  }
+
   /**
    * Complete a task
    */

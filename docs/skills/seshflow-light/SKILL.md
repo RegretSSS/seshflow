@@ -56,9 +56,14 @@ After `ncfr --json`, suggest one next step based on detected state:
 
 Only reveal commands that match the immediate user intent:
 
-- Execution: `next`, `start`, `done`
+- Execution: `next`, `start`, `done`, `suspend`
 - Inspection: `show`, `list`, `query`, `stats`, `deps`
 - Data flow: `import`, `export`, `validate`
+
+When switching away from an active task, prefer explicit intent:
+
+- normal pause: `seshflow suspend`
+- direct task handoff: `seshflow start <taskId> --switch`
 
 Prefer `--json` for machine steps.
 

@@ -20,6 +20,7 @@ import { exportTasks } from '../src/commands/export.js';
 import { validateMarkdown } from '../src/commands/validate.js';
 import { start } from '../src/commands/start.js';
 import { skip } from '../src/commands/skip.js';
+import { suspend } from '../src/commands/suspend.js';
 import { spawnSync } from 'node:child_process';
 
 const program = new Command();
@@ -110,6 +111,7 @@ program
   .command('start <taskId>')
   .description('Start a specific task (set in-progress)')
   .option('-f, --force', 'Force start even with active session or unmet dependencies')
+  .option('-s, --switch', 'Suspend the current task first if another session is active')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .action(start);
@@ -123,6 +125,16 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .action(skip);
+
+// Suspend current task
+program
+  .command('suspend')
+  .description('Suspend current task and return it to todo')
+  .option('-r, --reason <text>', 'Reason for suspending')
+  .option('-n, --note <text>', 'Alias for --reason')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
+  .action(suspend);
 
 // Import command
 program

@@ -37,16 +37,20 @@ export async function start(taskId, options = {}) {
     }
 
     if (currentTask && currentTask.id !== task.id) {
-      if (!options.force) {
+      if (!options.force && !options.switch) {
         spinner?.fail('Another session is active');
         console.error(chalk.yellow(`\nSession conflict: active task exists (${currentTask.id} | ${currentTask.title})`));
-        console.error(chalk.gray('Use --force to switch task, or run seshflow done / seshflow skip first.'));
+        console.error(chalk.gray('Use --switch to suspend the current task and continue here, or run seshflow suspend / done first.'));
         process.exit(1);
       }
 
-      await manager.endSession('Switched by start --force');
-      if (currentTask.status === 'in-progress') {
-        manager.updateTask(currentTask.id, { status: 'backlog' });
+      if (options.switch) {
+        await manager.suspendCurrentTask(`Switched to ${task.id}`);
+      } else {
+        await manager.endSession('Switched by start --force');
+        if (currentTask.status === 'in-progress') {
+          manager.updateTask(currentTask.id, { status: 'backlog' });
+        }
       }
     }
 
@@ -72,13 +76,17 @@ export async function start(taskId, options = {}) {
 
     if (compactMode) {
       const subInfo = subTotal ? ` | subtasks=${subDone}/${subTotal}` : '';
-      console.log(`STARTED | ${task.id} | in-progress | ${task.priority} | ${task.title}${subInfo}`);
+      const switchInfo = options.switch ? ' | switched=true' : '';
+      console.log(`STARTED | ${task.id} | in-progress | ${task.priority} | ${task.title}${subInfo}${switchInfo}`);
       return;
     }
 
     console.log(chalk.green(`\nStarted: ${task.title}`));
     console.log(chalk.gray(`  ID: ${task.id}`));
     console.log(chalk.gray(`  Priority: ${task.priority}`));
+    if (options.switch) {
+      console.log(chalk.gray('  Previous active task was suspended.'));
+    }
     if (subTotal) {
       console.log(chalk.gray(`  Subtasks: ${subDone}/${subTotal}`));
     }
