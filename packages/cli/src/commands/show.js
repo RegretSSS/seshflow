@@ -116,7 +116,7 @@ export async function show(taskId, options = {}) {
       process.exit(1);
     }
 
-    const blockers = (task.blockedBy || [])
+    const blockers = manager.getBlockedBy(task)
       .map(id => manager.getTask(id))
       .filter(Boolean);
 

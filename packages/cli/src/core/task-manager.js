@@ -5,7 +5,6 @@ import {
   generateSessionId,
   toISOString,
   isValidPriority,
-  isValidStatus,
   sanitizeBranchName
 } from '../utils/helpers.js';
 
@@ -33,6 +32,7 @@ export class TaskManager {
    */
   async loadData() {
     this.data = await this.storage.readTasksFile();
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return this.data;
   }
@@ -91,10 +91,8 @@ export class TaskManager {
       }
     };
 
-    // Update blockedBy based on dependencies
-    task.blockedBy = this.calculateBlockedBy(task.dependencies);
-
     this.data.tasks.push(task);
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return task;
   }
@@ -112,11 +110,6 @@ export class TaskManager {
     Object.assign(task, updates);
     task.updatedAt = toISOString();
 
-    // Update blockedBy if dependencies changed
-    if (updates.dependencies !== undefined) {
-      task.blockedBy = this.calculateBlockedBy(updates.dependencies);
-    }
-
     // Auto-set timestamps based on status
     if (updates.status === 'in-progress' && !task.startedAt) {
       task.startedAt = toISOString();
@@ -125,6 +118,7 @@ export class TaskManager {
       task.completedAt = toISOString();
     }
 
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return task;
   }
@@ -141,10 +135,10 @@ export class TaskManager {
     // Remove from other tasks' dependencies
     this.data.tasks.forEach(task => {
       task.dependencies = task.dependencies.filter(id => id !== taskId);
-      task.blockedBy = task.blockedBy.filter(id => id !== taskId);
     });
 
     this.data.tasks.splice(index, 1);
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return true;
   }
@@ -234,6 +228,7 @@ export class TaskManager {
     };
 
     this.data.metadata.lastSession = toISOString();
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return task;
   }
@@ -260,6 +255,7 @@ export class TaskManager {
 
     // Clear current session
     this.data.currentSession = null;
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return task;
   }
@@ -279,6 +275,7 @@ export class TaskManager {
     task.updatedAt = toISOString();
     task.suspendedAt = toISOString();
     task.suspendedReason = reason;
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return task;
   }
@@ -311,6 +308,7 @@ export class TaskManager {
       }
     }
 
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return task;
   }
@@ -390,12 +388,22 @@ export class TaskManager {
   }
 
   /**
-   * Calculate which tasks are blocking this task
+   * Get current blockers for a task
    */
-  calculateBlockedBy(dependencies) {
-    return dependencies.filter(depId => {
-      const dep = this.getTask(depId);
-      return dep && dep.status !== 'done';
+  getBlockedBy(task) {
+    return this.getUnmetDependencies(task).map(dep => dep.id);
+  }
+
+  /**
+   * Refresh derived fields that should never become stale on disk
+   */
+  refreshDerivedState() {
+    if (!Array.isArray(this.data?.tasks)) {
+      return;
+    }
+
+    this.data.tasks.forEach(task => {
+      task.blockedBy = this.getBlockedBy(task);
     });
   }
 

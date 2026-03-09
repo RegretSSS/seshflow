@@ -24,11 +24,28 @@ export function formatTaskJSON(task) {
   };
 }
 
+function pickWorkspaceFields(info, fields) {
+  return fields.reduce((result, field) => {
+    if (info[field] !== undefined) {
+      result[field] = info[field];
+    }
+    return result;
+  }, {});
+}
+
 /**
  * Format workspace info as JSON
  */
-export async function formatWorkspaceJSON(storage, taskCount = 0) {
-  return storage.getWorkspaceInfo(taskCount);
+export async function formatWorkspaceJSON(storage, taskCount = 0, options = {}) {
+  const info = await storage.getWorkspaceInfo(taskCount);
+  const baseFields = ['path', 'name', 'gitBranch', 'totalTasks', 'source', 'sourcePath'];
+  const fullFields = ['requestedPath', 'seshflowDir', 'tasksFile', 'configPath'];
+
+  if (options.full) {
+    return pickWorkspaceFields(info, [...baseFields, ...fullFields]);
+  }
+
+  return pickWorkspaceFields(info, baseFields);
 }
 
 /**

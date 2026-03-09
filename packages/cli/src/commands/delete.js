@@ -21,7 +21,7 @@ export async function deleteTask(taskId, options = {}) {
     spinner.stop();
 
     const dependentTasks = manager.getTasks().filter(candidate => candidate.dependencies.includes(taskId));
-    const blockedByTasks = task.blockedBy || [];
+    const blockedByTasks = manager.getBlockedBy(task);
 
     if (!options.force) {
       let hasWarnings = false;

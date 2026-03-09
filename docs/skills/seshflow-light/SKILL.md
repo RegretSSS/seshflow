@@ -29,6 +29,7 @@ Notes:
 
 - Both commands may be run from a nested subdirectory; `seshflow` resolves the active workspace upward.
 - Read the returned `workspace.source` / `project.source` metadata when repository roots may have moved or when multiple workspaces are possible.
+- `seshflow ncfr --json` is intentionally minimal by default; only use `seshflow ncfr --json --full` when the task actually needs dependency snapshots, recent completions, or extra path metadata.
 
 Do not repeatedly run `init` or `ncfr` unless user asks to refresh context explicitly.
 

@@ -153,6 +153,7 @@ program
   .alias('context')
   .alias('resume')
   .description('Show project context for new AI chat session')
+  .option('--full', 'Include extended context (dependents, blocked snapshot, recent completions, paths)')
   .option('--show-paths', 'Show full file paths')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')

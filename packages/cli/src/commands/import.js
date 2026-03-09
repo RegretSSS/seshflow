@@ -2,7 +2,6 @@ import chalk from 'chalk';
 import ora from 'ora';
 import fs from 'fs-extra';
 import { TaskManager } from '../core/task-manager.js';
-import { Storage } from '../core/storage.js';
 import crypto from 'crypto';
 
 const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
@@ -396,7 +395,6 @@ function resolveDependencies(createdTasks, knownTasks = []) {
         .filter(Boolean);
 
       task.dependencies = [...new Set(resolvedDeps)];
-      task.blockedBy = task.dependencies;
     }
   });
 }
@@ -572,7 +570,6 @@ export async function importTasks(filePath, options = {}) {
     for (const task of createdTasks) {
       await manager.updateTask(task.id, {
         dependencies: task.dependencies,
-        blockedBy: task.blockedBy,
         subtasks: task.subtasks
       });
     }

@@ -41,6 +41,7 @@ function printCompactContext(data) {
     currentTask,
     nextReadyTask,
     dependencies,
+    fullMode,
     dependents,
     blockedTasks,
     recentlyCompleted,
@@ -63,25 +64,25 @@ function printCompactContext(data) {
     console.log(`DEPS | ${dependencies.map(t => taskRef(t, false)).join(',')}`);
   }
 
-  if (dependents.length > 0) {
+  if (fullMode && dependents.length > 0) {
     console.log(`DEPENDENTS | ${dependents.map(t => taskRef(t, false)).join(',')}`);
   }
 
-  if (blockedTasks.length > 0) {
+  if (fullMode && blockedTasks.length > 0) {
     console.log(`BLOCKED_TOP | ${blockedTasks.map(item => taskRef(item.task)).join(',')}`);
   }
 
-  if (recentlyCompleted.length > 0) {
+  if (fullMode && recentlyCompleted.length > 0) {
     console.log(`RECENT_DONE | ${recentlyCompleted.map(t => taskRef(t, false)).join(',')}`);
   }
 
-  if (keyFiles.length > 0) {
+  if (fullMode && keyFiles.length > 0) {
     console.log(`KEY_FILES | ${keyFiles.join(',')}`);
   }
 }
 
 function printPrettyContext(data, options = {}) {
-  const { project, stats, currentTask, nextReadyTask, dependencies, dependents, keyFiles, blockedTasks, recentlyCompleted } = data;
+  const { project, stats, currentTask, nextReadyTask, dependencies, dependents, keyFiles, blockedTasks, recentlyCompleted, fullMode } = data;
 
   console.log(chalk.bold.cyan('\nSeshflow Project Context\n'));
   console.log(chalk.bold('Project'));
@@ -123,14 +124,14 @@ function printPrettyContext(data, options = {}) {
     });
   }
 
-  if (dependents.length > 0) {
+  if (fullMode && dependents.length > 0) {
     console.log(chalk.bold('\nDependent Tasks'));
     dependents.forEach(dep => {
       console.log(chalk.gray(`  - ${dep.id} | ${dep.status} | ${dep.title}`));
     });
   }
 
-  if (blockedTasks.length > 0) {
+  if (fullMode && blockedTasks.length > 0) {
     console.log(chalk.bold('\nBlocked Snapshot'));
     blockedTasks.forEach(item => {
       const blockers = item.blockers.length > 0
@@ -141,14 +142,14 @@ function printPrettyContext(data, options = {}) {
     });
   }
 
-  if (recentlyCompleted.length > 0) {
+  if (fullMode && recentlyCompleted.length > 0) {
     console.log(chalk.bold('\nRecently Completed'));
     recentlyCompleted.forEach(item => {
       console.log(chalk.gray(`  - ${item.id} | ${item.priority} | ${item.title}`));
     });
   }
 
-  if (keyFiles.length > 0) {
+  if (fullMode && keyFiles.length > 0) {
     console.log(chalk.bold('\nKey Files'));
     keyFiles.forEach(file => {
       const displayFile = options.showPaths ? path.join(project.path, file) : file;
@@ -166,6 +167,7 @@ function printPrettyContext(data, options = {}) {
 export async function newchatfirstround(options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
+  const fullMode = options.full === true;
   const spinner = (!compactMode && process.stdout.isTTY) ? ora('Loading project context').start() : null;
 
   try {
@@ -208,16 +210,21 @@ export async function newchatfirstround(options = {}) {
     const keyFiles = ['README.md', 'docs.md', 'QUICKSTART.md', 'ARCHITECTURE.md', 'API.md']
       .filter(file => existsSync(path.join(workspacePath, file)));
 
+    const project = {
+      name: projectName,
+      path: workspacePath,
+      gitBranch: gitBranch || null,
+      source: workspaceInfo.source,
+      sourcePath: workspaceInfo.sourcePath,
+    };
+
+    if (fullMode) {
+      project.requestedPath = workspaceInfo.requestedPath;
+      project.configPath = workspaceInfo.configPath;
+    }
+
     const contextData = {
-      project: {
-        name: projectName,
-        path: workspacePath,
-        gitBranch: gitBranch || null,
-        source: workspaceInfo.source,
-        sourcePath: workspaceInfo.sourcePath,
-        requestedPath: workspaceInfo.requestedPath,
-        configPath: workspaceInfo.configPath,
-      },
+      project,
       stats,
       task,
       currentTask,
@@ -227,12 +234,12 @@ export async function newchatfirstround(options = {}) {
       blockedTasks,
       recentlyCompleted,
       keyFiles,
+      fullMode,
     };
 
     if (isJSONMode(options)) {
       spinner?.stop();
-      const workspaceJSON = await formatWorkspaceJSON(manager.storage, allTasks.length);
-      outputJSON(formatSuccessResponse({
+      const responseData = {
         project: contextData.project,
         statistics: stats,
         currentTask: task ? formatTaskJSON(task) : null,
@@ -242,14 +249,17 @@ export async function newchatfirstround(options = {}) {
           status: t.status,
           priority: t.priority,
         })),
-        dependents: dependents.map(t => ({
+        nextReadyTask: nextTask ? formatTaskJSON(nextTask) : null,
+      };
+
+      if (fullMode) {
+        responseData.dependents = dependents.map(t => ({
           id: t.id,
           title: t.title,
           status: t.status,
           priority: t.priority,
-        })),
-        nextReadyTask: nextTask ? formatTaskJSON(nextTask) : null,
-        blockedTasks: blockedTasks.map(item => ({
+        }));
+        responseData.blockedTasks = blockedTasks.map(item => ({
           task: formatTaskJSON(item.task),
           blockers: item.blockers.map(blocker => ({
             id: blocker.id,
@@ -257,15 +267,18 @@ export async function newchatfirstround(options = {}) {
             status: blocker.status,
             priority: blocker.priority,
           })),
-        })),
-        recentlyCompleted: recentlyCompleted.map(t => ({
+        }));
+        responseData.recentlyCompleted = recentlyCompleted.map(t => ({
           id: t.id,
           title: t.title,
           priority: t.priority,
           completedAt: t.completedAt || null,
-        })),
-        keyFiles,
-      }, workspaceJSON));
+        }));
+        responseData.keyFiles = keyFiles;
+      }
+
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, allTasks.length, { full: fullMode });
+      outputJSON(formatSuccessResponse(responseData, workspaceJSON));
       return;
     }
 
