@@ -1,6 +1,6 @@
 ---
 name: seshflow-light
-description: Lightweight progressive-disclosure workflow for repositories using seshflow. Use when an AI assistant should start each new conversation with minimal context cost by running seshflow init (if needed) and seshflow ncfr first, then reveal only one intent-matched next command at a time.
+description: Lightweight progressive-disclosure workflow for repositories using seshflow. Use when an AI assistant should start each new conversation with minimal context cost by running seshflow init (or seshflow init apifirst when appropriate) and seshflow ncfr first, then reveal only one intent-matched next command at a time.
 ---
 
 # seshflow-light
@@ -14,6 +14,10 @@ Expose only two commands up front:
 1. `seshflow init`
 2. `seshflow ncfr`
 
+When the repository clearly needs contract-first work, the allowed initialization variant is:
+
+- `seshflow init apifirst`
+
 Everything else must be introduced only when needed by intent.
 
 ## One-time bootstrap per conversation
@@ -22,6 +26,7 @@ Run these at most once per new conversation:
 
 1. Initialize workspace if missing:
    - `seshflow init`
+   - for large API/RPC projects, use `seshflow init apifirst`
 2. Load context snapshot:
    - `seshflow ncfr`
 
@@ -30,9 +35,11 @@ Notes:
 - Both commands may be run from a nested subdirectory; `seshflow` resolves the active workspace upward.
 - Read the returned `workspace.source` metadata when repository roots may have moved or when multiple workspaces are possible.
 - `seshflow` now defaults to structured JSON for AI-facing commands. Use `--pretty` or `--compact` only when a human-readable view is actually needed.
-- When the workspace is explicitly in `apifirst` mode, prefer `seshflow contracts add`, `seshflow contracts check`, and contract-linked Markdown planning before broad implementation work.
+- When the workspace is explicitly in `apifirst` mode, treat contract truth as primary. Prefer `seshflow contracts add`, `seshflow contracts check`, and contract-linked Markdown planning before broad implementation work.
 - `seshflow ncfr` is intentionally minimal by default; only use `seshflow ncfr --full` when the task actually needs dependency snapshots, recent completions, or extra path metadata.
 - In `ncfr`, `currentTask` is only non-null when a real active session exists. Otherwise, use `nextReadyTask`.
+- In `apifirst`, read `contextPriority`, `currentContract`, `contractReminderSummary`, and `openContractQuestions` before broader repo context.
+- `workspaces list` is now summary-first by default. Only use `seshflow workspaces list --full` when a multi-workspace investigation truly needs every registered path.
 
 Do not repeatedly run `init` or `ncfr` unless user asks to refresh context explicitly.
 
@@ -58,6 +65,10 @@ After `ncfr`, suggest one next step based on detected state:
   - suggest `seshflow show <taskId>` or continue coding directly
 - If there is no active session and ready tasks exist:
   - suggest `seshflow next`
+- If the workspace is in `apifirst` mode and no contracts exist yet:
+  - suggest authoring a starter contract file under `.seshflow/contracts/` and then `seshflow contracts add <file>`
+- If the workspace is in `apifirst` mode and reminders exist:
+  - suggest `seshflow contracts check`
 - If top candidate is blocked:
   - suggest `seshflow deps <taskId>`
 
@@ -70,6 +81,8 @@ Only reveal commands that match the immediate user intent:
 - Background processes: `process add`, `process list`
 - Announcements: `announce progress`
 - API-first contracts: `contracts add`, `contracts list`, `contracts show`, `contracts check`, `mode show`, `mode set`
+- Agent/RPC seams: `rpc shell`
+- Multi-workspace overview: `workspaces current`, `workspaces list`
 - Inspection: `show`, `list`, `query`, `stats`, `deps`
 - Data flow: `import`, `export`, `validate`
 
@@ -96,6 +109,12 @@ Use stable task ids in Markdown (`[id:task_xxx]`) and prefer dependency ids (`[d
 To revise a plan, edit the same Markdown file and run `seshflow import <file> --update`.
 Do not assume arbitrary bidirectional Markdown/JSON sync exists; runtime state remains in JSON.
 
+In `apifirst`, managed Markdown should also preserve contract grouping:
+
+- use `## Contract: <contractId>` to scope grouped tasks
+- keep `[contracts:<contractId>]` explicit when a task crosses groups
+- do not clear an existing `contractRole` unless the plan explicitly changes it
+
 When switching away from an active task, prefer explicit intent:
 
 - normal pause: `seshflow suspend`
@@ -118,6 +137,13 @@ When a progress checkpoint should be made explicit for downstream recovery or no
 
 Transition-triggered hooks now write persisted runtime events. Treat blocking `before_*` hook failures as authoritative and inspect `show <taskId> --full` for `recentRuntimeEvents` when a transition fails unexpectedly.
 
+Hook-aware and Agent-aware guidance:
+
+- `hook` results are not all equal; treat `guard` as blocking authority, `advisory` as warning, and `enrichment` as optional context
+- `rpc shell` is a compact machine seam. Prefer it only when an external agent needs capability discovery or stable surface contracts
+- In `apifirst`, trust `contextPriority.primarySection` instead of guessing field importance from payload order
+- Avoid expanding low-value surfaces (`show --full`, `workspaces list --full`) unless the next action explicitly depends on them
+
 When the lightweight web control plane is available, treat it as a read-only runtime surface backed by `.seshflow/tasks.json`:
 
 - use it to inspect current focus, runtime summaries, process summaries, and recent runtime events
@@ -129,4 +155,6 @@ When the lightweight web control plane is available, treat it as a read-only run
 - Keep command set minimal in each turn.
 - Do not introduce process complexity unless requested.
 - Fix blockers first, then resume flow.
+- In `apifirst`, do not jump to broad repo inspection until contract context and reminders are understood.
+- Default to summary outputs for high-frequency commands; reach for `--full` only with a concrete reason.
 - This skill is an execution guide, not a full framework.
