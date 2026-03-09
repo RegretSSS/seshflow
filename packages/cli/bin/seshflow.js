@@ -20,8 +20,26 @@ import { exportTasks } from '../src/commands/export.js';
 import { validateMarkdown } from '../src/commands/validate.js';
 import { start } from '../src/commands/start.js';
 import { skip } from '../src/commands/skip.js';
+import { spawnSync } from 'node:child_process';
 
 const program = new Command();
+
+function configureWindowsUtf8() {
+  if (process.platform !== 'win32') {
+    return;
+  }
+
+  try {
+    spawnSync(process.env.comspec || 'cmd.exe', ['/d', '/s', '/c', 'chcp 65001 >NUL'], {
+      stdio: 'ignore',
+      windowsHide: true
+    });
+  } catch {
+    // Best-effort only. Seshflow still runs if the terminal cannot be adjusted.
+  }
+}
+
+configureWindowsUtf8();
 
 // CLI info
 const VERSION = '1.1.0';

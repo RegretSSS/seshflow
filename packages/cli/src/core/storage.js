@@ -98,7 +98,7 @@ export class Storage {
   async readTasksFile() {
     try {
       const content = await fs.readFile(this.tasksFile, 'utf-8');
-      return JSON.parse(content);
+      return this.normalizeTaskFile(JSON.parse(content));
     } catch (error) {
       throw new Error(`Failed to read tasks file: ${error.message}`);
     }
@@ -109,17 +109,19 @@ export class Storage {
    */
   async writeTasksFile(data) {
     try {
+      const normalized = this.normalizeTaskFile(data);
+
       // Update metadata timestamp
-      if (data.metadata) {
-        data.metadata.updatedAt = new Date().toISOString();
+      if (normalized.metadata) {
+        normalized.metadata.updatedAt = new Date().toISOString();
       }
 
       // Update statistics
-      if (data.tasks) {
-        data.statistics = this.calculateStatistics(data.tasks);
+      if (normalized.tasks) {
+        normalized.statistics = this.calculateStatistics(normalized.tasks);
       }
 
-      await fs.writeFile(this.tasksFile, JSON.stringify(data, null, 2), 'utf-8');
+      await fs.writeFile(this.tasksFile, JSON.stringify(normalized, null, 2), 'utf-8');
       return true;
     } catch (error) {
       throw new Error(`Failed to write tasks file: ${error.message}`);
@@ -227,6 +229,66 @@ export class Storage {
    */
   getSeshflowDir() {
     return this.seshflowDir;
+  }
+
+  normalizeTaskFile(data = {}) {
+    const normalized = {
+      ...DEFAULT_TASK_FILE,
+      ...data,
+      workspace: {
+        ...DEFAULT_TASK_FILE.workspace,
+        ...(data.workspace || {})
+      },
+      metadata: {
+        ...DEFAULT_TASK_FILE.metadata,
+        ...(data.metadata || {})
+      },
+      statistics: {
+        ...DEFAULT_TASK_FILE.statistics,
+        ...(data.statistics || {})
+      }
+    };
+
+    normalized.columns = this.normalizeColumns(data.columns);
+    normalized.workspace.path = normalized.workspace.path || this.getWorkspacePath();
+    normalized.workspace.name = normalized.workspace.name || path.basename(normalized.workspace.path) || '';
+    normalized.workspace.gitBranch = normalized.workspace.gitBranch || '';
+    normalized.tasks = Array.isArray(data.tasks) ? data.tasks : [];
+    normalized.currentSession = data.currentSession || null;
+
+    return normalized;
+  }
+
+  normalizeColumns(columns) {
+    const defaultsById = new Map(DEFAULT_TASK_FILE.columns.map(column => [column.id, column]));
+
+    if (!Array.isArray(columns) || columns.length === 0) {
+      return DEFAULT_TASK_FILE.columns.map(column => ({ ...column }));
+    }
+
+    const normalized = columns
+      .map(column => {
+        const fallback = defaultsById.get(column?.id);
+        if (!fallback) {
+          return null;
+        }
+
+        return {
+          ...fallback,
+          ...(column || {}),
+          name: fallback.name
+        };
+      })
+      .filter(Boolean);
+
+    const presentIds = new Set(normalized.map(column => column.id));
+    for (const column of DEFAULT_TASK_FILE.columns) {
+      if (!presentIds.has(column.id)) {
+        normalized.push({ ...column });
+      }
+    }
+
+    return normalized;
   }
 
   /**

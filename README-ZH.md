@@ -12,7 +12,7 @@ pnpm install -g seshflow
 yarn global add seshflow
 ```
 
-历史包名仍可使用：`@seshflow/cli`。
+历史包名 `@seshflow/cli` 仍可使用。
 
 ## 快速开始
 
@@ -23,7 +23,7 @@ seshflow next
 seshflow done --hours 1 --note "已完成"
 ```
 
-从 Markdown 批量导入：
+批量导入 Markdown 任务：
 
 ```bash
 seshflow import tasks.md
@@ -45,31 +45,31 @@ seshflow import tasks.md
 
 兼容说明：
 
-- `seshflow complete <taskId>` 仍保留，作为 `seshflow done <taskId>` 的别名。
+- `seshflow complete <taskId>` 保留为 `seshflow done <taskId>` 的别名。
 
 ## 输出模式
 
-- `--json`：供工具处理的结构化输出
+- `--json`：结构化输出，便于工具消费
 - `--compact`：低噪声文本输出
-- `--pretty`：面向人的友好输出
+- `--pretty`：面向人工阅读的输出
 
 默认行为：
 
 - TTY：`pretty`
 - 非 TTY：`compact`
-- 可通过 `SESHFLOW_OUTPUT=compact|pretty` 全局覆盖
+- 可通过 `SESHFLOW_OUTPUT=compact|pretty` 覆盖
 
-## AI 使用示例
+## AI 使用方式
 
-`ncfr` 的全称是 `NewChatFirstRound`。
+`ncfr` 是 `NewChatFirstRound` 的缩写。
 
-每次开启新的 AI 对话，必须先执行：
+每次开启新的 AI 对话前，先执行：
 
 ```bash
 seshflow ncfr --json
 ```
 
-这是新对话中的第一步，在执行 `next/show/query` 前必须先跑一次。
+这是新对话中的第一步，之后再执行 `next/show/query`：
 
 ```bash
 seshflow next --json
