@@ -1,5 +1,5 @@
-import React from 'react';
 import PropTypes from 'prop-types';
+import { getMessage } from '../i18n';
 import '../styles/Card.css';
 
 const PRIORITY_COLORS = {
@@ -9,7 +9,7 @@ const PRIORITY_COLORS = {
   P3: '#3b82f6',
 };
 
-const Card = ({ task, onClick }) => {
+const Card = ({ task, locale, onClick = () => {} }) => {
   const subtaskTotal = task.subtasks?.length || 0;
   const subtaskDone = task.subtasks?.filter(item => item.completed).length || 0;
 
@@ -35,7 +35,7 @@ const Card = ({ task, onClick }) => {
 
         <div className="card-meta">
           <span>{task.id}</span>
-          {subtaskTotal ? <span>subtasks={subtaskDone}/{subtaskTotal}</span> : null}
+          {subtaskTotal ? <span>{getMessage(locale, 'subtasks')}={subtaskDone}/{subtaskTotal}</span> : null}
           {task.estimatedHours ? <span>{task.estimatedHours}h</span> : null}
         </div>
       </div>
@@ -54,11 +54,8 @@ Card.propTypes = {
     })),
     estimatedHours: PropTypes.number,
   }).isRequired,
+  locale: PropTypes.oneOf(['en', 'zh']).isRequired,
   onClick: PropTypes.func,
-};
-
-Card.defaultProps = {
-  onClick: () => {},
 };
 
 export default Card;

@@ -1,6 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import Column from './Column';
 import TaskDetail from './TaskDetail';
+import { getMessage } from '../i18n';
 import '../styles/Board.css';
 
 function emptySnapshot() {
@@ -36,11 +38,12 @@ function sortTasks(items = []) {
   });
 }
 
-const Board = () => {
+const Board = ({ locale, onLocaleChange }) => {
   const [snapshot, setSnapshot] = useState(emptySnapshot());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [selectedTask, setSelectedTask] = useState(null);
+  const [selectedTaskId, setSelectedTaskId] = useState(null);
+  const initializedSelectionRef = useRef(false);
 
   useEffect(() => {
     let active = true;
@@ -77,11 +80,18 @@ const Board = () => {
           focus: payload.focus || 'next-ready-task',
         });
 
-        setSelectedTask(previousSelected => {
-          if (!previousSelected) {
-            return payload.currentTask || tasks[0] || null;
+        setSelectedTaskId(previousSelectedId => {
+          if (previousSelectedId && tasks.some(task => task.id === previousSelectedId)) {
+            return previousSelectedId;
           }
-          return tasks.find(task => task.id === previousSelected.id) || payload.currentTask || null;
+
+          if (!initializedSelectionRef.current && payload.currentTask?.id) {
+            initializedSelectionRef.current = true;
+            return payload.currentTask.id;
+          }
+
+          initializedSelectionRef.current = true;
+          return null;
         });
       } catch (loadError) {
         if (active) {
@@ -104,15 +114,19 @@ const Board = () => {
   }, []);
 
   const totalTasks = snapshot.tasks.length;
+  const selectedTask = useMemo(
+    () => snapshot.tasks.find(task => task.id === selectedTaskId) || null,
+    [snapshot.tasks, selectedTaskId]
+  );
 
   if (loading) {
-    return <div className="board-loading">Loading control plane...</div>;
+    return <div className="board-loading">{getMessage(locale, 'loading')}</div>;
   }
 
   if (error) {
     return (
       <div className="board-error">
-        <h1>Control plane unavailable</h1>
+        <h1>{getMessage(locale, 'unavailable')}</h1>
         <p>{error}</p>
       </div>
     );
@@ -122,74 +136,91 @@ const Board = () => {
     <div className="board">
       <header className="board-header">
         <div>
-          <p className="board-kicker">Runtime-backed workspace view</p>
-          <h1 className="board-title">Seshflow Control Plane</h1>
+          <p className="board-kicker">{getMessage(locale, 'kicker')}</p>
+          <h1 className="board-title">{getMessage(locale, 'title')}</h1>
           <p className="board-subtitle">
-            {snapshot.workspace?.name || 'workspace'}
-            {' '}
-            | source=
-            {snapshot.workspace?.source || 'unknown'}
-            {' '}
-            | branch=
-            {snapshot.workspace?.gitBranch || 'n/a'}
+            {snapshot.workspace?.name || getMessage(locale, 'workspaceFallback')}
+            {' | '}
+            {getMessage(locale, 'source')}={snapshot.workspace?.source || getMessage(locale, 'unknown')}
+            {' | '}
+            {getMessage(locale, 'branch')}={snapshot.workspace?.gitBranch || getMessage(locale, 'notAvailable')}
           </p>
         </div>
 
-        <div className="board-stats">
-          <span className="board-stat">tasks={totalTasks}</span>
-          <span className="board-stat">events={snapshot.runtimeEvents.length}</span>
-          <span className="board-stat">transitions={snapshot.transitions.length}</span>
+        <div className="board-toolbar">
+          <div className="board-stats">
+            <span className="board-stat">{getMessage(locale, 'tasks')}={totalTasks}</span>
+            <span className="board-stat">{getMessage(locale, 'events')}={snapshot.runtimeEvents.length}</span>
+            <span className="board-stat">{getMessage(locale, 'transitions')}={snapshot.transitions.length}</span>
+          </div>
+
+          <div className="locale-toggle" role="group" aria-label={getMessage(locale, 'localeLabel')}>
+            <button
+              type="button"
+              className={`locale-button ${locale === 'en' ? 'active' : ''}`}
+              onClick={() => onLocaleChange('en')}
+            >
+              {getMessage(locale, 'english')}
+            </button>
+            <button
+              type="button"
+              className={`locale-button ${locale === 'zh' ? 'active' : ''}`}
+              onClick={() => onLocaleChange('zh')}
+            >
+              {getMessage(locale, 'chinese')}
+            </button>
+          </div>
         </div>
       </header>
 
       <section className="board-summary">
         <article className="summary-panel">
-          <h2>Current focus</h2>
+          <h2>{getMessage(locale, 'currentFocus')}</h2>
           {snapshot.currentTask ? (
             <>
               <strong>{snapshot.currentTask.title}</strong>
               <span>
                 {snapshot.currentTask.id}
-                {' '}
-                | {snapshot.currentTask.status}
-                {' '}
-                | {snapshot.currentTask.priority}
+                {' | '}
+                {snapshot.currentTask.status}
+                {' | '}
+                {snapshot.currentTask.priority}
               </span>
-              <span>focus={snapshot.focus}</span>
-              <span>runtime={snapshot.currentTask.runtimeSummary?.recordCount || 0}</span>
-              <span>processes={snapshot.currentTask.processSummary?.recordCount || 0}</span>
+              <span>{getMessage(locale, 'focus')}={snapshot.focus}</span>
+              <span>{getMessage(locale, 'runtime')}={snapshot.currentTask.runtimeSummary?.recordCount || 0}</span>
+              <span>{getMessage(locale, 'processes')}={snapshot.currentTask.processSummary?.recordCount || 0}</span>
               <button
                 type="button"
                 className="summary-link"
-                onClick={() => setSelectedTask(snapshot.currentTask)}
+                onClick={() => setSelectedTaskId(snapshot.currentTask.id)}
               >
-                Open task detail
+                {getMessage(locale, 'openTaskDetail')}
               </button>
             </>
           ) : (
             <>
-              <strong>No active task</strong>
-              <span>focus={snapshot.focus}</span>
-              <span>Use CLI start/next to move the workspace forward.</span>
+              <strong>{getMessage(locale, 'noActiveTask')}</strong>
+              <span>{getMessage(locale, 'focus')}={snapshot.focus}</span>
+              <span>{getMessage(locale, 'useCliHint')}</span>
             </>
           )}
         </article>
 
         <article className="summary-panel">
-          <h2>Recent runtime events</h2>
+          <h2>{getMessage(locale, 'recentRuntimeEvents')}</h2>
           {snapshot.runtimeEvents.length > 0 ? (
             snapshot.runtimeEvents.slice(-4).reverse().map(event => (
               <div key={event.id} className={`event-line level-${event.level}`}>
                 <strong>{event.type}</strong>
                 <span>
-                  {event.taskId || 'workspace'}
-                  {' '}
-                  | {event.status}
+                  {event.taskId || getMessage(locale, 'workspaceFallback')}
+                  {' | '}
+                  {event.status}
                 </span>
               </div>
             ))
           ) : (
-            <span>No runtime events yet</span>
+            <span>{getMessage(locale, 'noRuntimeEvents')}</span>
           )}
         </article>
       </section>
@@ -200,16 +231,22 @@ const Board = () => {
             key={column.id}
             column={column}
             tasks={snapshot.tasksByStatus[column.id] || []}
-            onCardClick={setSelectedTask}
+            locale={locale}
+            onCardClick={task => setSelectedTaskId(task.id)}
           />
         ))}
       </section>
 
       {selectedTask ? (
-        <TaskDetail task={selectedTask} onClose={() => setSelectedTask(null)} />
+        <TaskDetail task={selectedTask} locale={locale} onClose={() => setSelectedTaskId(null)} />
       ) : null}
     </div>
   );
+};
+
+Board.propTypes = {
+  locale: PropTypes.oneOf(['en', 'zh']).isRequired,
+  onLocaleChange: PropTypes.func.isRequired,
 };
 
 export default Board;
