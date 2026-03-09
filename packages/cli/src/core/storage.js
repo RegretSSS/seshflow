@@ -1,5 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
+import os from 'os';
 import { PATHS, DEFAULT_TASK_FILE } from '../constants.js';
 import { existsSync } from 'fs';
 import { ANNOUNCEMENT_KINDS, ANNOUNCEMENT_ACTIONS } from '../../../shared/constants/announcements.js';
@@ -171,6 +172,16 @@ export class Storage {
     this.cachedGitBranch = null;
   }
 
+  getGlobalHomeDir() {
+    return process.env.SESHFLOW_HOME
+      ? path.resolve(process.env.SESHFLOW_HOME)
+      : path.join(os.homedir(), PATHS.GLOBAL_WORKSPACES_DIR);
+  }
+
+  getWorkspaceIndexFilePath() {
+    return path.join(this.getGlobalHomeDir(), 'workspaces.json');
+  }
+
   /**
    * Initialize seshflow directory structure
    */
@@ -192,6 +203,8 @@ export class Storage {
       if (!(await this.exists(this.uiStateFile))) {
         await this.writeUIState({ hintsShown: {} });
       }
+
+      await this.registerWorkspace();
 
       return true;
     } catch (error) {
@@ -443,6 +456,56 @@ export class Storage {
 
   getWorkspaceResolution() {
     return { ...this.workspaceResolution };
+  }
+
+  async readWorkspaceIndex() {
+    const indexFile = this.getWorkspaceIndexFilePath();
+    if (!(await this.exists(indexFile))) {
+      return {
+        schemaVersion: 1,
+        updatedAt: null,
+        workspaces: [],
+      };
+    }
+
+    const content = await fs.readFile(indexFile, 'utf-8');
+    const parsed = JSON.parse(content);
+    return {
+      schemaVersion: 1,
+      updatedAt: parsed?.updatedAt || null,
+      workspaces: Array.isArray(parsed?.workspaces) ? parsed.workspaces : [],
+    };
+  }
+
+  async writeWorkspaceIndex(data = {}) {
+    const indexFile = this.getWorkspaceIndexFilePath();
+    await fs.ensureDir(path.dirname(indexFile));
+    const normalized = {
+      schemaVersion: 1,
+      updatedAt: new Date().toISOString(),
+      workspaces: Array.isArray(data?.workspaces) ? data.workspaces : [],
+    };
+    await fs.writeFile(indexFile, JSON.stringify(normalized, null, 2), 'utf-8');
+    return normalized;
+  }
+
+  async registerWorkspace() {
+    const index = await this.readWorkspaceIndex();
+    const info = await this.getWorkspaceInfo();
+    const record = {
+      path: info.path,
+      name: info.name,
+      mode: (await this.readConfigFile()).mode || 'default',
+      gitBranch: info.gitBranch,
+      tasksFile: this.tasksFile,
+      configPath: this.configFile,
+      lastSeenAt: new Date().toISOString(),
+    };
+
+    const nextWorkspaces = index.workspaces.filter(workspace => workspace.path !== record.path);
+    nextWorkspaces.push(record);
+    nextWorkspaces.sort((left, right) => left.name.localeCompare(right.name) || left.path.localeCompare(right.path));
+    await this.writeWorkspaceIndex({ workspaces: nextWorkspaces });
   }
 
   getContractsDir() {

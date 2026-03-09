@@ -180,6 +180,10 @@ const rpcCommand = program
   .command('rpc')
   .description('Inspect stable RPC/API integration shell payloads');
 
+const workspacesCommand = program
+  .command('workspaces')
+  .description('Inspect the global workspace index');
+
 announceCommand
   .command('progress [taskId]')
   .description('Emit a progress announcement for a task or the current active task')
@@ -275,6 +279,16 @@ rpcCommand
     const mod = await import('../src/commands/rpc.js');
     return mod.rpcShell(surface || 'workspace', targetId || null);
   });
+
+workspacesCommand
+  .command('list')
+  .description('List indexed workspaces')
+  .action(lazyAction(() => import('../src/commands/workspaces.js'), 'listWorkspaces'));
+
+workspacesCommand
+  .command('current')
+  .description('Show the current workspace record')
+  .action(lazyAction(() => import('../src/commands/workspaces.js'), 'showCurrentWorkspace'));
 
 program
   .command('add-dep <taskId> <dependsOnTaskId>')
