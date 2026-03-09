@@ -1,6 +1,8 @@
-﻿# Seshflow
+# Seshflow
 
-Cross-session task sequencer for AI-assisted development.
+Runtime control plane for AI-assisted software development.
+
+Seshflow is not a generic project board. It keeps planning state, active-task context, runtime logs, process records, transition events, and recovery hints in one workspace so an AI can resume engineering work without re-deriving the entire state of the repo.
 
 ## Install
 
@@ -12,46 +14,67 @@ pnpm install -g seshflow
 yarn global add seshflow
 ```
 
-Legacy package name is still available: `@seshflow/cli`.
+Legacy package name remains available: `@seshflow/cli`.
 
-## Quick Start
+## AI-first flow
 
 ```bash
 seshflow init
-seshflow add "My first task" --priority P1
-seshflow next
-seshflow done --hours 1 --note "finished"
+seshflow ncfr --json
+seshflow next --json
 ```
 
-Batch import from markdown:
+Use `ncfr --json` as the first step of a new AI conversation. It gives the minimal workspace snapshot needed to decide what to do next.
+
+## Planning flow
+
+For one-off tasks:
 
 ```bash
-seshflow import tasks.md
+seshflow add "Implement runtime event retention" --priority P1
 ```
 
-## Core Commands
+For batch planning and revisions:
 
-- `seshflow init`
-- `seshflow add <title>`
-- `seshflow list`
-- `seshflow next`
-- `seshflow start <taskId>`
-- `seshflow done [taskId]`
-- `seshflow show <taskId>`
-- `seshflow query`
-- `seshflow stats`
-- `seshflow import <file>`
-- `seshflow export [output]`
+```bash
+seshflow validate tasks.md
+seshflow import tasks.md
+seshflow import tasks.md --update
+```
 
-Compatibility:
+Managed Markdown is the planning surface. `.seshflow/tasks.json` remains the runtime state store.
 
-- `seshflow complete <taskId>` is kept as an alias of `seshflow done <taskId>`.
+## Execution flow
 
-## Output Modes
+```bash
+seshflow start <taskId> --json
+seshflow record --json --command "pnpm test" --cwd packages/cli
+seshflow process add --json --pid 12345 --command "vite dev"
+seshflow done <taskId> --json
+```
 
-- `--json`: structured output for tools
-- `--compact`: low-noise text output
-- `--pretty`: human-friendly output
+Key machine-friendly commands:
+
+- `seshflow ncfr --json`
+- `seshflow next --json`
+- `seshflow show <taskId> --json`
+- `seshflow list --json`
+- `seshflow query --json`
+- `seshflow start <taskId> --json`
+- `seshflow suspend --json`
+- `seshflow done <taskId> --json`
+- `seshflow add-dep <taskId> <dependsOnTaskId> --json`
+- `seshflow remove-dep <taskId> <dependsOnTaskId> --json`
+
+## Web control plane
+
+The web package is a lightweight, read-only runtime surface over the same workspace data. It shows current focus, task summaries, runtime records, process summaries, and recent runtime events. State mutation remains CLI-first until the API mode is expanded.
+
+## Output modes
+
+- `--json`: structured output for AI/tooling
+- `--compact`: low-noise text
+- `--pretty`: human-readable text
 
 Defaults:
 
@@ -59,28 +82,10 @@ Defaults:
 - non-TTY: `compact`
 - override with `SESHFLOW_OUTPUT=compact|pretty`
 
-## AI Usage
+## Skills
 
-`ncfr` means `NewChatFirstRound`.
-
-For every new AI chat session, you must start with:
-
-```bash
-seshflow ncfr --json
-```
-
-This is the required first step before any `next/show/query` command in a new conversation.
-
-```bash
-seshflow next --json
-seshflow show <task-id> --json
-seshflow query --priority P0 --json
-```
-
-## Skill Docs
-
-- Lightweight skill: `docs/skills/seshflow-light/SKILL.md`
-- Install guide: `docs/skills/INSTALL.md`
+- `docs/skills/seshflow-light/SKILL.md`
+- `docs/skills/INSTALL.md`
 
 ## License
 

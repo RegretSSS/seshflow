@@ -2,7 +2,7 @@
   "name": "seshflow-monorepo",
   "version": "1.0.0",
   "private": true,
-  "description": "Seshflow - 跨对话任务序列器",
+  "description": "Seshflow monorepo - AI development runtime control plane",
   "scripts": {
     "dev:cli": "pnpm --filter @seshflow/cli dev",
     "dev:web": "pnpm --filter @seshflow/web dev",
@@ -25,11 +25,11 @@
     "pnpm": ">=8.0.0"
   },
   "keywords": [
-    "task-manager",
-    "git-integration",
+    "runtime-control-plane",
     "ai-assistant",
-    "session-manager",
-    "workflow",
+    "session-recovery",
+    "task-runtime",
+    "workflow-control",
     "cli"
   ],
   "author": "",

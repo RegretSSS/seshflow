@@ -1,7 +1,7 @@
 {
   "name": "@seshflow/web",
   "version": "1.0.0",
-  "description": "Seshflow Web Dashboard - Trello-style task board",
+  "description": "Seshflow Web - Runtime-backed control plane for the active workspace",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -24,10 +24,10 @@
     "vite": "^4.3.9"
   },
   "keywords": [
-    "task-manager",
-    "dashboard",
-    "trello",
-    "kanban"
+    "runtime-control-plane",
+    "ai-assistant",
+    "workspace-visibility",
+    "task-runtime"
   ],
   "author": "",
   "license": "MIT"

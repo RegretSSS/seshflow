@@ -1,7 +1,7 @@
 {
   "name": "@seshflow/cli",
   "version": "1.1.1",
-  "description": "Seshflow CLI - Cross-session task sequencer for AI-assisted development",
+  "description": "Seshflow CLI - Runtime control plane for AI-assisted development",
   "type": "module",
   "author": "Seshflow Contributors",
   "license": "MIT",
@@ -14,14 +14,12 @@
     "url": "https://github.com/RegretSSS/seshflow/issues"
   },
   "keywords": [
-    "task-manager",
     "ai-assistant",
-    "productivity",
-    "workflow",
+    "runtime-control-plane",
+    "session-recovery",
+    "task-runtime",
     "cli",
-    "git",
-    "developer-tools",
-    "project-management"
+    "developer-tools"
   ],
   "bin": {
     "seshflow": "./bin/seshflow.js"

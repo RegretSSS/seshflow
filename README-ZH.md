@@ -1,6 +1,8 @@
 # Seshflow
 
-面向 AI 辅助开发的跨会话任务序列器。
+面向 AI 辅助软件开发的运行控制面。
+
+Seshflow 不是通用任务板，而是把规划状态、当前任务上下文、运行日志、后台进程、状态迁移事件和恢复提示收拢到同一个工作区里，让 AI 在跨会话继续开发时不用重新猜测现场。
 
 ## 安装
 
@@ -14,73 +16,76 @@ yarn global add seshflow
 
 历史包名 `@seshflow/cli` 仍可使用。
 
-## 快速开始
+## 面向 AI 的基本流程
 
 ```bash
 seshflow init
-seshflow add "我的第一个任务" --priority P1
-seshflow next
-seshflow done --hours 1 --note "已完成"
+seshflow ncfr --json
+seshflow next --json
 ```
 
-批量导入 Markdown 任务：
+每次开启新的 AI 对话，都应先执行 `seshflow ncfr --json`，用最小必要上下文决定下一步动作。
+
+## 任务规划流程
+
+单条任务可直接添加：
 
 ```bash
-seshflow import tasks.md
+seshflow add "实现 runtime event 保留策略" --priority P1
 ```
 
-## 核心命令
+批量规划和反复修订建议走 Markdown：
 
-- `seshflow init`
-- `seshflow add <title>`
-- `seshflow list`
-- `seshflow next`
-- `seshflow start <taskId>`
-- `seshflow done [taskId]`
-- `seshflow show <taskId>`
-- `seshflow query`
-- `seshflow stats`
-- `seshflow import <file>`
-- `seshflow export [output]`
+```bash
+seshflow validate tasks.md
+seshflow import tasks.md
+seshflow import tasks.md --update
+```
 
-兼容说明：
+受控 Markdown 是规划层，`.seshflow/tasks.json` 是执行层状态存储。
 
-- `seshflow complete <taskId>` 保留为 `seshflow done <taskId>` 的别名。
+## 执行流程
+
+```bash
+seshflow start <taskId> --json
+seshflow record --json --command "pnpm test" --cwd packages/cli
+seshflow process add --json --pid 12345 --command "vite dev"
+seshflow done <taskId> --json
+```
+
+常用机器接口：
+
+- `seshflow ncfr --json`
+- `seshflow next --json`
+- `seshflow show <taskId> --json`
+- `seshflow list --json`
+- `seshflow query --json`
+- `seshflow start <taskId> --json`
+- `seshflow suspend --json`
+- `seshflow done <taskId> --json`
+- `seshflow add-dep <taskId> <dependsOnTaskId> --json`
+- `seshflow remove-dep <taskId> <dependsOnTaskId> --json`
+
+## Web 控制面
+
+Web 包现在是同一工作区数据上的轻量只读视图，用来查看当前焦点、任务摘要、运行记录、进程摘要和近期 runtime event。真正的状态变更仍以 CLI 为主，直到后续 API 模式扩展完成。
 
 ## 输出模式
 
-- `--json`：结构化输出，便于工具消费
-- `--compact`：低噪声文本输出
-- `--pretty`：面向人工阅读的输出
+- `--json`：给 AI 和工具用的结构化输出
+- `--compact`：低噪音文本
+- `--pretty`：给人读的文本
 
-默认行为：
+默认规则：
 
 - TTY：`pretty`
 - 非 TTY：`compact`
 - 可通过 `SESHFLOW_OUTPUT=compact|pretty` 覆盖
 
-## AI 使用方式
+## Skills
 
-`ncfr` 是 `NewChatFirstRound` 的缩写。
-
-每次开启新的 AI 对话前，先执行：
-
-```bash
-seshflow ncfr --json
-```
-
-这是新对话中的第一步，之后再执行 `next/show/query`：
-
-```bash
-seshflow next --json
-seshflow show <task-id> --json
-seshflow query --priority P0 --json
-```
-
-## Skill 文档
-
-- 轻量技能：`docs/skills/seshflow-light/SKILL.md`
-- 安装指南：`docs/skills/INSTALL.md`
+- `docs/skills/seshflow-light/SKILL.md`
+- `docs/skills/INSTALL.md`
 
 ## 许可证
 
