@@ -2,10 +2,11 @@ import chalk from 'chalk';
 import ora from 'ora';
 import fs from 'fs-extra';
 import { TaskManager } from '../core/task-manager.js';
-import { Storage } from '../core/storage.js';
 import crypto from 'crypto';
+import { isValidTaskId } from '../utils/helpers.js';
 
 const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
+const ID_PREFIX_RE = /^id\s*:/i;
 const TAG_PREFIX_RE = /^(\u6807\u7b7e|tags?)\s*[:\uff1a]\s*/i;
 const PRIORITY_PREFIX_RE = /^(\u4f18\u5148\u7ea7|priority)\s*[:\uff1a]\s*/i;
 const ESTIMATE_PREFIX_RE = /^(\u9884\u4f30|estimate)\s*[:\uff1a]\s*/i;
@@ -33,6 +34,8 @@ function parseTaskLine(line, lineNumber, isCompleted = false) {
   if (!taskLine) return null;
 
   const task = {
+    id: null,
+    lineNumber,
     title: '',
     description: '',
     status: isCompleted ? 'done' : 'backlog',
@@ -82,6 +85,12 @@ function parseTaskLine(line, lineNumber, isCompleted = false) {
       }
     }
 
+    const stableId = parseIdToken(content);
+    if (stableId) {
+      task.id = stableId;
+      continue;
+    }
+
     // Parse inline dependency metadata
     const dependencies = parseDependencyToken(content);
     if (dependencies.length > 0) {
@@ -111,6 +120,15 @@ function parseDependencyToken(content) {
     .split(',')
     .map(dep => dep.trim())
     .filter(Boolean);
+}
+
+function parseIdToken(content) {
+  if (!ID_PREFIX_RE.test(content)) {
+    return null;
+  }
+
+  const value = content.replace(ID_PREFIX_RE, '').trim();
+  return value || null;
 }
 
 function mapHeadingToStatus(heading = '') {
@@ -178,6 +196,12 @@ function parseEstimateValue(value) {
 
 function applyMetadataLine(task, content) {
   if (!content) return false;
+
+  const stableId = parseIdToken(content);
+  if (stableId) {
+    task.id = stableId;
+    return true;
+  }
 
   const dependencies = parseDependencyToken(content);
   if (dependencies.length > 0) {
@@ -335,6 +359,7 @@ async function parseMarkdownFile(filePath) {
 function validateTasks(tasks) {
   const errors = [];
   const warnings = [];
+  const seenTaskIds = new Map();
 
   tasks.forEach((task, index) => {
     const taskNum = index + 1;
@@ -342,26 +367,73 @@ function validateTasks(tasks) {
 
     // Check required fields
     if (!task.title) {
-      errors.push(`Task ${taskNum}: title is required`);
+      errors.push({
+        line: task.lineNumber,
+        message: `Task ${taskNum}: title is required`,
+        suggestion: 'add text after "- [ ]"',
+      });
+    }
+
+    if (task.id) {
+      if (!isValidTaskId(task.id)) {
+        errors.push({
+          line: task.lineNumber,
+          message: `${taskLabel}: invalid stable id ${task.id}`,
+          suggestion: 'use ids like [id:task_example]',
+        });
+      } else if (seenTaskIds.has(task.id)) {
+        errors.push({
+          line: task.lineNumber,
+          message: `${taskLabel}: duplicate stable id ${task.id}`,
+          suggestion: 'keep each [id:task_xxx] unique within the file',
+        });
+      } else {
+        seenTaskIds.set(task.id, taskLabel);
+      }
     }
 
     // Check priority
     if (!['P0', 'P1', 'P2', 'P3'].includes(task.priority)) {
-      warnings.push(`${taskLabel}: invalid priority ${task.priority}`);
+      warnings.push({
+        line: task.lineNumber,
+        message: `${taskLabel}: invalid priority ${task.priority}`,
+        suggestion: 'use P0, P1, P2, or P3',
+      });
     }
 
     // Check hours
     if (task.estimatedHours < 0) {
-      errors.push(`${taskLabel}: estimated hours cannot be negative`);
+      errors.push({
+        line: task.lineNumber,
+        message: `${taskLabel}: estimated hours cannot be negative`,
+      });
     }
 
     // Warn if large task has no description
     if (!task.description && task.estimatedHours > 4) {
-      warnings.push(`${taskLabel}: large task (${task.estimatedHours}h) has no description`);
+      warnings.push({
+        line: task.lineNumber,
+        message: `${taskLabel}: large task (${task.estimatedHours}h) has no description`,
+        suggestion: 'add an indented description line or metadata block below the task',
+      });
     }
   });
 
   return { errors, warnings };
+}
+
+function formatValidationIssue(issue) {
+  const linePrefix = issue.line ? `Line ${issue.line}: ` : '';
+  const suggestion = issue.suggestion ? ` | fix: ${issue.suggestion}` : '';
+  return `${linePrefix}${issue.message}${suggestion}`;
+}
+
+function printMarkdownImportHints(logger = console.error) {
+  logger(chalk.blue('\nAccepted task patterns:'));
+  logger(chalk.gray('  - [ ] Task title [P1] [id:task_example] [dependency:task_other]'));
+  logger(chalk.gray('    priority: P1'));
+  logger(chalk.gray('    estimate: 2h'));
+  logger(chalk.gray('    depends: task_other'));
 }
 
 /**
@@ -396,9 +468,21 @@ function resolveDependencies(createdTasks, knownTasks = []) {
         .filter(Boolean);
 
       task.dependencies = [...new Set(resolvedDeps)];
-      task.blockedBy = task.dependencies;
     }
   });
+}
+
+function buildPlanningUpdatePayload(taskData) {
+  return {
+    title: taskData.title,
+    description: taskData.description,
+    priority: taskData.priority,
+    tags: taskData.tags,
+    estimatedHours: taskData.estimatedHours,
+    assignee: taskData.assignee,
+    dependencies: taskData.dependencies,
+    subtasks: taskData.subtasks || [],
+  };
 }
 
 /**
@@ -422,8 +506,7 @@ export async function importTasks(filePath, options = {}) {
     if (tasks.length === 0) {
       spinner?.warn('No tasks found');
       console.log(chalk.yellow('\nNo tasks found in the file.'));
-      console.log(chalk.gray('Make sure your tasks follow the format:'));
-      console.log(chalk.gray('  - [ ] Task title [P0] [tag1,tag2] [4h]'));
+      printMarkdownImportHints(console.log);
       return;
     }
 
@@ -434,7 +517,12 @@ export async function importTasks(filePath, options = {}) {
     if (errors.length > 0) {
       spinner?.fail('Validation failed');
       console.error(chalk.red('\nValidation errors:'));
-      errors.forEach((error) => console.error(chalk.red(`  - ${error}`)));
+      errors.forEach((error) => console.error(chalk.red(`  - ${formatValidationIssue(error)}`)));
+      if (warnings.length > 0) {
+        console.error(chalk.yellow('\nWarnings:'));
+        warnings.forEach((warning) => console.error(chalk.yellow(`  - ${formatValidationIssue(warning)}`)));
+      }
+      printMarkdownImportHints(console.error);
       process.exit(1);
     }
 
@@ -442,7 +530,7 @@ export async function importTasks(filePath, options = {}) {
     if (warnings.length > 0 && !options.force) {
       spinner?.warn('Validation warnings');
       console.log(chalk.yellow('\nWarnings:'));
-      warnings.forEach((warning) => console.log(chalk.yellow(`  - ${warning}`)));
+      warnings.forEach((warning) => console.log(chalk.yellow(`  - ${formatValidationIssue(warning)}`)));
 
       if (!options.dryRun) {
         console.log(chalk.gray('\nUse --force to ignore warnings'));
@@ -480,10 +568,12 @@ export async function importTasks(filePath, options = {}) {
     // Deduplication
     const existingTasks = manager.getTasks();
     const existingHashes = new Map();
+    const existingById = new Map();
 
     existingTasks.forEach(task => {
       const hash = generateTaskHash(task.title, task.description);
       existingHashes.set(hash, task);
+      existingById.set(task.id, task);
     });
 
     const results = {
@@ -493,15 +583,16 @@ export async function importTasks(filePath, options = {}) {
       duplicates: []
     };
 
-    const createdTasks = [];
+    const importedTasks = [];
 
     for (const taskData of tasks) {
       const hash = generateTaskHash(taskData.title, taskData.description);
-      const existing = existingHashes.get(hash);
+      const existing = taskData.id ? existingById.get(taskData.id) : existingHashes.get(hash);
 
       if (!existing) {
         // New task - create
         const created = await manager.createTask({
+          id: taskData.id,
           title: taskData.title,
           description: taskData.description,
           status: taskData.status,
@@ -512,29 +603,21 @@ export async function importTasks(filePath, options = {}) {
           dependencies: taskData.dependencies,
         });
 
-        // Add subtasks if any
-        if (taskData.subtasks && taskData.subtasks.length > 0) {
-          created.subtasks = taskData.subtasks;
-        }
-
-        createdTasks.push(created);
+        created.subtasks = taskData.subtasks || [];
+        importedTasks.push(created);
         results.created++;
+        existingById.set(created.id, created);
       }
       else if (options.update) {
         // Task exists - update
-        await manager.updateTask(existing.id, {
-          title: taskData.title,
-          description: taskData.description,
-          priority: taskData.priority,
-          tags: taskData.tags,
-          estimatedHours: taskData.estimatedHours,
-          assignee: taskData.assignee,
-        });
+        await manager.updateTask(existing.id, buildPlanningUpdatePayload(taskData));
+        importedTasks.push(manager.getTask(existing.id));
         results.updated++;
       }
       else if (options.force) {
         // Force create - don't check duplicates
         const created = await manager.createTask({
+          id: taskData.id,
           title: taskData.title,
           description: taskData.description,
           status: taskData.status,
@@ -545,12 +628,10 @@ export async function importTasks(filePath, options = {}) {
           dependencies: taskData.dependencies,
         });
 
-        if (taskData.subtasks && taskData.subtasks.length > 0) {
-          created.subtasks = taskData.subtasks;
-        }
-
-        createdTasks.push(created);
+        created.subtasks = taskData.subtasks || [];
+        importedTasks.push(created);
         results.created++;
+        existingById.set(created.id, created);
       }
       else {
         // Skip duplicate
@@ -566,13 +647,12 @@ export async function importTasks(filePath, options = {}) {
     await manager.saveData();
 
     // Resolve dependencies (convert numeric indices to task IDs)
-    resolveDependencies(createdTasks, [...existingTasks, ...createdTasks]);
+    resolveDependencies(importedTasks, manager.getTasks());
 
     // Update tasks with resolved dependencies and subtasks
-    for (const task of createdTasks) {
+    for (const task of importedTasks) {
       await manager.updateTask(task.id, {
         dependencies: task.dependencies,
-        blockedBy: task.blockedBy,
         subtasks: task.subtasks
       });
     }
@@ -585,7 +665,7 @@ export async function importTasks(filePath, options = {}) {
     const countByPriority = { P0: 0, P1: 0, P2: 0, P3: 0 };
     let dependencyCount = 0;
     let subtaskCount = 0;
-    createdTasks.forEach(task => {
+    importedTasks.forEach(task => {
       if (countByPriority[task.priority] !== undefined) {
         countByPriority[task.priority] += 1;
       }
@@ -606,9 +686,9 @@ export async function importTasks(filePath, options = {}) {
     );
     console.log(chalk.gray(`  Dependencies: ${dependencyCount} | Subtasks: ${subtaskCount}`));
 
-    if (options.verbose && results.created > 0) {
+    if (options.verbose && importedTasks.length > 0) {
       console.log(chalk.blue('\nVerbose imported task list:'));
-      createdTasks.forEach((task, index) => {
+      importedTasks.forEach((task, index) => {
         const priorityColor = {
           P0: 'red',
           P1: 'yellow',
@@ -660,8 +740,7 @@ export async function importTasks(filePath, options = {}) {
 
     if (error.message.includes('unexpected token')) {
       console.error(chalk.yellow('\nTip: Make sure your markdown file is properly formatted'));
-      console.error(chalk.gray('Example:'));
-      console.error(chalk.gray('  - [ ] Task title [P0] [tag1,tag2] [4h]'));
+      printMarkdownImportHints(console.error);
     }
 
     process.exit(1);

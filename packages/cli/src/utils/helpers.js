@@ -10,6 +10,15 @@ export function generateTaskId() {
 }
 
 /**
+ * Validate task ID format
+ * @param {string} taskId - Candidate task ID
+ * @returns {boolean} True when the value matches the task ID contract
+ */
+export function isValidTaskId(taskId) {
+  return /^task_[a-z0-9_]+$/i.test(String(taskId || '').trim());
+}
+
+/**
  * Generate a unique subtask ID
  * @returns {string} Subtask ID
  */
@@ -27,6 +36,46 @@ export function generateSessionId() {
   const timestamp = Date.now();
   const random = Math.random().toString(36).substring(2, 6);
   return `sess_${timestamp}_${random}`;
+}
+
+/**
+ * Generate a unique runtime record ID
+ * @returns {string} Runtime record ID
+ */
+export function generateRuntimeRecordId() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 6);
+  return `run_${timestamp}_${random}`;
+}
+
+/**
+ * Generate a unique process record ID
+ * @returns {string} Process record ID
+ */
+export function generateProcessRecordId() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 6);
+  return `proc_${timestamp}_${random}`;
+}
+
+/**
+ * Generate a unique transition event ID
+ * @returns {string} Transition event ID
+ */
+export function generateTransitionEventId() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 6);
+  return `evt_${timestamp}_${random}`;
+}
+
+/**
+ * Generate a unique runtime event ID
+ * @returns {string} Runtime event ID
+ */
+export function generateRuntimeEventId() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 6);
+  return `revt_${timestamp}_${random}`;
 }
 
 /**

@@ -24,19 +24,46 @@ export function formatTaskJSON(task) {
   };
 }
 
+export function formatTaskSummaryJSON(task) {
+  return {
+    id: task.id,
+    title: task.title,
+    status: task.status,
+    priority: task.priority,
+    tags: task.tags || [],
+    estimatedHours: task.estimatedHours || 0,
+    actualHours: task.actualHours || 0,
+    assignee: task.assignee || null,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+    blockedBy: task.blockedBy || [],
+    subtaskCount: task.subtasks?.length || 0,
+    completedSubtasks: task.subtasks?.filter(st => st.completed).length || 0,
+  };
+}
+
+function pickWorkspaceFields(info, fields) {
+  return fields.reduce((result, field) => {
+    if (info[field] !== undefined) {
+      result[field] = info[field];
+    }
+    return result;
+  }, {});
+}
+
 /**
  * Format workspace info as JSON
  */
-export function formatWorkspaceJSON(storage, taskCount = 0) {
-  const workspacePath = storage.getWorkspacePath();
-  return {
-    path: workspacePath,
-    name: workspacePath.split(/[/\\]/).pop() || '',
-    // getGitBranch is async; keep this field stable for synchronous callers.
-    gitBranch: '',
-    totalTasks: taskCount,
-    seshflowDir: storage.getSeshflowDir(),
-  };
+export async function formatWorkspaceJSON(storage, taskCount = 0, options = {}) {
+  const info = await storage.getWorkspaceInfo(taskCount);
+  const baseFields = ['path', 'name', 'gitBranch', 'totalTasks', 'source', 'sourcePath'];
+  const fullFields = ['requestedPath', 'seshflowDir', 'tasksFile', 'configPath'];
+
+  if (options.full) {
+    return pickWorkspaceFields(info, [...baseFields, ...fullFields]);
+  }
+
+  return pickWorkspaceFields(info, baseFields);
 }
 
 /**
@@ -80,6 +107,26 @@ export function outputJSON(data) {
 /**
  * Check if JSON output is requested
  */
-export function isJSONMode(options) {
-  return options && (options.json === true || options.JSON === true);
+export function isJSONMode(options = {}, defaultMode = true) {
+  if (options.pretty || options.compact) {
+    return false;
+  }
+
+  if (options.json === false) {
+    return false;
+  }
+
+  if (options.json === true || options.JSON === true) {
+    return true;
+  }
+
+  const envMode = process.env.SESHFLOW_OUTPUT?.toLowerCase();
+  if (envMode === 'pretty' || envMode === 'compact') {
+    return false;
+  }
+  if (envMode === 'json') {
+    return true;
+  }
+
+  return defaultMode;
 }

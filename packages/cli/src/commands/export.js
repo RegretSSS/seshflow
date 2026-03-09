@@ -21,7 +21,6 @@ function filterTasks(tasks, options = {}) {
 
 function toMarkdown(tasks) {
   const grouped = new Map();
-  const taskById = new Map(tasks.map(task => [task.id, task]));
 
   tasks.forEach(task => {
     const key = task.status || 'backlog';
@@ -39,16 +38,15 @@ function toMarkdown(tasks) {
 
     items.forEach(task => {
       const done = task.status === 'done' ? 'x' : ' ';
+      const stableId = task.id ? ` [id:${task.id}]` : '';
       const tags = (task.tags || []).length ? ` [${task.tags.join(',')}]` : '';
       const hours = task.estimatedHours > 0 ? ` [${task.estimatedHours}h]` : '';
       const assignee = task.assignee ? ` [@${task.assignee}]` : '';
       const deps = (task.dependencies || []).length
-        ? ` [依赖:${task.dependencies
-          .map(depId => taskById.get(depId)?.title || depId)
-          .join(',')}]`
+        ? ` [dependency:${task.dependencies.join(',')}]`
         : '';
 
-      sections.push(`- [${done}] ${task.title} [${task.priority}]${tags}${hours}${assignee}${deps}`);
+      sections.push(`- [${done}] ${task.title}${stableId} [${task.priority}]${tags}${hours}${assignee}${deps}`);
 
       if (task.description) {
         task.description.split('\n').forEach(line => {
@@ -80,9 +78,9 @@ export async function exportTasks(outputFile, options = {}) {
     await manager.init();
 
     const tasks = filterTasks(manager.getTasks(), options);
-    const format = options.json
-      ? 'json'
-      : (options.format || 'markdown').toLowerCase();
+    const format = options.md
+      ? 'markdown'
+      : (options.json ? 'json' : (options.format || 'json')).toLowerCase();
     const content = format === 'json'
       ? JSON.stringify(tasks, null, 2)
       : toMarkdown(tasks);

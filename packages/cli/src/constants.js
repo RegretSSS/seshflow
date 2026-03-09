@@ -43,6 +43,7 @@ export const PATHS = {
   SEHSFLOW_DIR: '.seshflow',
   TASKS_FILE: '.seshflow/tasks.json',
   CONFIG_FILE: '.seshflow/config.yaml',
+  UI_STATE_FILE: '.seshflow/ui-state.json',
   SESSIONS_DIR: '.seshflow/sessions',
   GIT_HOOKS_DIR: '.git/hooks'
 };
@@ -64,6 +65,8 @@ export const DEFAULT_TASK_FILE = {
   },
   columns: DEFAULT_COLUMNS,
   tasks: [],
+  transitions: [],
+  runtimeEvents: [],
   currentSession: null,
   statistics: {
     totalTasks: 0,

@@ -40,6 +40,7 @@ debug.log
 .seshflow/tasks.json
 .seshflow/sessions.json
 .seshflow/config.yaml
+.seshflow/ui-state.json
 
 # Scripts (development only)
 scripts/
@@ -64,6 +65,7 @@ BUGFIX*.md
 FIXES*.md
 IMPLEMENTATION*.md
 IMPROVEMENT*.md
+docs/local/
 
 # Session files
 SESSION*.md

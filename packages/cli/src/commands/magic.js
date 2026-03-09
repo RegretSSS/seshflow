@@ -83,7 +83,7 @@ const SKILLS = {
         }
       }
 
-      const blocked = allTasks.filter(task => (task.blockedBy || []).length > 0);
+      const blocked = allTasks.filter(task => manager.getBlockedBy(task).length > 0);
       if (blocked.length > 0) {
         console.log(chalk.red(`Blocked: ${blocked.length}`));
       }

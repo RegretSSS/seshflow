@@ -1,12 +1,12 @@
-import { formatTaskJSON, formatWorkspaceJSON, formatSuccessResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
-import chalk from 'chalk';
-import ora from 'ora';
-import simpleGit from 'simple-git';
+import { formatTaskJSON, formatWorkspaceJSON, formatSuccessResponse, formatErrorResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
 import { TaskManager } from '../core/task-manager.js';
+import { TaskTransitionService } from '../core/task-transition-service.js';
 import { truncate } from '../utils/helpers.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
+import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
+import { loadTextUI } from '../utils/text-ui.js';
 
-function displayTask(task, showFull = false) {
+function displayTask(task, chalk, showFull = false) {
   console.log(chalk.bold.cyan(`\n- ${task.title}`));
   console.log(chalk.cyan(`  ID: ${task.id}`));
   console.log(chalk.cyan(`  Priority: ${task.priority}`));
@@ -109,25 +109,47 @@ function compactTaskContext(task, manager) {
   if (dependents.length > 0) {
     console.log(`unlocks=${dependents.map(formatTaskRef).join(',')}`);
   }
+  const runtimeSummary = manager.getRuntimeSummary(task);
+  if (runtimeSummary.recordCount > 0) {
+    const parts = [`count=${runtimeSummary.recordCount}`];
+    if (runtimeSummary.lastCommand) parts.push(`cmd=${truncate(runtimeSummary.lastCommand, 48)}`);
+    if (runtimeSummary.lastOutputRoot) parts.push(`out=${truncate(runtimeSummary.lastOutputRoot, 32)}`);
+    if (runtimeSummary.lastArtifacts.length > 0) parts.push(`artifacts=${runtimeSummary.lastArtifacts.length}`);
+    console.log(`runtime=${parts.join(' | ')}`);
+  }
+  const processSummary = manager.getProcessSummary(task);
+  if (processSummary.recordCount > 0) {
+    const parts = [`count=${processSummary.recordCount}`];
+    if (processSummary.runningCount > 0) parts.push(`running=${processSummary.runningCount}`);
+    if (processSummary.missingCount > 0) parts.push(`missing=${processSummary.missingCount}`);
+    if (processSummary.lastPid) parts.push(`pid=${processSummary.lastPid}`);
+    console.log(`processes=${parts.join(' | ')}`);
+  }
 }
 
 export async function next(options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
-  const spinner = compactMode ? null : ora('Loading workspace').start();
+  const jsonMode = isJSONMode(options);
+  const { chalk, ora } = jsonMode ? { chalk: null, ora: null } : await loadTextUI();
+  const spinner = (!jsonMode && !compactMode) ? ora('Loading workspace').start() : null;
 
   try {
     const manager = new TaskManager();
     await manager.init();
+    const transitions = new TaskTransitionService(manager);
 
-    if (isJSONMode(options)) {
+    if (jsonMode) {
       const currentTask = manager.getCurrentTask();
       if (currentTask) {
         spinner?.stop();
+        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
         outputJSON(formatSuccessResponse({
           task: formatTaskJSON(currentTask),
+          runtimeSummary: manager.getRuntimeSummary(currentTask),
+          processSummary: manager.getProcessSummary(currentTask),
           hasActiveSession: true,
-        }, formatWorkspaceJSON(manager.storage, manager.getTasks().length)));
+        }, workspaceJSON));
         return;
       }
 
@@ -140,14 +162,16 @@ export async function next(options = {}) {
       spinner?.stop();
 
       if (!nextTask) {
+        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
         outputJSON(formatSuccessResponse({
           task: null,
           message: 'No tasks to work on',
-        }, formatWorkspaceJSON(manager.storage, manager.getTasks().length)));
+        }, workspaceJSON));
         return;
       }
 
       const unmetDeps = manager.getUnmetDependencies(nextTask);
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
       outputJSON(formatSuccessResponse({
         task: formatTaskJSON(nextTask),
         unmetDependencies: unmetDeps.map(d => ({
@@ -155,8 +179,10 @@ export async function next(options = {}) {
           title: d.title,
           status: d.status,
         })),
+        runtimeSummary: manager.getRuntimeSummary(nextTask),
+        processSummary: manager.getProcessSummary(nextTask),
         hasActiveSession: false,
-      }, formatWorkspaceJSON(manager.storage, manager.getTasks().length)));
+      }, workspaceJSON));
       return;
     }
 
@@ -168,7 +194,7 @@ export async function next(options = {}) {
         compactTaskContext(currentTask, manager);
       } else {
         console.log(chalk.yellow('\nYou have an active session:'));
-        displayTask(currentTask, true);
+        displayTask(currentTask, chalk, true);
         console.log(
           chalk.blue('\nCommands:'),
           chalk.gray('seshflow done'),
@@ -231,7 +257,9 @@ export async function next(options = {}) {
     }
 
     const sessionSpinner = compactMode ? null : ora('Starting session').start();
-    manager.startSession(nextTask.id);
+    await transitions.startTask(nextTask.id, {
+      source: 'cli.next',
+    });
     await manager.saveData();
     sessionSpinner?.succeed('Session started');
 
@@ -242,11 +270,12 @@ export async function next(options = {}) {
       console.log(`NEXT | ${toCompactLine(nextTask)}${subtaskInfo}`);
       compactTaskContext(nextTask, manager);
     } else {
-      displayTask(nextTask, true);
+      displayTask(nextTask, chalk, true);
     }
 
     if (nextTask.gitBranch && options.git) {
       try {
+        const { default: simpleGit } = await import('simple-git');
         const git = simpleGit();
         const currentBranch = (await git.branch()).current;
 
@@ -262,21 +291,27 @@ export async function next(options = {}) {
       return;
     }
 
-    console.log(chalk.bold('\nAI Context:'));
-    console.log(chalk.white(`Current Task: ${nextTask.title}`));
-    console.log(chalk.white(`Description: ${truncate(nextTask.description, 200)}`));
-    if (nextTask.context.relatedFiles.length > 0) {
-      console.log(chalk.white(`Related Files: ${nextTask.context.relatedFiles.join(', ')}`));
-    }
-    if (nextTask.sessions.length > 0) {
-      const lastSession = nextTask.sessions[nextTask.sessions.length - 1];
-      console.log(chalk.white(`Last Session: ${lastSession.note || 'No notes from last session'}`));
-    }
+    if (await shouldShowWorkspaceHint(manager.storage, 'next:pretty-hint')) {
+      console.log(chalk.bold('\nAI Context:'));
+      console.log(chalk.white(`Current Task: ${nextTask.title}`));
+      console.log(chalk.white(`Description: ${truncate(nextTask.description, 200)}`));
+      if (nextTask.context.relatedFiles.length > 0) {
+        console.log(chalk.white(`Related Files: ${nextTask.context.relatedFiles.join(', ')}`));
+      }
+      if (nextTask.sessions.length > 0) {
+        const lastSession = nextTask.sessions[nextTask.sessions.length - 1];
+        console.log(chalk.white(`Last Session: ${lastSession.note || 'No notes from last session'}`));
+      }
 
-    console.log(chalk.blue('\nCommands:'), chalk.gray('seshflow done [options]'));
+      console.log(chalk.blue('\nCommands:'), chalk.gray('seshflow done [options]'));
+    }
   } catch (error) {
     spinner?.fail('Failed to get next task');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (jsonMode) {
+      outputJSON(formatErrorResponse(error, 'NEXT_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }

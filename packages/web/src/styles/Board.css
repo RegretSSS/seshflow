@@ -1,76 +1,180 @@
-/* Board 组件样式 */
 .board {
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
-  height: 100vh;
-  background: #f1f5f9;
+  overflow-x: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(251, 191, 36, 0.14), transparent 28%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.12), transparent 26%),
+    linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  color: #172554;
 }
 
-/* 加载状态 */
-.board-loading {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100vh;
-  font-size: 18px;
-  color: #64748b;
+.board-loading,
+.board-error {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px;
+  text-align: center;
 }
 
-/* 头部信息栏 */
+.board-error h1,
+.board-title {
+  margin: 0;
+}
+
 .board-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 16px 24px;
-  background: white;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  gap: 20px;
+  padding: 28px 32px 20px;
+}
+
+.board-toolbar {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.board-kicker {
+  margin: 0 0 6px;
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #475569;
 }
 
 .board-title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  color: #1e293b;
+  font-size: clamp(28px, 4vw, 44px);
+  line-height: 1;
+}
+
+.board-subtitle {
+  margin: 8px 0 0;
+  color: #334155;
 }
 
 .board-stats {
   display: flex;
-  gap: 16px;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .board-stat {
-  padding: 6px 12px;
-  background: #f1f5f9;
-  border-radius: 6px;
-  font-size: 14px;
-  color: #475569;
-  font-weight: 500;
+  padding: 10px 12px;
+  border: 1px solid rgba(148, 163, 184, 0.32);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(12px);
+  font-size: 13px;
 }
 
-/* 看板列容器 */
-.board-columns {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  overflow-x: auto;
-  flex: 1;
+.locale-toggle {
+  display: inline-flex;
+  padding: 4px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(148, 163, 184, 0.32);
 }
 
-/* 滚动条样式 */
-.board-columns::-webkit-scrollbar {
-  height: 8px;
-}
-
-.board-columns::-webkit-scrollbar-track {
+.locale-button {
+  border: 0;
   background: transparent;
+  color: #475569;
+  border-radius: 999px;
+  padding: 8px 12px;
+  cursor: pointer;
+  min-width: 48px;
 }
 
-.board-columns::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
+.locale-button.active {
+  background: #1d4ed8;
+  color: #eff6ff;
 }
 
-.board-columns::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+.board-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 0 32px 20px;
+}
+
+.summary-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.summary-panel h2 {
+  margin: 0 0 6px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+}
+
+.summary-link {
+  align-self: flex-start;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: #1d4ed8;
+  color: #eff6ff;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.event-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.event-line.level-warning {
+  background: #fff7ed;
+}
+
+.event-line.level-error {
+  background: #fef2f2;
+}
+
+.board-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  padding: 0 32px 32px;
+}
+
+@media (max-width: 900px) {
+  .board-header,
+  .board-summary,
+  .board-columns {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .board-header {
+    flex-direction: column;
+  }
+
+  .board-toolbar {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .board-summary {
+    grid-template-columns: 1fr;
+  }
 }

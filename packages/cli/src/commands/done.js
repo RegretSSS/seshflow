@@ -2,6 +2,8 @@ import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
 import { TaskManager } from '../core/task-manager.js';
+import { TaskTransitionService } from '../core/task-transition-service.js';
+import { formatErrorResponse, formatSuccessResponse, formatTaskJSON, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 
 function getProgress(tasks) {
@@ -31,17 +33,27 @@ function getUnlockedTasks(tasks, completedTaskId) {
 }
 
 function normalizeDoneInput(taskIdOrOptions, maybeOptions) {
+  const normalizeOptions = (rawOptions = {}) => {
+    if (rawOptions && typeof rawOptions.opts === 'function') {
+      return {
+        ...rawOptions.opts(),
+      };
+    }
+
+    return rawOptions || {};
+  };
+
   if (typeof taskIdOrOptions === 'string') {
     return {
       taskId: taskIdOrOptions,
-      options: maybeOptions || {},
+      options: normalizeOptions(maybeOptions),
       fromExplicitTaskId: true,
     };
   }
 
   return {
     taskId: null,
-    options: taskIdOrOptions || {},
+    options: normalizeOptions(taskIdOrOptions),
     fromExplicitTaskId: false,
   };
 }
@@ -51,10 +63,12 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const spinner = compactMode ? null : ora('Loading workspace').start();
+  let manager;
 
   try {
-    const manager = new TaskManager();
+    manager = new TaskManager();
     await manager.init();
+    const transitions = new TaskTransitionService(manager);
 
     let targetTask = null;
     const currentTask = manager.getCurrentTask();
@@ -62,6 +76,9 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
       targetTask = manager.getTask(taskId);
       if (!targetTask) {
         spinner?.stop();
+        if (isJSONMode(options)) {
+          outputJSON(formatErrorResponse(new Error(`Task not found: ${taskId}`), 'TASK_NOT_FOUND'));
+        }
         console.error(chalk.red(`\nTask not found: ${taskId}`));
         console.error(chalk.gray(`  Use 'seshflow list' to see all tasks`));
         process.exit(1);
@@ -72,6 +89,18 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
 
     if (!targetTask) {
       spinner?.stop();
+      if (isJSONMode(options)) {
+        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
+        const nextTask = manager.getNextTask();
+        outputJSON(formatSuccessResponse({
+          action: 'done',
+          changed: false,
+          task: null,
+          hasActiveSession: false,
+          nextTask: nextTask ? formatTaskJSON(nextTask) : null,
+        }, workspaceJSON));
+        return;
+      }
       if (compactMode) {
         console.log('NO_ACTIVE_SESSION');
       } else {
@@ -109,9 +138,10 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
     }
 
     const completeSpinner = compactMode ? null : ora('Completing task').start();
-    await manager.completeTask(targetTask.id, {
+    const result = await transitions.completeTask(targetTask.id, {
       hours,
-      note
+      note,
+      source: 'cli.done',
     });
     await manager.saveData();
     completeSpinner?.succeed('Task completed');
@@ -121,8 +151,31 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
     const unlockedTasks = getUnlockedTasks(allTasksAfter, targetTask.id);
     const nextTask = manager.getNextTask();
 
+    if (isJSONMode(options)) {
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
+      outputJSON(formatSuccessResponse({
+        action: 'done',
+        changed: true,
+        task: formatTaskJSON(targetTask),
+        runtimeSummary: manager.getRuntimeSummary(targetTask),
+        announcementResults: result.announcementResults || [],
+        transitionEvent: result.transitionEvent,
+        hasActiveSession: false,
+        hours: hours ? Number.parseFloat(hours) : null,
+        note: note || '',
+        progress: {
+          before: progressBefore,
+          after: progressAfter,
+        },
+        unlockedTasks: unlockedTasks.map(task => formatTaskJSON(task)),
+        nextTask: nextTask ? formatTaskJSON(nextTask) : null,
+      }, workspaceJSON));
+      return;
+    }
+
     if (compactMode) {
-      console.log(`DONE | ${targetTask.id} | ${targetTask.title}${hours ? ` | hours=${hours}` : ''}`);
+      const announcementInfo = result.announcementResults?.length ? ` | announcements=${result.announcementResults.length}` : '';
+      console.log(`DONE | ${targetTask.id} | ${targetTask.title}${hours ? ` | hours=${hours}` : ''}${announcementInfo}`);
       console.log(`PROGRESS | ${progressBefore.done}/${progressBefore.total} -> ${progressAfter.done}/${progressAfter.total} (${progressAfter.percent}%)`);
       if (unlockedTasks.length > 0) {
         console.log(`UNLOCKED | ${unlockedTasks.map(task => task.id).join(',')}`);
@@ -159,6 +212,16 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
       console.log(chalk.green('\nAll tasks completed.'));
     }
   } catch (error) {
+    if (manager) {
+      try {
+        await manager.saveData();
+      } catch {
+        // Best-effort persistence for hook/runtime failures.
+      }
+    }
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'DONE_FAILED'));
+    }
     console.error(chalk.red(`\nError: ${error.message}`));
     process.exit(1);
   }

@@ -6,6 +6,8 @@ const VALID_MODES = new Set(['pretty', 'compact']);
  * 2) SESHFLOW_OUTPUT env
  * 3) non-TTY defaults to compact
  * 4) fallback default mode
+ *
+ * JSON is resolved separately by isJSONMode().
  */
 export function resolveOutputMode(options = {}, defaultMode = 'pretty') {
   if (options.compact) return 'compact';
@@ -22,4 +24,3 @@ export function resolveOutputMode(options = {}, defaultMode = 'pretty') {
 
   return VALID_MODES.has(defaultMode) ? defaultMode : 'pretty';
 }
-

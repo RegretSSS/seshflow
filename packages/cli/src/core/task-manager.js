@@ -3,9 +3,13 @@ import {
   generateTaskId,
   generateSubtaskId,
   generateSessionId,
+  generateRuntimeRecordId,
+  generateProcessRecordId,
+  generateTransitionEventId,
+  generateRuntimeEventId,
   toISOString,
   isValidPriority,
-  isValidStatus,
+  isValidTaskId,
   sanitizeBranchName
 } from '../utils/helpers.js';
 
@@ -13,8 +17,8 @@ import {
  * TaskManager - Core task management logic
  */
 export class TaskManager {
-  constructor(workspacePath = process.cwd()) {
-    this.storage = new Storage(workspacePath);
+  constructor(workspacePath = process.cwd(), options = {}) {
+    this.storage = new Storage(workspacePath, options);
     this.data = null;
   }
 
@@ -32,6 +36,8 @@ export class TaskManager {
    */
   async loadData() {
     this.data = await this.storage.readTasksFile();
+    this.refreshDerivedState();
+    this.updateWorkspaceInfo();
     return this.data;
   }
 
@@ -39,6 +45,7 @@ export class TaskManager {
    * Save task data to storage
    */
   async saveData() {
+    await this.syncWorkspaceInfo();
     await this.storage.writeTasksFile(this.data);
     return this;
   }
@@ -48,6 +55,30 @@ export class TaskManager {
    */
   getTasks() {
     return this.data?.tasks || [];
+  }
+
+  getTransitionEvents(limit = null) {
+    const events = this.data?.transitions || [];
+    if (!limit) {
+      return events;
+    }
+    return events.slice(-limit);
+  }
+
+  getRuntimeEvents(limit = null) {
+    const events = this.data?.runtimeEvents || [];
+    if (!limit) {
+      return events;
+    }
+    return events.slice(-limit);
+  }
+
+  getTaskRuntimeEvents(taskId, limit = null) {
+    const events = this.getRuntimeEvents().filter(event => event.taskId === taskId);
+    if (!limit) {
+      return events;
+    }
+    return events.slice(-limit);
   }
 
   /**
@@ -61,8 +92,19 @@ export class TaskManager {
    * Create a new task
    */
   createTask(options) {
+    const requestedId = options.id ? String(options.id).trim() : '';
+    const taskId = requestedId || generateTaskId();
+
+    if (requestedId && !isValidTaskId(requestedId)) {
+      throw new Error(`Invalid task id: ${requestedId}`);
+    }
+
+    if (this.getTask(taskId)) {
+      throw new Error(`Task id already exists: ${taskId}`);
+    }
+
     const task = {
-      id: generateTaskId(),
+      id: taskId,
       title: options.title || 'Untitled Task',
       description: options.description || '',
       status: options.status || 'backlog',
@@ -85,13 +127,16 @@ export class TaskManager {
         relatedFiles: options.relatedFiles || [],
         commands: options.commands || [],
         links: options.links || []
+      },
+      runtime: {
+        runs: [],
+        processes: [],
+        lastRecordedAt: null
       }
     };
 
-    // Update blockedBy based on dependencies
-    task.blockedBy = this.calculateBlockedBy(task.dependencies);
-
     this.data.tasks.push(task);
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return task;
   }
@@ -109,11 +154,6 @@ export class TaskManager {
     Object.assign(task, updates);
     task.updatedAt = toISOString();
 
-    // Update blockedBy if dependencies changed
-    if (updates.dependencies !== undefined) {
-      task.blockedBy = this.calculateBlockedBy(updates.dependencies);
-    }
-
     // Auto-set timestamps based on status
     if (updates.status === 'in-progress' && !task.startedAt) {
       task.startedAt = toISOString();
@@ -122,6 +162,7 @@ export class TaskManager {
       task.completedAt = toISOString();
     }
 
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return task;
   }
@@ -138,10 +179,10 @@ export class TaskManager {
     // Remove from other tasks' dependencies
     this.data.tasks.forEach(task => {
       task.dependencies = task.dependencies.filter(id => id !== taskId);
-      task.blockedBy = task.blockedBy.filter(id => id !== taskId);
     });
 
     this.data.tasks.splice(index, 1);
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return true;
   }
@@ -216,7 +257,8 @@ export class TaskManager {
       id: generateSessionId(),
       startedAt: toISOString(),
       endedAt: null,
-      note: ''
+      note: '',
+      runtimeEntries: []
     };
 
     task.sessions.push(session);
@@ -231,6 +273,7 @@ export class TaskManager {
     };
 
     this.data.metadata.lastSession = toISOString();
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return task;
   }
@@ -257,6 +300,27 @@ export class TaskManager {
 
     // Clear current session
     this.data.currentSession = null;
+    this.refreshDerivedState();
+    this.updateWorkspaceInfo();
+    return task;
+  }
+
+  async suspendCurrentTask(reason = 'Suspended') {
+    if (!this.data?.currentSession) {
+      throw new Error('No active session');
+    }
+
+    const task = this.getTask(this.data.currentSession.taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${this.data.currentSession.taskId}`);
+    }
+
+    await this.endSession(reason);
+    task.status = 'todo';
+    task.updatedAt = toISOString();
+    task.suspendedAt = toISOString();
+    task.suspendedReason = reason;
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return task;
   }
@@ -289,8 +353,147 @@ export class TaskManager {
       }
     }
 
+    this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return task;
+  }
+
+  /**
+   * Record runtime context for a task
+   */
+  recordRuntime(taskId, details = {}) {
+    const task = this.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+
+    const entry = this.normalizeRuntimeEntry({
+      id: generateRuntimeRecordId(),
+      command: details.command || '',
+      cwd: details.cwd || this.storage.getWorkspacePath(),
+      logFile: details.logFile || null,
+      outputRoot: details.outputRoot || null,
+      artifacts: Array.isArray(details.artifacts) ? details.artifacts : [],
+      note: details.note || '',
+      recordedAt: toISOString(),
+      sessionId: null,
+    });
+
+    task.runtime.runs.push(entry);
+    task.runtime.lastRecordedAt = entry.recordedAt;
+    task.updatedAt = entry.recordedAt;
+
+    const activeSession = this.getActiveSessionForTask(taskId);
+    if (activeSession) {
+      entry.sessionId = activeSession.id;
+      activeSession.runtimeEntries.push(entry);
+    }
+
+    this.refreshDerivedState();
+    this.updateWorkspaceInfo();
+    return entry;
+  }
+
+  registerProcess(taskId, details = {}) {
+    const task = this.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+
+    const pid = Number.parseInt(details.pid, 10);
+    if (!Number.isInteger(pid) || pid <= 0) {
+      throw new Error(`Invalid pid: ${details.pid}`);
+    }
+
+    const now = toISOString();
+    const state = this.detectProcessState(pid, details.state);
+    const existing = task.runtime.processes.find(entry => entry.pid === pid && entry.state !== 'exited');
+
+    if (existing) {
+      existing.command = details.command || existing.command;
+      existing.cwd = details.cwd || existing.cwd;
+      existing.outputRoot = details.outputRoot || existing.outputRoot;
+      existing.note = details.note || existing.note;
+      existing.state = state;
+      existing.lastCheckedAt = now;
+      task.updatedAt = now;
+      this.refreshDerivedState();
+      this.updateWorkspaceInfo();
+      return existing;
+    }
+
+    const entry = this.normalizeProcessEntry({
+      id: generateProcessRecordId(),
+      pid,
+      command: details.command || '',
+      cwd: details.cwd || this.storage.getWorkspacePath(),
+      outputRoot: details.outputRoot || null,
+      note: details.note || '',
+      state,
+      launchedAt: details.launchedAt || now,
+      lastCheckedAt: now,
+    });
+
+    task.runtime.processes.push(entry);
+    task.updatedAt = now;
+    this.refreshDerivedState();
+    this.updateWorkspaceInfo();
+    return entry;
+  }
+
+  refreshProcessStates(taskId) {
+    const task = this.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+
+    const now = toISOString();
+    task.runtime.processes = task.runtime.processes.map(entry => {
+      if (entry.state === 'exited') {
+        return {
+          ...entry,
+          lastCheckedAt: now,
+        };
+      }
+
+      const alive = this.isProcessAlive(entry.pid);
+      return {
+        ...entry,
+        state: alive ? 'running' : 'missing',
+        lastCheckedAt: now,
+      };
+    });
+
+    task.updatedAt = now;
+    this.refreshDerivedState();
+    this.updateWorkspaceInfo();
+    return task.runtime.processes;
+  }
+
+  getRecentProcessEntries(task, limit = 5) {
+    if (!task?.runtime?.processes?.length) {
+      return [];
+    }
+
+    return [...task.runtime.processes]
+      .sort((a, b) => new Date(b.launchedAt) - new Date(a.launchedAt))
+      .slice(0, limit);
+  }
+
+  getProcessSummary(task) {
+    const entries = task?.runtime?.processes || [];
+    const [lastEntry] = this.getRecentProcessEntries(task, 1);
+
+    return {
+      recordCount: entries.length,
+      runningCount: entries.filter(entry => entry.state === 'running').length,
+      missingCount: entries.filter(entry => entry.state === 'missing').length,
+      exitedCount: entries.filter(entry => entry.state === 'exited').length,
+      lastPid: lastEntry?.pid || null,
+      lastCommand: lastEntry?.command || null,
+      lastOutputRoot: lastEntry?.outputRoot || null,
+      lastCheckedAt: lastEntry?.lastCheckedAt || null,
+    };
   }
 
   /**
@@ -368,13 +571,308 @@ export class TaskManager {
   }
 
   /**
-   * Calculate which tasks are blocking this task
+   * Get current blockers for a task
    */
-  calculateBlockedBy(dependencies) {
-    return dependencies.filter(depId => {
-      const dep = this.getTask(depId);
-      return dep && dep.status !== 'done';
+  getBlockedBy(task) {
+    return this.getUnmetDependencies(task).map(dep => dep.id);
+  }
+
+  hasDependencyPath(fromTaskId, targetTaskId, visited = new Set()) {
+    if (fromTaskId === targetTaskId) {
+      return true;
+    }
+
+    if (visited.has(fromTaskId)) {
+      return false;
+    }
+    visited.add(fromTaskId);
+
+    const fromTask = this.getTask(fromTaskId);
+    if (!fromTask?.dependencies?.length) {
+      return false;
+    }
+
+    return fromTask.dependencies.some(depId => this.hasDependencyPath(depId, targetTaskId, visited));
+  }
+
+  validateDependencyMutation(taskId, dependencyId) {
+    const task = this.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+
+    const dependencyTask = this.getTask(dependencyId);
+    if (!dependencyTask) {
+      throw new Error(`Dependency task not found: ${dependencyId}`);
+    }
+
+    if (taskId === dependencyId) {
+      throw new Error(`Task cannot depend on itself: ${taskId}`);
+    }
+
+    if (this.hasDependencyPath(dependencyId, taskId)) {
+      throw new Error(`Dependency cycle detected: ${taskId} -> ${dependencyId}`);
+    }
+
+    return { task, dependencyTask };
+  }
+
+  addDependency(taskId, dependencyId) {
+    const { task, dependencyTask } = this.validateDependencyMutation(taskId, dependencyId);
+
+    if (task.dependencies.includes(dependencyId)) {
+      return {
+        task,
+        dependencyTask,
+        added: false,
+      };
+    }
+
+    task.dependencies = [...task.dependencies, dependencyId];
+    task.updatedAt = toISOString();
+    this.refreshDerivedState();
+    this.updateWorkspaceInfo();
+
+    return {
+      task,
+      dependencyTask,
+      added: true,
+    };
+  }
+
+  removeDependency(taskId, dependencyId) {
+    const task = this.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+
+    const beforeCount = task.dependencies.length;
+    task.dependencies = task.dependencies.filter(depId => depId !== dependencyId);
+    const removed = task.dependencies.length !== beforeCount;
+
+    if (removed) {
+      task.updatedAt = toISOString();
+      this.refreshDerivedState();
+      this.updateWorkspaceInfo();
+    }
+
+    return {
+      task,
+      dependencyTask: this.getTask(dependencyId) || null,
+      removed,
+    };
+  }
+
+  getActiveSessionForTask(taskId) {
+    if (this.data?.currentSession?.taskId !== taskId) {
+      return null;
+    }
+
+    const task = this.getTask(taskId);
+    if (!task?.sessions?.length) {
+      return null;
+    }
+
+    const lastSession = task.sessions[task.sessions.length - 1];
+    if (!lastSession || lastSession.endedAt) {
+      return null;
+    }
+
+    return lastSession;
+  }
+
+  getRecentRuntimeEntries(task, limit = 3) {
+    if (!task?.runtime?.runs?.length) {
+      return [];
+    }
+
+    return [...task.runtime.runs]
+      .sort((a, b) => new Date(b.recordedAt) - new Date(a.recordedAt))
+      .slice(0, limit);
+  }
+
+  getRuntimeSummary(task) {
+    const [lastEntry] = this.getRecentRuntimeEntries(task, 1);
+
+    return {
+      recordCount: task?.runtime?.runs?.length || 0,
+      lastRecordedAt: task?.runtime?.lastRecordedAt || null,
+      lastCommand: lastEntry?.command || null,
+      lastOutputRoot: lastEntry?.outputRoot || null,
+      lastArtifacts: lastEntry?.artifacts || [],
+      lastLogFile: lastEntry?.logFile || null,
+    };
+  }
+
+  getRuntimeEventSummary(task) {
+    const events = this.getTaskRuntimeEvents(task?.id);
+    return {
+      recordCount: events.length,
+      warningCount: events.filter(event => event.level === 'warn').length,
+      errorCount: events.filter(event => event.level === 'error').length,
+      lastEventType: events.at(-1)?.type || null,
+      lastOccurredAt: events.at(-1)?.occurredAt || null,
+    };
+  }
+
+  /**
+   * Refresh derived fields that should never become stale on disk
+   */
+  refreshDerivedState() {
+    if (!Array.isArray(this.data?.tasks)) {
+      return;
+    }
+
+    this.data.transitions = Array.isArray(this.data.transitions)
+      ? this.data.transitions.map(event => this.normalizeTransitionEvent(event))
+      : [];
+    this.data.runtimeEvents = Array.isArray(this.data.runtimeEvents)
+      ? this.data.runtimeEvents.map(event => this.normalizeRuntimeEvent(event))
+      : [];
+
+    this.data.tasks.forEach(task => {
+      this.normalizeTask(task);
+      task.blockedBy = this.getBlockedBy(task);
     });
+  }
+
+  normalizeTask(task) {
+    task.dependencies = Array.isArray(task.dependencies) ? task.dependencies : [];
+    task.subtasks = Array.isArray(task.subtasks) ? task.subtasks : [];
+    task.tags = Array.isArray(task.tags) ? task.tags : [];
+    task.sessions = Array.isArray(task.sessions) ? task.sessions : [];
+    task.context = {
+      relatedFiles: Array.isArray(task.context?.relatedFiles) ? task.context.relatedFiles : [],
+      commands: Array.isArray(task.context?.commands) ? task.context.commands : [],
+      links: Array.isArray(task.context?.links) ? task.context.links : []
+    };
+    task.runtime = {
+      runs: Array.isArray(task.runtime?.runs) ? task.runtime.runs.map(entry => this.normalizeRuntimeEntry(entry)) : [],
+      processes: Array.isArray(task.runtime?.processes) ? task.runtime.processes.map(entry => this.normalizeProcessEntry(entry)) : [],
+      lastRecordedAt: task.runtime?.lastRecordedAt || null
+    };
+    task.sessions = task.sessions.map(session => this.normalizeSession(session));
+
+    if (!task.runtime.lastRecordedAt && task.runtime.runs.length > 0) {
+      const lastEntry = task.runtime.runs[task.runtime.runs.length - 1];
+      task.runtime.lastRecordedAt = lastEntry.recordedAt;
+    }
+
+    return task;
+  }
+
+  normalizeSession(session) {
+    return {
+      ...session,
+      runtimeEntries: Array.isArray(session?.runtimeEntries)
+        ? session.runtimeEntries.map(entry => this.normalizeRuntimeEntry(entry))
+        : []
+    };
+  }
+
+  normalizeRuntimeEntry(entry = {}) {
+    return {
+      id: entry.id || generateRuntimeRecordId(),
+      command: entry.command || '',
+      cwd: entry.cwd || this.storage.getWorkspacePath(),
+      logFile: entry.logFile || null,
+      outputRoot: entry.outputRoot || null,
+      artifacts: Array.isArray(entry.artifacts) ? entry.artifacts : [],
+      note: entry.note || '',
+      recordedAt: entry.recordedAt || toISOString(),
+      sessionId: entry.sessionId || null,
+    };
+  }
+
+  appendTransitionEvent(event = {}) {
+    const normalizedEvent = this.normalizeTransitionEvent(event);
+    this.data.transitions = Array.isArray(this.data.transitions) ? this.data.transitions : [];
+    this.data.transitions.push(normalizedEvent);
+    this.data.metadata.updatedAt = toISOString();
+    return normalizedEvent;
+  }
+
+  appendRuntimeEvent(event = {}) {
+    const normalizedEvent = this.normalizeRuntimeEvent(event);
+    this.data.runtimeEvents = Array.isArray(this.data.runtimeEvents) ? this.data.runtimeEvents : [];
+    this.data.runtimeEvents.push(normalizedEvent);
+    this.data.metadata.updatedAt = toISOString();
+    return normalizedEvent;
+  }
+
+  normalizeTransitionEvent(event = {}) {
+    return {
+      id: event.id || generateTransitionEventId(),
+      schemaVersion: Number.isInteger(event.schemaVersion) ? event.schemaVersion : 1,
+      type: event.type || 'task.transition',
+      taskId: event.taskId || null,
+      statusFrom: event.statusFrom || null,
+      statusTo: event.statusTo || null,
+      changed: typeof event.changed === 'boolean' ? event.changed : true,
+      context: event.context && typeof event.context === 'object' ? event.context : {},
+      occurredAt: event.occurredAt || toISOString(),
+    };
+  }
+
+  normalizeRuntimeEvent(event = {}) {
+    return {
+      id: event.id || generateRuntimeEventId(),
+      schemaVersion: Number.isInteger(event.schemaVersion) ? event.schemaVersion : 1,
+      type: event.type || 'runtime.event',
+      taskId: event.taskId || null,
+      transitionEventId: event.transitionEventId || null,
+      hookName: event.hookName || null,
+      hookId: event.hookId || null,
+      level: event.level || 'info',
+      status: event.status || 'recorded',
+      message: event.message || '',
+      attempts: Number.isInteger(event.attempts) ? event.attempts : 0,
+      data: event.data && typeof event.data === 'object' ? event.data : {},
+      occurredAt: event.occurredAt || toISOString(),
+    };
+  }
+
+  normalizeProcessEntry(entry = {}) {
+    return {
+      id: entry.id || generateProcessRecordId(),
+      pid: Number.parseInt(entry.pid, 10),
+      command: entry.command || '',
+      cwd: entry.cwd || this.storage.getWorkspacePath(),
+      outputRoot: entry.outputRoot || null,
+      note: entry.note || '',
+      state: entry.state || this.detectProcessState(entry.pid),
+      launchedAt: entry.launchedAt || toISOString(),
+      lastCheckedAt: entry.lastCheckedAt || null,
+    };
+  }
+
+  detectProcessState(pid, preferredState = null) {
+    if (preferredState === 'exited') {
+      return 'exited';
+    }
+
+    if (!Number.isInteger(Number.parseInt(pid, 10)) || Number.parseInt(pid, 10) <= 0) {
+      return 'unknown';
+    }
+
+    return this.isProcessAlive(pid) ? 'running' : (preferredState || 'missing');
+  }
+
+  isProcessAlive(pid) {
+    const parsedPid = Number.parseInt(pid, 10);
+    if (!Number.isInteger(parsedPid) || parsedPid <= 0) {
+      return false;
+    }
+
+    try {
+      process.kill(parsedPid, 0);
+      return true;
+    } catch (error) {
+      if (error.code === 'EPERM') {
+        return true;
+      }
+      return false;
+    }
   }
 
   /**
@@ -425,7 +923,14 @@ export class TaskManager {
    */
   updateWorkspaceInfo() {
     if (this.data.workspace) {
-      this.data.workspace.path = this.storage.getWorkspacePath();
+      Object.assign(this.data.workspace, this.storage.getWorkspaceRecordSync(this.getTasks().length));
+    }
+  }
+
+  async syncWorkspaceInfo() {
+    this.updateWorkspaceInfo();
+    if (this.data.workspace) {
+      this.data.workspace.gitBranch = await this.storage.getGitBranch();
     }
   }
 

@@ -3,6 +3,7 @@ import ora from 'ora';
 import inquirer from 'inquirer';
 import { TaskManager } from '../core/task-manager.js';
 import { isValidPriority, truncate } from '../utils/helpers.js';
+import { formatErrorResponse, formatSuccessResponse, formatTaskJSON, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
 
 const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
 const HOURS_RE = /^(\d+(?:\.\d+)?)\s*h?$/i;
@@ -73,13 +74,14 @@ export async function add(title, options = {}) {
   try {
     const manager = new TaskManager();
     await manager.init();
+    const jsonMode = isJSONMode(options);
 
     const parsed = parseInlineMetadataFromTitle(title);
     const normalizedTitle = parsed.title;
     let description = options.description ?? options.desc ?? '';
 
     // Interactive description input if not provided
-    if (!description && process.stdin.isTTY) {
+    if (!jsonMode && !description && process.stdin.isTTY) {
       const answers = await inquirer.prompt([
         {
           type: 'editor',
@@ -111,7 +113,12 @@ export async function add(title, options = {}) {
 
     // Validate dependencies
     const invalidDeps = manager.validateDependencies(dependencies);
-    if (invalidDeps.length > 0) {
+    const warnings = invalidDeps.map(dependencyId => ({
+      code: 'DEPENDENCY_NOT_FOUND',
+      dependencyId,
+      message: `Referenced dependency does not exist yet: ${dependencyId}`,
+    }));
+    if (!jsonMode && invalidDeps.length > 0) {
       console.warn(
         chalk.yellow(
           `\n⚠️  Warning: The following task dependencies do not exist: ${invalidDeps.join(
@@ -122,7 +129,7 @@ export async function add(title, options = {}) {
     }
 
     // Create task
-    const spinner = ora('Creating task').start();
+    const spinner = (!jsonMode && process.stdout.isTTY) ? ora('Creating task').start() : null;
 
     const hoursInput = options.hours ?? options.estimate ?? parsed.estimatedHours;
     const estimatedHours = parseHoursInput(hoursInput);
@@ -142,7 +149,18 @@ export async function add(title, options = {}) {
     });
 
     await manager.saveData();
-    spinner.succeed('Task created');
+    spinner?.succeed('Task created');
+
+    if (jsonMode) {
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
+      outputJSON(formatSuccessResponse({
+        action: 'add',
+        changed: true,
+        task: formatTaskJSON(task),
+        warnings,
+      }, workspaceJSON));
+      return;
+    }
 
     // Display task info
     console.log(chalk.green(`\n✓ Task: ${chalk.bold(task.title)}`));
@@ -163,6 +181,10 @@ export async function add(title, options = {}) {
 
     console.log(chalk.blue('\nNext:'), chalk.gray('seshflow next'));
   } catch (error) {
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'ADD_FAILED'));
+      process.exit(1);
+    }
     console.error(chalk.red(`\nError: ${error.message}`));
     process.exit(1);
   }

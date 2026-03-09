@@ -1,72 +1,50 @@
-/* Column 组件样式 */
 .column {
   display: flex;
   flex-direction: column;
-  width: 300px;
-  max-width: 300px;
-  background: #f8fafc;
-  border-radius: 8px;
+  min-height: 340px;
+  border-radius: 22px;
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.08);
 }
 
-/* 列头 */
 .column-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  color: white;
-  font-weight: 600;
+  gap: 12px;
+  padding: 16px 18px;
+  color: #fff;
 }
 
 .column-title {
   margin: 0;
   font-size: 16px;
-  font-weight: 600;
 }
 
 .column-count {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 24px;
-  height: 24px;
-  padding: 0 8px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 12px;
+  min-width: 28px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.24);
+  text-align: center;
   font-size: 12px;
-  font-weight: 600;
 }
 
-/* 列内容 */
 .column-content {
   flex: 1;
-  padding: 8px;
-  overflow-y: auto;
-  min-height: 100px;
-  max-height: calc(100vh - 200px);
-  transition: background-color 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
 }
 
-.column-content.is-dragging-over {
-  background-color: #e2e8f0;
-}
-
-/* 滚动条样式 */
-.column-content::-webkit-scrollbar {
-  width: 6px;
-}
-
-.column-content::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.column-content::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
-}
-
-.column-content::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+.column-empty {
+  padding: 18px 14px;
+  border-radius: 16px;
+  border: 1px dashed #cbd5e1;
+  color: #94a3b8;
+  text-align: center;
+  background: rgba(248, 250, 252, 0.72);
 }

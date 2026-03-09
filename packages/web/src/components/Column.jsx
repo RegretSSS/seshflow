@@ -1,48 +1,24 @@
-import React from 'react';
 import PropTypes from 'prop-types';
-import { Droppable } from 'react-beautiful-dnd';
 import Card from './Card';
+import { getMessage, getStatusLabel } from '../i18n';
 import '../styles/Column.css';
 
-/**
- * Column 组件 - 看板中的单列
- * 显示列头（名称+任务数）、任务列表容器、拖放区域
- */
-const Column = ({ column, tasks, onCardClick }) => {
-  const taskCount = tasks.length;
-
+const Column = ({ column, tasks, locale, onCardClick = () => {} }) => {
   return (
-    <div className="column">
-      {/* 列头 */}
+    <section className="column">
       <div className="column-header" style={{ backgroundColor: column.color }}>
-        <h3 className="column-title">{column.name}</h3>
-        <span className="column-count">{taskCount}</span>
+        <h3 className="column-title">{getStatusLabel(locale, column.id) || column.name}</h3>
+        <span className="column-count">{tasks.length}</span>
       </div>
 
-      {/* 拖放区域 */}
-      <Droppable droppableId={column.id}>
-        {(provided, snapshot) => (
-          <div
-            ref={provided.innerRef}
-            className={`column-content ${snapshot.isDraggingOver ? 'is-dragging-over' : ''}`}
-            {...provided.droppableProps}
-          >
-            {/* 任务列表 */}
-            {tasks.map((task, index) => (
-              <Card
-                key={task.id}
-                task={task}
-                index={index}
-                onClick={() => onCardClick(task)}
-              />
-            ))}
-
-            {/* 拖放占位符 */}
-            {provided.placeholder}
-          </div>
+      <div className="column-content">
+        {tasks.length > 0 ? tasks.map((task) => (
+          <Card key={task.id} task={task} locale={locale} onClick={() => onCardClick(task)} />
+        )) : (
+          <div className="column-empty">{getMessage(locale, 'noTasks')}</div>
         )}
-      </Droppable>
-    </div>
+      </div>
+    </section>
   );
 };
 
@@ -52,24 +28,9 @@ Column.propTypes = {
     name: PropTypes.string.isRequired,
     color: PropTypes.string.isRequired,
   }).isRequired,
-  tasks: PropTypes.arrayOf(
-    PropTypes.shape({
-      id: PropTypes.string.isRequired,
-      title: PropTypes.string.isRequired,
-      description: PropTypes.string,
-      status: PropTypes.string.isRequired,
-      priority: PropTypes.string,
-      tags: PropTypes.arrayOf(PropTypes.string),
-      estimatedHours: PropTypes.number,
-      actualHours: PropTypes.number,
-      assignee: PropTypes.string,
-    })
-  ).isRequired,
+  tasks: PropTypes.arrayOf(PropTypes.object).isRequired,
+  locale: PropTypes.oneOf(['en', 'zh']).isRequired,
   onCardClick: PropTypes.func,
-};
-
-Column.defaultProps = {
-  onCardClick: () => {},
 };
 
 export default Column;

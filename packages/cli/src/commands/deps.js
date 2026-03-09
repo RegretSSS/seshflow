@@ -170,12 +170,18 @@ export async function deps(taskId, options = {}) {
 
     console.log(chalk.blue('\nTips:'));
     console.log(chalk.gray('  seshflow deps <task-id>')); 
+    console.log(chalk.gray('  seshflow add-dep <task-id> <depends-on-task-id>'));
+    console.log(chalk.gray('  seshflow remove-dep <task-id> <depends-on-task-id>'));
     console.log(chalk.gray('  seshflow deps --graph'));
-    console.log(chalk.gray('  seshflow deps --json'));
+    console.log(chalk.gray('  seshflow deps'));
     console.log('');
   } catch (error) {
     spinner?.fail('Failed to load dependencies');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'DEPS_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }

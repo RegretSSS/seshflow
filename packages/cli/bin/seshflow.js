@@ -1,44 +1,46 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
-import chalk from 'chalk';
-import { init } from '../src/commands/init.js';
-import { add } from '../src/commands/add.js';
-import { next } from '../src/commands/next.js';
-import { done, completeTask } from '../src/commands/done.js';
-import { newchatfirstround } from '../src/commands/newchatfirstround.js';
-import { deps } from '../src/commands/deps.js';
-import { importTasks } from '../src/commands/import.js';
-import { query } from '../src/commands/query.js';
-import { stats } from '../src/commands/stats.js';
-import { list } from '../src/commands/list.js';
-import { show } from '../src/commands/show.js';
-import { deleteTask } from '../src/commands/delete.js';
-import { edit } from '../src/commands/edit.js';
-import { magic, magicList } from '../src/commands/magic.js';
-import { exportTasks } from '../src/commands/export.js';
-import { validateMarkdown } from '../src/commands/validate.js';
-import { start } from '../src/commands/start.js';
-import { skip } from '../src/commands/skip.js';
+import { spawnSync } from 'node:child_process';
 
+const VERSION = '1.2.0';
 const program = new Command();
 
-// CLI info
-const VERSION = '1.1.0';
+function configureWindowsUtf8() {
+  if (process.platform !== 'win32') {
+    return;
+  }
+
+  try {
+    spawnSync(process.env.comspec || 'cmd.exe', ['/d', '/s', '/c', 'chcp 65001 >NUL'], {
+      stdio: 'ignore',
+      windowsHide: true
+    });
+  } catch {
+    // Best-effort only. Seshflow still runs if the terminal cannot be adjusted.
+  }
+}
+
+function lazyAction(importer, exportName) {
+  return async (...args) => {
+    const mod = await importer();
+    return mod[exportName](...args);
+  };
+}
+
+configureWindowsUtf8();
 
 program
   .name('seshflow')
-  .description('Seshflow - 跨对话任务序列器')
+  .description('Seshflow - AI development runtime control plane')
   .version(VERSION);
 
-// Init command
 program
   .command('init')
   .description('Initialize seshflow workspace')
   .option('-f, --force', 'Reinitialize even if already initialized')
-  .action(init);
+  .action(lazyAction(() => import('../src/commands/init.js'), 'init'));
 
-// Add command
 program
   .command('add <title>')
   .description('Add a new task')
@@ -52,9 +54,10 @@ program
   .option('-e, --estimate <hours>', 'Advanced: estimated hours')
   .option('-a, --assignee <name>', 'Assignee name')
   .option('-b, --branch <branch>', 'Git branch name')
-  .action(add);
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/add.js'), 'add'));
 
-// Next command
 program
   .command('next')
   .description('Get next task to work on')
@@ -65,9 +68,9 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
-  .action(next);
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/next.js'), 'next'));
 
-// Done command
 program
   .command('done [taskId]')
   .description('Complete current task or a specific task by ID')
@@ -75,9 +78,16 @@ program
   .option('-n, --note <text>', 'Completion notes')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
-  .action(done);
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(async (taskId, options) => {
+    const mod = await import('../src/commands/done.js');
+    if (typeof taskId === 'string') {
+      return mod.done(taskId, options);
+    }
+    return mod.done(options || taskId);
+  });
 
-// Complete specific task (compatibility alias)
 program
   .command('complete <taskId>')
   .description('Alias of done <taskId>')
@@ -85,18 +95,21 @@ program
   .option('-n, --note <text>', 'Completion notes')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
-  .action(completeTask);
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/done.js'), 'completeTask'));
 
-// Start specific task
 program
   .command('start <taskId>')
   .description('Start a specific task (set in-progress)')
   .option('-f, --force', 'Force start even with active session or unmet dependencies')
+  .option('-s, --switch', 'Suspend the current task first if another session is active')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
-  .action(start);
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/start.js'), 'start'));
 
-// Skip current task
 program
   .command('skip')
   .description('Skip current task and return it to todo')
@@ -104,9 +117,111 @@ program
   .option('-n, --note <text>', 'Alias for --reason')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
-  .action(skip);
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/skip.js'), 'skip'));
 
-// Import command
+program
+  .command('suspend')
+  .description('Suspend current task and return it to todo')
+  .option('-r, --reason <text>', 'Reason for suspending')
+  .option('-n, --note <text>', 'Alias for --reason')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/suspend.js'), 'suspend'));
+
+program
+  .command('record [taskId]')
+  .description('Record runtime context for a task')
+  .option('-c, --command <command>', 'Executed command')
+  .option('--cwd <path>', 'Working directory used')
+  .option('--log <path>', 'Log file path')
+  .option('--output-root <path>', 'Output root directory')
+  .option('--artifact <paths>', 'Comma-separated artifact paths')
+  .option('-n, --note <text>', 'Note for this runtime step')
+  .option('--compact', 'Compact output (AI-friendly)')
+  .option('--pretty', 'Pretty output (human-friendly)')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(async (taskId, options) => {
+    const mod = await import('../src/commands/record.js');
+    const resolvedTaskId = typeof taskId === 'string' ? taskId : options;
+    const resolvedOptions = typeof taskId === 'string' ? options : taskId;
+    return mod.record(resolvedTaskId, resolvedOptions);
+  });
+
+const processCommand = program
+  .command('process')
+  .description('Register and inspect task-scoped background processes');
+
+const announceCommand = program
+  .command('announce')
+  .description('Emit task-scoped announcement events');
+
+announceCommand
+  .command('progress [taskId]')
+  .description('Emit a progress announcement for a task or the current active task')
+  .option('-p, --percent <number>', 'Progress percentage')
+  .option('-n, --note <text>', 'Progress note')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(async (taskId, options) => {
+    const mod = await import('../src/commands/announce.js');
+    const resolvedTaskId = typeof taskId === 'string' ? taskId : options;
+    const resolvedOptions = typeof taskId === 'string' ? options : taskId;
+    return mod.announceProgress(resolvedTaskId, resolvedOptions);
+  });
+
+processCommand
+  .command('add [taskId]')
+  .description('Register a background process for a task')
+  .requiredOption('--pid <pid>', 'Process ID')
+  .option('-c, --command <command>', 'Launch command')
+  .option('--cwd <path>', 'Working directory used')
+  .option('--output-root <path>', 'Output root directory')
+  .option('-n, --note <text>', 'Note for this process')
+  .option('--state <running|missing|exited|unknown>', 'Explicit initial state')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(async (taskId, options) => {
+    const mod = await import('../src/commands/process.js');
+    const resolvedTaskId = typeof taskId === 'string' ? taskId : options;
+    const resolvedOptions = typeof taskId === 'string' ? options : taskId;
+    return mod.addProcess(resolvedTaskId, resolvedOptions);
+  });
+
+processCommand
+  .command('list [taskId]')
+  .description('List background processes for a task')
+  .option('--refresh', 'Refresh liveness state before output')
+  .option('-l, --limit <number>', 'Limit number of entries displayed')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(async (taskId, options) => {
+    const mod = await import('../src/commands/process.js');
+    const resolvedTaskId = typeof taskId === 'string' ? taskId : options;
+    const resolvedOptions = typeof taskId === 'string' ? options : taskId;
+    return mod.listProcesses(resolvedTaskId, resolvedOptions);
+  });
+
+program
+  .command('add-dep <taskId> <dependsOnTaskId>')
+  .alias('add-dependency')
+  .description('Add a task dependency')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/dependency-mutation.js'), 'addDependency'));
+
+program
+  .command('remove-dep <taskId> <dependsOnTaskId>')
+  .alias('remove-dependency')
+  .description('Remove a task dependency')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/dependency-mutation.js'), 'removeDependency'));
+
 program
   .command('import <file>')
   .description('Import tasks from markdown file')
@@ -114,22 +229,22 @@ program
   .option('-f, --force', 'Force create duplicate tasks')
   .option('-u, --update', 'Update existing tasks instead of skipping')
   .option('--verbose', 'Show full imported task details')
-  .action(importTasks);
+  .action(lazyAction(() => import('../src/commands/import.js'), 'importTasks'));
 
-// New chat first round command
 program
   .command('newchatfirstround')
   .alias('ncfr')
   .alias('context')
   .alias('resume')
   .description('Show project context for new AI chat session')
+  .option('--full', 'Include extended context (dependents, blocked snapshot, recent completions, paths)')
   .option('--show-paths', 'Show full file paths')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
-  .action(newchatfirstround);
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/newchatfirstround.js'), 'newchatfirstround'));
 
-// Dependencies command
 program
   .command('deps')
   .description('Show task dependencies')
@@ -138,9 +253,9 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
-  .action(deps);
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/deps.js'), 'deps'));
 
-// Query command
 program
   .command('query')
   .description('Query tasks by filters')
@@ -150,12 +265,13 @@ program
   .option('--tag <tags>', 'Alias for --tags')
   .option('-a, --assignee <name>', 'Filter by assignee')
   .option('-l, --limit <number>', 'Limit number of tasks displayed')
+  .option('--full', 'Include full task payloads in JSON output')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
-  .action(query);
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/query.js'), 'query'));
 
-// Stats command
 program
   .command('stats')
   .description('Show task statistics')
@@ -164,9 +280,9 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
-  .action(stats);
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/stats.js'), 'stats'));
 
-// List command
 program
   .command('list')
   .description('List all tasks')
@@ -177,28 +293,31 @@ program
   .option('--all', 'Show all tasks (disable default actionable filter)')
   .option('-l, --limit <number>', 'Limit number of tasks displayed')
   .option('-o, --offset <number>', 'Skip the first N tasks')
+  .option('--full', 'Include full task payloads in JSON output')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
-  .action(list);
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/list.js'), 'list'));
 
-// Show command
 program
   .command('show <taskId>')
   .description('Show task details')
+  .option('--full', 'Include recent runtime/process/event history in JSON output')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
-  .action(show);
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/show.js'), 'show'));
 
-// Delete command
 program
   .command('delete <taskId>')
   .description('Delete a task')
   .option('-f, --force', 'Force delete without confirmation')
-  .action(deleteTask);
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/delete.js'), 'deleteTask'));
 
-// Edit command
 program
   .command('edit <taskId>')
   .description('Edit a task (interactive or with options)')
@@ -209,41 +328,42 @@ program
   .option('--desc <description>', 'Alias for --description')
   .option('--tags <tags>', 'Comma-separated tags')
   .option('--tag <tags>', 'Alias for --tags')
+  .option('--add-dep <taskIds>', 'Comma-separated dependency task IDs to add')
+  .option('--remove-dep <taskIds>', 'Comma-separated dependency task IDs to remove')
   .option('--hours <hours>', 'Advanced: alias for --estimate')
   .option('-e, --estimate <hours>', 'Advanced: new estimated hours')
   .option('-a, --assignee <name>', 'New assignee')
   .option('-b, --branch <branch>', 'New git branch')
   .option('--json', 'Output as JSON')
-  .action(edit);
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/edit.js'), 'edit'));
 
-// Magic command (Skills)
 program
   .command('magic [skillName] [args...]')
   .description('Execute magic commands (Skills) - use --list to see all')
   .option('-l, --list', 'List all available skills')
   .action(async (skillName, args, options) => {
+    const mod = await import('../src/commands/magic.js');
     if (options.list || !skillName) {
-      await magicList();
+      await mod.magicList();
     } else {
-      await magic(skillName, ...(args || []));
+      await mod.magic(skillName, ...(args || []));
     }
   });
 
-// Export command
 program
   .command('export [output]')
   .description('Export tasks to markdown or json')
   .option('-s, --status <statuses>', 'Filter by status (comma-separated)')
   .option('-p, --priority <priorities>', 'Filter by priority (comma-separated)')
-  .option('-f, --format <markdown|json>', 'Export format', 'markdown')
+  .option('-f, --format <json|markdown>', 'Export format', 'json')
+  .option('--md', 'Alias for --format markdown')
   .option('--json', 'Alias for --format json')
-  .action(exportTasks);
+  .action(lazyAction(() => import('../src/commands/export.js'), 'exportTasks'));
 
-// Validate command
 program
   .command('validate <file>')
   .description('Validate markdown task file before import')
-  .action(validateMarkdown);
+  .action(lazyAction(() => import('../src/commands/validate.js'), 'validateMarkdown'));
 
-// Parse arguments
 program.parse();

@@ -1,11 +1,11 @@
-import chalk from 'chalk';
-import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { existsSync } from 'fs';
 import path from 'path';
-import { formatTaskJSON, formatWorkspaceJSON, formatSuccessResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
+import { formatTaskJSON, formatTaskSummaryJSON, formatWorkspaceJSON, formatSuccessResponse, formatErrorResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { truncate } from '../utils/helpers.js';
+import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
+import { loadTextUI } from '../utils/text-ui.js';
 
 function collectStats(tasks) {
   return {
@@ -41,12 +41,14 @@ function printCompactContext(data) {
     currentTask,
     nextReadyTask,
     dependencies,
+    fullMode,
     dependents,
     blockedTasks,
     recentlyCompleted,
     keyFiles,
   } = data;
   console.log(`PROJECT | ${project.name} | tasks=${stats.total} | done=${stats.completed} | in_progress=${stats.inProgress}`);
+  console.log(`WORKSPACE_SOURCE | ${project.source} | ${project.sourcePath}`);
   if (project.gitBranch && project.gitBranch !== 'unknown') {
     console.log(`BRANCH | ${project.gitBranch}`);
   }
@@ -62,30 +64,32 @@ function printCompactContext(data) {
     console.log(`DEPS | ${dependencies.map(t => taskRef(t, false)).join(',')}`);
   }
 
-  if (dependents.length > 0) {
+  if (fullMode && dependents.length > 0) {
     console.log(`DEPENDENTS | ${dependents.map(t => taskRef(t, false)).join(',')}`);
   }
 
-  if (blockedTasks.length > 0) {
+  if (fullMode && blockedTasks.length > 0) {
     console.log(`BLOCKED_TOP | ${blockedTasks.map(item => taskRef(item.task)).join(',')}`);
   }
 
-  if (recentlyCompleted.length > 0) {
+  if (fullMode && recentlyCompleted.length > 0) {
     console.log(`RECENT_DONE | ${recentlyCompleted.map(t => taskRef(t, false)).join(',')}`);
   }
 
-  if (keyFiles.length > 0) {
+  if (fullMode && keyFiles.length > 0) {
     console.log(`KEY_FILES | ${keyFiles.join(',')}`);
   }
 }
 
-function printPrettyContext(data, options = {}) {
-  const { project, stats, currentTask, nextReadyTask, dependencies, dependents, keyFiles, blockedTasks, recentlyCompleted } = data;
+function printPrettyContext(data, chalk, options = {}) {
+  const { project, stats, currentTask, nextReadyTask, dependencies, dependents, keyFiles, blockedTasks, recentlyCompleted, fullMode, showCommandHints } = data;
 
   console.log(chalk.bold.cyan('\nSeshflow Project Context\n'));
   console.log(chalk.bold('Project'));
   console.log(chalk.gray(`  Name: ${project.name}`));
   console.log(chalk.gray(`  Path: ${project.path}`));
+  console.log(chalk.gray(`  Source: ${project.source}`));
+  console.log(chalk.gray(`  Source Path: ${project.sourcePath}`));
   if (project.gitBranch && project.gitBranch !== 'unknown') {
     console.log(chalk.gray(`  Git: ${project.gitBranch}`));
   }
@@ -120,14 +124,14 @@ function printPrettyContext(data, options = {}) {
     });
   }
 
-  if (dependents.length > 0) {
+  if (fullMode && dependents.length > 0) {
     console.log(chalk.bold('\nDependent Tasks'));
     dependents.forEach(dep => {
       console.log(chalk.gray(`  - ${dep.id} | ${dep.status} | ${dep.title}`));
     });
   }
 
-  if (blockedTasks.length > 0) {
+  if (fullMode && blockedTasks.length > 0) {
     console.log(chalk.bold('\nBlocked Snapshot'));
     blockedTasks.forEach(item => {
       const blockers = item.blockers.length > 0
@@ -138,14 +142,14 @@ function printPrettyContext(data, options = {}) {
     });
   }
 
-  if (recentlyCompleted.length > 0) {
+  if (fullMode && recentlyCompleted.length > 0) {
     console.log(chalk.bold('\nRecently Completed'));
     recentlyCompleted.forEach(item => {
       console.log(chalk.gray(`  - ${item.id} | ${item.priority} | ${item.title}`));
     });
   }
 
-  if (keyFiles.length > 0) {
+  if (fullMode && keyFiles.length > 0) {
     console.log(chalk.bold('\nKey Files'));
     keyFiles.forEach(file => {
       const displayFile = options.showPaths ? path.join(project.path, file) : file;
@@ -153,38 +157,44 @@ function printPrettyContext(data, options = {}) {
     });
   }
 
-  console.log(chalk.blue('\nQuick Commands:'));
-  console.log(chalk.gray('  seshflow next --compact'));
-  console.log(chalk.gray('  seshflow list --compact'));
-  console.log(chalk.gray('  seshflow show <task-id> --json'));
-  console.log('');
+  if (showCommandHints) {
+    console.log(chalk.blue('\nQuick Commands:'));
+    console.log(chalk.gray('  seshflow next --compact'));
+    console.log(chalk.gray('  seshflow list --compact'));
+    console.log(chalk.gray('  seshflow show <task-id>'));
+    console.log('');
+  }
 }
 
 export async function newchatfirstround(options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
-  const spinner = (!compactMode && process.stdout.isTTY) ? ora('Loading project context').start() : null;
+  const fullMode = options.full === true;
+  const jsonMode = isJSONMode(options);
+  const { chalk, ora } = jsonMode ? { chalk: null, ora: null } : await loadTextUI();
+  const spinner = (!jsonMode && !compactMode && process.stdout.isTTY) ? ora('Loading project context').start() : null;
 
   try {
     const manager = new TaskManager();
     await manager.init();
 
-    const workspacePath = process.cwd();
-    const projectName = path.basename(workspacePath);
-    const gitBranch = await manager.storage.getGitBranch();
+    const workspaceInfo = await manager.storage.getWorkspaceInfo();
+    const workspacePath = workspaceInfo.path;
+    const projectName = workspaceInfo.name;
+    const gitBranch = workspaceInfo.gitBranch;
 
     const allTasks = manager.getTasks() || [];
     const stats = collectStats(allTasks);
 
     const currentTask = manager.getCurrentTask();
     const nextTask = manager.getNextTask();
-    const task = currentTask || nextTask;
+    const focusTask = currentTask || nextTask;
 
     let dependencies = [];
     let dependents = [];
-    if (task) {
-      dependencies = manager.getUnmetDependencies(task);
-      dependents = allTasks.filter(t => t.dependencies && t.dependencies.includes(task.id));
+    if (focusTask) {
+      dependencies = currentTask ? manager.getUnmetDependencies(currentTask) : [];
+      dependents = allTasks.filter(t => t.dependencies && t.dependencies.includes(focusTask.id));
     }
 
     const blockedTasks = allTasks
@@ -204,14 +214,22 @@ export async function newchatfirstround(options = {}) {
     const keyFiles = ['README.md', 'docs.md', 'QUICKSTART.md', 'ARCHITECTURE.md', 'API.md']
       .filter(file => existsSync(path.join(workspacePath, file)));
 
+    const project = {
+      name: projectName,
+      path: workspacePath,
+      gitBranch: gitBranch || null,
+      source: workspaceInfo.source,
+      sourcePath: workspaceInfo.sourcePath,
+    };
+
+    if (fullMode) {
+      project.requestedPath = workspaceInfo.requestedPath;
+      project.configPath = workspaceInfo.configPath;
+    }
+
     const contextData = {
-      project: {
-        name: projectName,
-        path: workspacePath,
-        gitBranch: gitBranch || null,
-      },
+      project,
       stats,
-      task,
       currentTask,
       nextReadyTask: nextTask,
       dependencies,
@@ -219,29 +237,33 @@ export async function newchatfirstround(options = {}) {
       blockedTasks,
       recentlyCompleted,
       keyFiles,
+      fullMode,
+      showCommandHints: await shouldShowWorkspaceHint(manager.storage, 'ncfr:pretty-hints'),
     };
 
-    if (isJSONMode(options)) {
+    if (jsonMode) {
       spinner?.stop();
-      const workspaceJSON = formatWorkspaceJSON(manager.storage, allTasks.length);
-      outputJSON(formatSuccessResponse({
-        project: contextData.project,
+      const responseData = {
         statistics: stats,
-        currentTask: task ? formatTaskJSON(task) : null,
+        currentTask: currentTask ? formatTaskJSON(currentTask) : null,
         dependencies: dependencies.map(t => ({
           id: t.id,
           title: t.title,
           status: t.status,
           priority: t.priority,
         })),
-        dependents: dependents.map(t => ({
+        nextReadyTask: nextTask ? formatTaskSummaryJSON(nextTask) : null,
+        focus: currentTask ? 'current-task' : (nextTask ? 'next-ready-task' : 'none'),
+      };
+
+      if (fullMode) {
+        responseData.dependents = dependents.map(t => ({
           id: t.id,
           title: t.title,
           status: t.status,
           priority: t.priority,
-        })),
-        nextReadyTask: nextTask ? formatTaskJSON(nextTask) : null,
-        blockedTasks: blockedTasks.map(item => ({
+        }));
+        responseData.blockedTasks = blockedTasks.map(item => ({
           task: formatTaskJSON(item.task),
           blockers: item.blockers.map(blocker => ({
             id: blocker.id,
@@ -249,15 +271,18 @@ export async function newchatfirstround(options = {}) {
             status: blocker.status,
             priority: blocker.priority,
           })),
-        })),
-        recentlyCompleted: recentlyCompleted.map(t => ({
+        }));
+        responseData.recentlyCompleted = recentlyCompleted.map(t => ({
           id: t.id,
           title: t.title,
           priority: t.priority,
           completedAt: t.completedAt || null,
-        })),
-        keyFiles,
-      }, workspaceJSON));
+        }));
+        responseData.keyFiles = keyFiles;
+      }
+
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, allTasks.length, { full: fullMode });
+      outputJSON(formatSuccessResponse(responseData, workspaceJSON));
       return;
     }
 
@@ -265,11 +290,15 @@ export async function newchatfirstround(options = {}) {
     if (compactMode) {
       printCompactContext(contextData);
     } else {
-      printPrettyContext(contextData, options);
+      printPrettyContext(contextData, chalk, options);
     }
   } catch (error) {
     spinner?.fail('Failed to load context');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (jsonMode) {
+      outputJSON(formatErrorResponse(error, 'NCFR_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }

@@ -1,7 +1,7 @@
 {
   "name": "@seshflow/web",
-  "version": "1.0.0",
-  "description": "Seshflow Web Dashboard - Trello-style task board",
+  "version": "1.2.0",
+  "description": "Seshflow Web - Runtime-backed control plane for the active workspace",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,10 +9,21 @@
     "preview": "vite preview",
     "lint": "eslint src/**/*.jsx"
   },
+  "files": [
+    "README.md",
+    "dist",
+    "!dist/**/*.map",
+    "public",
+    "src",
+    "index.html",
+    "vite.config.js"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-beautiful-dnd": "^13.1.1",
     "d3": "^7.8.5",
     "react-markdown": "^9.0.1",
     "prop-types": "^15.8.1"
@@ -24,11 +35,19 @@
     "vite": "^4.3.9"
   },
   "keywords": [
-    "task-manager",
-    "dashboard",
-    "trello",
-    "kanban"
+    "runtime-control-plane",
+    "ai-assistant",
+    "workspace-visibility",
+    "task-runtime"
   ],
-  "author": "",
+  "author": "Seshflow Contributors",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/RegretSSS/seshflow.git"
+  },
+  "homepage": "https://github.com/RegretSSS/seshflow/tree/development/packages/web#readme",
+  "bugs": {
+    "url": "https://github.com/RegretSSS/seshflow/issues"
+  },
   "license": "MIT"
 }

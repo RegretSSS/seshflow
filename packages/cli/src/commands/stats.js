@@ -1,8 +1,7 @@
-import chalk from 'chalk';
-import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
-import { formatSuccessResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
+import { formatSuccessResponse, formatErrorResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
+import { loadTextUI } from '../utils/text-ui.js';
 
 const PRIORITY_KEYS = ['P0', 'P1', 'P2', 'P3'];
 
@@ -58,7 +57,7 @@ function printCompact(stats) {
   console.log(`total=${o.total} done=${o.completed} in_progress=${o.inProgress} todo=${o.todo} backlog=${o.backlog} blocked=${o.blocked} progress=${o.progress}%`);
 }
 
-function printPretty(stats, options = {}) {
+function printPretty(stats, chalk, options = {}) {
   const o = stats.overall;
   console.log(chalk.bold.cyan('\nSeshflow Stats\n'));
   console.log(chalk.gray(`  Total: ${o.total}`));
@@ -101,7 +100,9 @@ function printPretty(stats, options = {}) {
 export async function stats(options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
-  const spinner = (!compactMode && process.stdout.isTTY) ? ora('Loading statistics').start() : null;
+  const jsonMode = isJSONMode(options);
+  const { chalk, ora } = jsonMode ? { chalk: null, ora: null } : await loadTextUI();
+  const spinner = (!jsonMode && !compactMode && process.stdout.isTTY) ? ora('Loading statistics').start() : null;
 
   try {
     const manager = new TaskManager();
@@ -112,7 +113,7 @@ export async function stats(options = {}) {
 
     spinner?.stop();
 
-    if (isJSONMode(options)) {
+    if (jsonMode) {
       outputJSON(formatSuccessResponse(data));
       return;
     }
@@ -122,10 +123,14 @@ export async function stats(options = {}) {
       return;
     }
 
-    printPretty(data, options);
+    printPretty(data, chalk, options);
   } catch (error) {
     spinner?.fail('Failed to load statistics');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (jsonMode) {
+      outputJSON(formatErrorResponse(error, 'STATS_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }

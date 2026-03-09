@@ -1,9 +1,9 @@
-import chalk from 'chalk';
-import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { truncate } from '../utils/helpers.js';
-import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON } from '../utils/json-output.js';
+import { isJSONMode, formatErrorResponse, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON, formatTaskSummaryJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
+import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
+import { loadTextUI } from '../utils/text-ui.js';
 
 function subtaskProgress(task) {
   if (!task.subtasks || task.subtasks.length === 0) {
@@ -17,7 +17,7 @@ function displayCompactTask(task) {
   console.log(`${task.id} | ${task.status} | ${task.priority} | ${truncate(task.title, 72)}${subtaskProgress(task)}`);
 }
 
-function displayPrettyTask(task) {
+function displayPrettyTask(task, chalk) {
   const statusEmoji = {
     backlog: 'B',
     todo: 'T',
@@ -42,13 +42,13 @@ function displayPrettyTask(task) {
   console.log(line);
 }
 
-function displayPrettyHeader() {
+function displayPrettyHeader(chalk) {
   console.log(chalk.cyan('\n' + '='.repeat(100)));
   console.log(chalk.cyan.bold('  STATUS       ID                            PRI  TITLE'));
   console.log(chalk.cyan('='.repeat(100)));
 }
 
-function displayPrettyFooter(taskCount) {
+function displayPrettyFooter(taskCount, chalk) {
   console.log(chalk.cyan('='.repeat(100)));
   console.log(chalk.gray(`\n  Total: ${taskCount} tasks\n`));
 }
@@ -56,7 +56,9 @@ function displayPrettyFooter(taskCount) {
 export async function list(options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
-  const spinner = compactMode ? null : ora('Loading tasks').start();
+  const jsonMode = isJSONMode(options);
+  const { chalk, ora } = jsonMode ? { chalk: null, ora: null } : await loadTextUI();
+  const spinner = (!jsonMode && !compactMode) ? ora('Loading tasks').start() : null;
 
   try {
     const manager = new TaskManager();
@@ -86,7 +88,7 @@ export async function list(options = {}) {
       tasks = tasks.filter(task => task.assignee === options.assignee);
     }
 
-    if (!options.all && !hasExplicitFilter) {
+    if (!jsonMode && !options.all && !hasExplicitFilter) {
       tasks = tasks.filter(task => task.status === 'in-progress' || task.status === 'todo');
     }
 
@@ -105,7 +107,7 @@ export async function list(options = {}) {
         throw new Error('Invalid --limit value, expected a positive integer');
       }
       limit = parsedLimit;
-    } else if (!options.all) {
+    } else if (!options.all && !jsonMode) {
       limit = 10;
     }
 
@@ -128,24 +130,14 @@ export async function list(options = {}) {
     spinner?.stop();
 
     if (isJSONMode(options)) {
-      const formattedTasks = tasks.map(task => ({
-        id: task.id,
-        title: task.title,
-        status: task.status,
-        priority: task.priority,
-        tags: task.tags,
-        estimatedHours: task.estimatedHours,
-        actualHours: task.actualHours,
-        assignee: task.assignee,
-        subtaskCount: task.subtasks?.length || 0,
-        completedSubtasks: task.subtasks?.filter(st => st.completed).length || 0,
-        createdAt: task.createdAt
-      }));
+      const formattedTasks = tasks.map(task => (options.full ? formatTaskJSON(task) : formatTaskSummaryJSON(task)));
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
 
       outputJSON(formatSuccessResponse({
         tasks: formattedTasks,
-        total: formattedTasks.length
-      }, formatWorkspaceJSON(manager.storage, tasks.length)));
+        total: formattedTasks.length,
+        detailLevel: options.full ? 'full' : 'summary'
+      }, workspaceJSON));
       return;
     }
 
@@ -177,12 +169,12 @@ export async function list(options = {}) {
       return;
     }
 
-    displayPrettyHeader();
-    tasks.forEach(displayPrettyTask);
-    displayPrettyFooter(tasks.length);
+      displayPrettyHeader(chalk);
+      tasks.forEach(task => displayPrettyTask(task, chalk));
+      displayPrettyFooter(tasks.length, chalk);
 
     if (!options.all && !hasExplicitFilter && totalBeforePaging > tasks.length) {
-      console.log(chalk.blue(`Showing ${tasks.length}/${totalBeforePaging} tasks (use --all or --limit/--offset)`));
+        console.log(chalk.blue(`Showing ${tasks.length}/${totalBeforePaging} tasks (use --all or --limit/--offset)`));
       console.log('');
     }
 
@@ -196,9 +188,20 @@ export async function list(options = {}) {
       if (options.all) console.log(chalk.gray('  All: true'));
       console.log('');
     }
+
+    if (await shouldShowWorkspaceHint(manager.storage, 'list:pretty-hint')) {
+      console.log(chalk.blue('Machine step:'));
+      console.log(chalk.gray('  seshflow list'));
+      console.log(chalk.gray('  seshflow list --full'));
+      console.log('');
+    }
   } catch (error) {
     spinner?.fail('Failed to list tasks');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'LIST_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }

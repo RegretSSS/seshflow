@@ -1,9 +1,9 @@
-import chalk from 'chalk';
-import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { truncate } from '../utils/helpers.js';
-import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON } from '../utils/json-output.js';
+import { isJSONMode, formatErrorResponse, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
+import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
+import { loadTextUI } from '../utils/text-ui.js';
 
 function subtaskProgress(task) {
   const total = task.subtasks?.length || 0;
@@ -35,9 +35,15 @@ function displayCompact(task, blockers = []) {
   if (blockers.length) {
     console.log(`blocked_by=${blockers.map(t => t.id).join(',')}`);
   }
+  if (task.runtime?.runs?.length) {
+    console.log(`runtime_records=${task.runtime.runs.length}`);
+  }
+  if (task.runtime?.processes?.length) {
+    console.log(`process_records=${task.runtime.processes.length}`);
+  }
 }
 
-function displayPretty(task, blockers = []) {
+function displayPretty(task, chalk, blockers = [], runtimeEntries = [], processEntries = []) {
   const progress = subtaskProgress(task);
 
   console.log(chalk.bold.cyan(`\n- ${task.title}`));
@@ -97,12 +103,36 @@ function displayPretty(task, blockers = []) {
       console.log(chalk.cyan(`    - ${note}`));
     });
   }
+
+  if (runtimeEntries.length > 0) {
+    console.log(chalk.cyan(`\n  Recent Runtime (${runtimeEntries.length}):`));
+    runtimeEntries.forEach(entry => {
+      const parts = [];
+      if (entry.command) parts.push(`cmd=${truncate(entry.command, 48)}`);
+      if (entry.outputRoot) parts.push(`out=${truncate(entry.outputRoot, 32)}`);
+      if (entry.logFile) parts.push(`log=${truncate(entry.logFile, 32)}`);
+      if (entry.artifacts?.length) parts.push(`artifacts=${entry.artifacts.length}`);
+      console.log(chalk.cyan(`    - ${parts.join(' | ') || 'recorded context'}`));
+    });
+  }
+
+  if (processEntries.length > 0) {
+    console.log(chalk.cyan(`\n  Processes (${processEntries.length}):`));
+    processEntries.forEach(entry => {
+      const parts = [`pid=${entry.pid}`, `state=${entry.state}`];
+      if (entry.command) parts.push(`cmd=${truncate(entry.command, 48)}`);
+      if (entry.outputRoot) parts.push(`out=${truncate(entry.outputRoot, 32)}`);
+      console.log(chalk.cyan(`    - ${parts.join(' | ')}`));
+    });
+  }
 }
 
 export async function show(taskId, options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
-  const spinner = (!compactMode && process.stdout.isTTY) ? ora('Loading task').start() : null;
+  const jsonMode = isJSONMode(options);
+  const { chalk, ora } = jsonMode ? { chalk: null, ora: null } : await loadTextUI();
+  const spinner = (!jsonMode && !compactMode && process.stdout.isTTY) ? ora('Loading task').start() : null;
 
   try {
     const manager = new TaskManager();
@@ -111,24 +141,43 @@ export async function show(taskId, options = {}) {
     const task = manager.getTask(taskId);
     if (!task) {
       spinner?.stop();
-      console.error(chalk.red(`\nTask not found: ${taskId}`));
-      console.error(chalk.gray(`  Use 'seshflow list' to see all tasks`));
+      if (jsonMode) {
+        outputJSON(formatErrorResponse(new Error(`Task not found: ${taskId}`), 'TASK_NOT_FOUND'));
+      } else {
+        console.error(chalk.red(`\nTask not found: ${taskId}`));
+        console.error(chalk.gray(`  Use 'seshflow list' to see all tasks`));
+      }
       process.exit(1);
     }
 
-    const blockers = (task.blockedBy || [])
+    const blockers = manager.getBlockedBy(task)
       .map(id => manager.getTask(id))
       .filter(Boolean);
+    const runtimeEntries = manager.getRecentRuntimeEntries(task);
+    const runtimeSummary = manager.getRuntimeSummary(task);
+    const processEntries = manager.getRecentProcessEntries(task);
+    const processSummary = manager.getProcessSummary(task);
+    const runtimeEventSummary = manager.getRuntimeEventSummary(task);
+    const includeFullJSON = options.full === true;
+    const runtimeEvents = includeFullJSON ? manager.getTaskRuntimeEvents(task.id, 5) : [];
 
     spinner?.stop();
 
-    if (isJSONMode(options)) {
+    if (jsonMode) {
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
       outputJSON(formatSuccessResponse({
+        detailLevel: includeFullJSON ? 'full' : 'summary',
         task: formatTaskJSON(task),
         subtasks: task.subtasks || [],
         dependencies: task.dependencies || [],
         blockedBy: blockers.map(t => ({ id: t.id, title: t.title, status: t.status })),
-      }, formatWorkspaceJSON(manager.storage, 1)));
+        runtimeSummary,
+        recentRuntime: runtimeEntries,
+        processSummary,
+        recentProcesses: processEntries,
+        runtimeEventSummary,
+        ...(includeFullJSON ? { recentRuntimeEvents: runtimeEvents } : {}),
+      }, workspaceJSON));
       return;
     }
 
@@ -137,20 +186,26 @@ export async function show(taskId, options = {}) {
       return;
     }
 
-    displayPretty(task, blockers);
+    displayPretty(task, chalk, blockers, runtimeEntries, processEntries);
 
-    console.log(chalk.blue('\nCommands:'));
-    if (task.status === 'backlog' || task.status === 'todo') {
-      console.log(chalk.gray('  seshflow next - Start this task'));
+    if (await shouldShowWorkspaceHint(manager.storage, 'show:pretty-hint')) {
+      console.log(chalk.blue('\nCommands:'));
+      if (task.status === 'backlog' || task.status === 'todo') {
+        console.log(chalk.gray('  seshflow next - Start this task'));
+      }
+      if (task.status === 'in-progress') {
+        console.log(chalk.gray('  seshflow done [options] - Complete this task'));
+      }
+      console.log(chalk.gray(`  seshflow deps ${taskId} - Show dependencies`));
+      console.log(chalk.gray(`  seshflow delete ${taskId} - Delete this task`));
     }
-    if (task.status === 'in-progress') {
-      console.log(chalk.gray('  seshflow done [options] - Complete this task'));
-    }
-    console.log(chalk.gray(`  seshflow deps ${taskId} - Show dependencies`));
-    console.log(chalk.gray(`  seshflow delete ${taskId} - Delete this task`));
   } catch (error) {
     spinner?.fail('Failed to show task');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (jsonMode) {
+      outputJSON(formatErrorResponse(error, 'SHOW_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }
