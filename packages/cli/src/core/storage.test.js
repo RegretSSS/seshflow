@@ -6,12 +6,13 @@ import { Storage } from './storage.js';
 import { getDefaultTaskTemplate } from '../commands/init.js';
 
 describe('UTF-8 stabilization', () => {
-  test('default task template contains readable Chinese copy', () => {
+  test('default task template contains readable managed markdown copy', () => {
     const template = getDefaultTaskTemplate();
 
-    expect(template).toContain('# 项目任务模板');
-    expect(template).toContain('## 快速开始');
-    expect(template).toContain('最后更新:');
+    expect(template).toContain('# Seshflow Planning Template');
+    expect(template).toContain('## Managed Markdown contract');
+    expect(template).toContain('Last updated:');
+    expect(template).toContain('[id:task_design]');
     expect(template).not.toContain('椤圭洰');
   });
 
@@ -31,9 +32,9 @@ describe('UTF-8 stabilization', () => {
         },
         metadata: {},
         columns: [
-          { id: 'backlog', name: '寰呭姙姹?', color: '#94a3b8' },
-          { id: 'todo', name: '鍑嗗鍋?', color: '#3b82f6' },
-          { id: 'in-progress', name: '杩涜涓?', color: '#eab308' }
+          { id: 'backlog', name: '瀵板懎濮欏Ч?', color: '#94a3b8' },
+          { id: 'todo', name: '閸戝棗顦崑?', color: '#3b82f6' },
+          { id: 'in-progress', name: '鏉╂稖顢戞稉?', color: '#eab308' }
         ],
         tasks: [],
         currentSession: null,

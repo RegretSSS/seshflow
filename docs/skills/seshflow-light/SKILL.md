@@ -45,7 +45,7 @@ After `init`, suggest one next step based on user intent:
 - If user wants to import tasks:
   - suggest `seshflow import <file>`
 - If user wants to plan many tasks or revise a plan:
-  - suggest editing a Markdown task file, then `seshflow validate <file>` and `seshflow import <file>`
+  - suggest editing a managed Markdown task file, then `seshflow validate <file>` and `seshflow import <file>`
 
 After `ncfr --json`, suggest one next step based on detected state:
 
@@ -81,8 +81,10 @@ Only request full task payloads when the next step actually needs them:
 - `seshflow list --json --full`
 - `seshflow query --json --full`
 
-For batch planning, treat Markdown as the planning surface and `.seshflow/tasks.json` as the runtime state store.
-Do not assume arbitrary bidirectional Markdown/JSON sync exists.
+For batch planning, treat managed Markdown as the planning surface and `.seshflow/tasks.json` as the runtime state store.
+Use stable task ids in Markdown (`[id:task_xxx]`) and prefer dependency ids (`[dependency:task_other]`).
+To revise a plan, edit the same Markdown file and run `seshflow import <file> --update`.
+Do not assume arbitrary bidirectional Markdown/JSON sync exists; runtime state remains in JSON.
 
 When switching away from an active task, prefer explicit intent:
 

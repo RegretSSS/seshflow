@@ -3,8 +3,10 @@ import ora from 'ora';
 import fs from 'fs-extra';
 import { TaskManager } from '../core/task-manager.js';
 import crypto from 'crypto';
+import { isValidTaskId } from '../utils/helpers.js';
 
 const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
+const ID_PREFIX_RE = /^id\s*:/i;
 const TAG_PREFIX_RE = /^(\u6807\u7b7e|tags?)\s*[:\uff1a]\s*/i;
 const PRIORITY_PREFIX_RE = /^(\u4f18\u5148\u7ea7|priority)\s*[:\uff1a]\s*/i;
 const ESTIMATE_PREFIX_RE = /^(\u9884\u4f30|estimate)\s*[:\uff1a]\s*/i;
@@ -32,6 +34,7 @@ function parseTaskLine(line, lineNumber, isCompleted = false) {
   if (!taskLine) return null;
 
   const task = {
+    id: null,
     title: '',
     description: '',
     status: isCompleted ? 'done' : 'backlog',
@@ -81,6 +84,12 @@ function parseTaskLine(line, lineNumber, isCompleted = false) {
       }
     }
 
+    const stableId = parseIdToken(content);
+    if (stableId) {
+      task.id = stableId;
+      continue;
+    }
+
     // Parse inline dependency metadata
     const dependencies = parseDependencyToken(content);
     if (dependencies.length > 0) {
@@ -110,6 +119,15 @@ function parseDependencyToken(content) {
     .split(',')
     .map(dep => dep.trim())
     .filter(Boolean);
+}
+
+function parseIdToken(content) {
+  if (!ID_PREFIX_RE.test(content)) {
+    return null;
+  }
+
+  const value = content.replace(ID_PREFIX_RE, '').trim();
+  return value || null;
 }
 
 function mapHeadingToStatus(heading = '') {
@@ -177,6 +195,12 @@ function parseEstimateValue(value) {
 
 function applyMetadataLine(task, content) {
   if (!content) return false;
+
+  const stableId = parseIdToken(content);
+  if (stableId) {
+    task.id = stableId;
+    return true;
+  }
 
   const dependencies = parseDependencyToken(content);
   if (dependencies.length > 0) {
@@ -334,6 +358,7 @@ async function parseMarkdownFile(filePath) {
 function validateTasks(tasks) {
   const errors = [];
   const warnings = [];
+  const seenTaskIds = new Map();
 
   tasks.forEach((task, index) => {
     const taskNum = index + 1;
@@ -342,6 +367,16 @@ function validateTasks(tasks) {
     // Check required fields
     if (!task.title) {
       errors.push(`Task ${taskNum}: title is required`);
+    }
+
+    if (task.id) {
+      if (!isValidTaskId(task.id)) {
+        errors.push(`${taskLabel}: invalid stable id ${task.id}`);
+      } else if (seenTaskIds.has(task.id)) {
+        errors.push(`${taskLabel}: duplicate stable id ${task.id}`);
+      } else {
+        seenTaskIds.set(task.id, taskLabel);
+      }
     }
 
     // Check priority
@@ -397,6 +432,19 @@ function resolveDependencies(createdTasks, knownTasks = []) {
       task.dependencies = [...new Set(resolvedDeps)];
     }
   });
+}
+
+function buildPlanningUpdatePayload(taskData) {
+  return {
+    title: taskData.title,
+    description: taskData.description,
+    priority: taskData.priority,
+    tags: taskData.tags,
+    estimatedHours: taskData.estimatedHours,
+    assignee: taskData.assignee,
+    dependencies: taskData.dependencies,
+    subtasks: taskData.subtasks || [],
+  };
 }
 
 /**
@@ -478,10 +526,12 @@ export async function importTasks(filePath, options = {}) {
     // Deduplication
     const existingTasks = manager.getTasks();
     const existingHashes = new Map();
+    const existingById = new Map();
 
     existingTasks.forEach(task => {
       const hash = generateTaskHash(task.title, task.description);
       existingHashes.set(hash, task);
+      existingById.set(task.id, task);
     });
 
     const results = {
@@ -491,15 +541,16 @@ export async function importTasks(filePath, options = {}) {
       duplicates: []
     };
 
-    const createdTasks = [];
+    const importedTasks = [];
 
     for (const taskData of tasks) {
       const hash = generateTaskHash(taskData.title, taskData.description);
-      const existing = existingHashes.get(hash);
+      const existing = taskData.id ? existingById.get(taskData.id) : existingHashes.get(hash);
 
       if (!existing) {
         // New task - create
         const created = await manager.createTask({
+          id: taskData.id,
           title: taskData.title,
           description: taskData.description,
           status: taskData.status,
@@ -510,29 +561,21 @@ export async function importTasks(filePath, options = {}) {
           dependencies: taskData.dependencies,
         });
 
-        // Add subtasks if any
-        if (taskData.subtasks && taskData.subtasks.length > 0) {
-          created.subtasks = taskData.subtasks;
-        }
-
-        createdTasks.push(created);
+        created.subtasks = taskData.subtasks || [];
+        importedTasks.push(created);
         results.created++;
+        existingById.set(created.id, created);
       }
       else if (options.update) {
         // Task exists - update
-        await manager.updateTask(existing.id, {
-          title: taskData.title,
-          description: taskData.description,
-          priority: taskData.priority,
-          tags: taskData.tags,
-          estimatedHours: taskData.estimatedHours,
-          assignee: taskData.assignee,
-        });
+        await manager.updateTask(existing.id, buildPlanningUpdatePayload(taskData));
+        importedTasks.push(manager.getTask(existing.id));
         results.updated++;
       }
       else if (options.force) {
         // Force create - don't check duplicates
         const created = await manager.createTask({
+          id: taskData.id,
           title: taskData.title,
           description: taskData.description,
           status: taskData.status,
@@ -543,12 +586,10 @@ export async function importTasks(filePath, options = {}) {
           dependencies: taskData.dependencies,
         });
 
-        if (taskData.subtasks && taskData.subtasks.length > 0) {
-          created.subtasks = taskData.subtasks;
-        }
-
-        createdTasks.push(created);
+        created.subtasks = taskData.subtasks || [];
+        importedTasks.push(created);
         results.created++;
+        existingById.set(created.id, created);
       }
       else {
         // Skip duplicate
@@ -564,10 +605,10 @@ export async function importTasks(filePath, options = {}) {
     await manager.saveData();
 
     // Resolve dependencies (convert numeric indices to task IDs)
-    resolveDependencies(createdTasks, [...existingTasks, ...createdTasks]);
+    resolveDependencies(importedTasks, manager.getTasks());
 
     // Update tasks with resolved dependencies and subtasks
-    for (const task of createdTasks) {
+    for (const task of importedTasks) {
       await manager.updateTask(task.id, {
         dependencies: task.dependencies,
         subtasks: task.subtasks
@@ -582,7 +623,7 @@ export async function importTasks(filePath, options = {}) {
     const countByPriority = { P0: 0, P1: 0, P2: 0, P3: 0 };
     let dependencyCount = 0;
     let subtaskCount = 0;
-    createdTasks.forEach(task => {
+    importedTasks.forEach(task => {
       if (countByPriority[task.priority] !== undefined) {
         countByPriority[task.priority] += 1;
       }
@@ -603,9 +644,9 @@ export async function importTasks(filePath, options = {}) {
     );
     console.log(chalk.gray(`  Dependencies: ${dependencyCount} | Subtasks: ${subtaskCount}`));
 
-    if (options.verbose && results.created > 0) {
+    if (options.verbose && importedTasks.length > 0) {
       console.log(chalk.blue('\nVerbose imported task list:'));
-      createdTasks.forEach((task, index) => {
+      importedTasks.forEach((task, index) => {
         const priorityColor = {
           P0: 'red',
           P1: 'yellow',

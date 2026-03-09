@@ -8,109 +8,55 @@ import { Storage } from '../core/storage.js';
 export function getDefaultTaskTemplate() {
   const now = new Date().toISOString().split('T')[0];
 
-  return `# 项目任务模板
+  return `# Seshflow Planning Template
 
-> 复制这份模板并重命名为 \`PROJECT_TASKS.md\`
-> 然后执行 \`seshflow import PROJECT_TASKS.md\`
+> Copy this file to \`PROJECT_TASKS.md\`
+> Then run \`seshflow validate PROJECT_TASKS.md\` and \`seshflow import PROJECT_TASKS.md\`
 
 ---
 
-## 快速开始
-
-### 最简任务列表示例
+## Minimal example
 
 \`\`\`markdown
-# 我的任务
+# My Project Plan
 
-- [ ] 任务 1
-- [ ] 任务 2
-- [ ] 任务 3
+- [ ] Design data model [id:task_design] [P0]
+- [ ] Build API [id:task_api] [P1] [dependency:task_design]
+- [ ] Write tests [id:task_tests] [P1] [dependency:task_api]
 \`\`\`
 
-### 带属性的任务列表示例
+## Managed Markdown contract
+
+- Keep stable task ids in Markdown with \`[id:task_xxx]\`
+- Use \`[dependency:task_xxx]\` for stable dependency references
+- Planning fields live in Markdown: title, description, priority, tags, estimate, assignee, dependencies
+- Execution fields stay in \`.seshflow/tasks.json\`: status, sessions, runtime, artifacts, timestamps
+- To revise a plan, edit the Markdown file and run \`seshflow import <file> --update\`
+
+## Full example
 
 \`\`\`markdown
-# 项目开发
-## Phase 1: 基础功能
+# Trello Board Simulation
 
-- [ ] 设计数据库 [P0] [database] [4h]
-- [ ] 实现 API [P1] [api] [6h]
-- [ ] 编写测试 [P2] [testing] [3h]
+## Backlog
 
-## Phase 2: 前端开发
-- [ ] 设计 UI [P1] [ui] [4h]
-- [ ] 实现组件 [P1] [frontend] [6h]
+- [ ] Define board columns [id:task_columns] [P0] [planning] [2h]
+> Decide which columns the simulated board needs.
+
+- [ ] Define card schema [id:task_schema] [P0] [planning,backend] [3h] [dependency:task_columns]
+> Capture title, labels, assignee, due date, and checklist support.
+
+## Todo
+
+- [ ] Build board API [id:task_api] [P1] [backend] [6h] [dependency:task_schema]
+  - [ ] Add list endpoint
+  - [ ] Add create-card endpoint
+
+- [ ] Build board UI [id:task_ui] [P1] [frontend] [8h] [dependency:task_api]
 \`\`\`
 
----
-
-## 完整示例
-
-\`\`\`markdown
-# 电商网站开发
-## Phase 1: 基础设施
-
-- [ ] 搭建项目脚手架 [P0] [setup] [2h]
-  - [x] 初始化 Next.js 项目 [1h]
-  - [x] 配置 TypeScript [0.5h]
-  - [ ] 配置 Tailwind CSS [0.5h]
-> 使用 Next.js 14 + TypeScript + Tailwind CSS
-
-- [ ] 设计数据库 Schema [P0] [database,design] [4h]
-  - [ ] 用户表设计 [1h]
-  - [ ] 商品表设计 [1h]
-  - [ ] 订单表设计 [1h]
-  - [ ] 关系设计 [1h]
-
-## Phase 2: 后端开发
-- [ ] 实现用户认证 [P0] [auth,backend] [12h] [依赖:设计数据库 Schema]
-  - [x] 用户注册接口 [3h]
-  - [ ] 用户登录接口 [3h]
-  - [ ] JWT 认证中间件 [2h]
-  - [ ] 密码重置功能 [2h]
-  - [ ] 单元测试 [2h]
-\`\`\`
-
----
-
-## 语法说明
-
-\`\`\`markdown
-- [ ] 任务标题 [P0] [tag1,tag2] [4h] [@负责人] [依赖:任务 A,任务 B]
-  - [ ] 子任务 A [1h]
-  - [ ] 子任务 B [2h]
-> 可选的任务描述
-\`\`\`
-
-### 优先级
-- \`[P0]\` 紧急
-- \`[P1]\` 高
-- \`[P2]\` 中
-- \`[P3]\` 低
-
-### 常用标签
-- \`[auth]\`
-- \`[database]\`
-- \`[api]\`
-- \`[frontend]\`
-- \`[backend]\`
-- \`[testing]\`
-- \`[docs]\`
-
----
-
-## 导入流程
-
-\`\`\`bash
-seshflow import PROJECT_TASKS.md
-seshflow next
-seshflow list --all
-\`\`\`
-
----
-
-模板版本: 1.1.1
-最后更新: ${now}
+Template version: 1.2.0
+Last updated: ${now}
 `;
 }
 
@@ -122,7 +68,7 @@ Use \`seshflow validate <file>\` before import.
 ## Task format
 
 \`\`\`markdown
-- [ ] Task title [P0] [tag1,tag2] [4h] [dependency:Task A,Task B]
+- [ ] Task title [id:task_name] [P0] [tag1,tag2] [4h] [dependency:task_other,task_another]
 > Optional task description
   - [ ] Subtask A [1h]
   - [ ] Subtask B [2h]
@@ -138,17 +84,23 @@ Use \`seshflow validate <file>\` before import.
 ## Notes
 
 - Subtasks should be indented by 2 spaces.
-- Dependencies can reference task title, index, or task_id.
-- Use \`seshflow import <file>\` after validation.
+- Stable ids use the \`task_\` prefix and should stay unchanged across plan edits.
+- Prefer dependencies by task id for durable updates.
+- \`seshflow import <file> --update\` updates planning fields by stable id.
+- Runtime state is not managed in Markdown.
 `;
 }
 
 function getMarkdownImportGuide() {
   return `# Markdown Import Guide
 
-1. Write tasks in Markdown.
-2. Run \`seshflow validate <file>\`.
-3. Run \`seshflow import <file>\`.
+1. Start from \`.seshflow/TASKS.template.md\`.
+2. Keep \`[id:task_xxx]\` on every task you want to revise later.
+3. Use \`[dependency:task_xxx]\` for stable dependencies.
+4. Run \`seshflow validate <file>\`.
+5. Run \`seshflow import <file>\` for first import.
+6. Edit the same Markdown file and run \`seshflow import <file> --update\` for planning updates.
+7. Use \`seshflow export <file>\` if you need to regenerate a managed planning file from JSON.
 `;
 }
 
@@ -243,7 +195,7 @@ export async function init(options = {}) {
     console.log(chalk.gray('  Config: .seshflow/config.yaml'));
 
     console.log(chalk.blue('\nTemplate files created:'));
-    console.log(chalk.gray('  .seshflow/TASKS.template.md        - Task template example'));
+    console.log(chalk.gray('  .seshflow/TASKS.template.md        - Managed planning template'));
     console.log(chalk.gray('  .seshflow/TASKS_TEMPLATE_SPEC.md   - Template syntax reference'));
     console.log(chalk.gray('  .seshflow/MARKDOWN_IMPORT_GUIDE.md - Markdown import guide'));
 
@@ -254,10 +206,12 @@ export async function init(options = {}) {
     console.log(chalk.gray('  seshflow add "My first task"'));
     console.log(chalk.gray('  seshflow next --json'));
     console.log('');
-    console.log(chalk.gray('  # Batch import from the provided template'));
+    console.log(chalk.gray('  # Batch planning with managed Markdown'));
     console.log(chalk.gray(`  ${shellHints.copyCmd}`));
     console.log(chalk.gray('  seshflow validate my-tasks.md'));
     console.log(chalk.gray('  seshflow import my-tasks.md'));
+    console.log(chalk.gray('  # Later: edit the same file, then'));
+    console.log(chalk.gray('  seshflow import my-tasks.md --update'));
     console.log(chalk.gray('  seshflow next --json'));
 
     console.log(chalk.blue('\nReference:'));

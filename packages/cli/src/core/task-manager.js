@@ -6,6 +6,7 @@ import {
   generateRuntimeRecordId,
   toISOString,
   isValidPriority,
+  isValidTaskId,
   sanitizeBranchName
 } from '../utils/helpers.js';
 
@@ -65,8 +66,19 @@ export class TaskManager {
    * Create a new task
    */
   createTask(options) {
+    const requestedId = options.id ? String(options.id).trim() : '';
+    const taskId = requestedId || generateTaskId();
+
+    if (requestedId && !isValidTaskId(requestedId)) {
+      throw new Error(`Invalid task id: ${requestedId}`);
+    }
+
+    if (this.getTask(taskId)) {
+      throw new Error(`Task id already exists: ${taskId}`);
+    }
+
     const task = {
-      id: generateTaskId(),
+      id: taskId,
       title: options.title || 'Untitled Task',
       description: options.description || '',
       status: options.status || 'backlog',

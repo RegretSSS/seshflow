@@ -5,6 +5,7 @@ import fs from 'fs-extra';
 const MAIN_TASK_LINE_RE = /^-\s*\[[ x]\]\s+(.+)$/i;
 const SUBTASK_LINE_RE = /^\s+[-*]\s*\[[ x]\]\s+(.+)$/i;
 const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
+const ID_PREFIX_RE = /^id\s*:/i;
 const TAG_PREFIX_RE = /^(\u6807\u7b7e|tags?)\s*[:\uff1a]\s*/i;
 const PRIORITY_PREFIX_RE = /^(\u4f18\u5148\u7ea7|priority)\s*[:\uff1a]\s*/i;
 const ESTIMATE_PREFIX_RE = /^(\u9884\u4f30|estimate)\s*[:\uff1a]\s*/i;
@@ -14,6 +15,7 @@ function parseInlineTokens(text) {
     hasPriority: false,
     hasEstimate: false,
     dependencies: [],
+    taskId: null,
   };
 
   const matches = [...String(text).matchAll(/\[([^\]]+)\]/g)];
@@ -35,6 +37,10 @@ function parseInlineTokens(text) {
           .map(dep => dep.trim())
           .filter(Boolean)
       );
+      return;
+    }
+    if (ID_PREFIX_RE.test(token)) {
+      result.taskId = token.replace(ID_PREFIX_RE, '').trim() || null;
     }
   });
 
@@ -85,6 +91,7 @@ export async function validateMarkdown(filePath) {
           hasPriority: tokenInfo.hasPriority,
           hasEstimate: tokenInfo.hasEstimate,
           dependencies: [...tokenInfo.dependencies],
+          taskId: tokenInfo.taskId,
         };
         tasks.push(currentTask);
         continue;
@@ -96,7 +103,7 @@ export async function validateMarkdown(filePath) {
 
       if (PRIORITY_PREFIX_RE.test(normalized)) {
         const value = normalized.replace(PRIORITY_PREFIX_RE, '').trim();
-        if (/^P[0-3]$/i.test(value) || /^(高|中|低|紧急)$/i.test(value)) {
+        if (/^P[0-3]$/i.test(value)) {
           currentTask.hasPriority = true;
         } else {
           warnings.push(`Line ${i + 1}: unrecognized priority value "${value}"`);
@@ -128,8 +135,12 @@ export async function validateMarkdown(filePath) {
         continue;
       }
 
+      if (ID_PREFIX_RE.test(normalized)) {
+        currentTask.taskId = normalized.replace(ID_PREFIX_RE, '').trim() || null;
+        continue;
+      }
+
       if (TAG_PREFIX_RE.test(normalized)) {
-        // Tags are optional and free-form, no warning needed.
         continue;
       }
     }
@@ -138,12 +149,22 @@ export async function validateMarkdown(filePath) {
       errors.push('No task lines found');
     }
 
+    const seenTaskIds = new Set();
     tasks.forEach(task => {
       if (!task.title) {
         errors.push(`Line ${task.lineNo}: missing task title`);
       }
+      if (task.taskId && !/^task_[a-z0-9_]+$/i.test(task.taskId)) {
+        errors.push(`Line ${task.lineNo}: invalid task id "${task.taskId}"`);
+      }
+      if (task.taskId && seenTaskIds.has(task.taskId)) {
+        errors.push(`Line ${task.lineNo}: duplicate task id "${task.taskId}"`);
+      }
+      if (task.taskId) {
+        seenTaskIds.add(task.taskId);
+      }
       if (!task.hasPriority) {
-        warnings.push(`Line ${task.lineNo}: missing priority [P0-P3] or "优先级: 高/中/低"`);
+        warnings.push(`Line ${task.lineNo}: missing priority [P0-P3]`);
       }
     });
 

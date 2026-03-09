@@ -10,6 +10,15 @@ export function generateTaskId() {
 }
 
 /**
+ * Validate task ID format
+ * @param {string} taskId - Candidate task ID
+ * @returns {boolean} True when the value matches the task ID contract
+ */
+export function isValidTaskId(taskId) {
+  return /^task_[a-z0-9_]+$/i.test(String(taskId || '').trim());
+}
+
+/**
  * Generate a unique subtask ID
  * @returns {string} Subtask ID
  */
