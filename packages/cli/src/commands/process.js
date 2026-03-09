@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
-import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON } from '../utils/json-output.js';
+import { isJSONMode, formatErrorResponse, formatSuccessResponse, formatWorkspaceJSON, outputJSON } from '../utils/json-output.js';
 
 function toPlainOptions(rawOptions = {}) {
   if (rawOptions && typeof rawOptions.opts === 'function') {
@@ -56,7 +56,7 @@ export async function addProcess(taskIdOrOptions = {}, maybeOptions = {}) {
       spinner?.stop();
       const message = taskId ? `Task not found: ${taskId}` : 'No active session. Provide <taskId> or start a task first.';
       if (isJSONMode(options)) {
-        outputJSON({ success: false, error: message });
+        outputJSON(formatErrorResponse(new Error(message), taskId ? 'TASK_NOT_FOUND' : 'NO_ACTIVE_SESSION'));
       } else {
         console.error(chalk.red(`\n${message}`));
       }
@@ -67,7 +67,7 @@ export async function addProcess(taskIdOrOptions = {}, maybeOptions = {}) {
       spinner?.stop();
       const message = 'Process registration requires --pid.';
       if (isJSONMode(options)) {
-        outputJSON({ success: false, error: message });
+        outputJSON(formatErrorResponse(new Error(message), 'PID_REQUIRED'));
       } else {
         console.error(chalk.red(`\n${message}`));
       }
@@ -98,7 +98,11 @@ export async function addProcess(taskIdOrOptions = {}, maybeOptions = {}) {
     printProcessEntries([entry]);
   } catch (error) {
     spinner?.fail('Failed to register process');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'PROCESS_ADD_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }
@@ -116,7 +120,7 @@ export async function listProcesses(taskIdOrOptions = {}, maybeOptions = {}) {
       spinner?.stop();
       const message = taskId ? `Task not found: ${taskId}` : 'No active session. Provide <taskId> or start a task first.';
       if (isJSONMode(options)) {
-        outputJSON({ success: false, error: message });
+        outputJSON(formatErrorResponse(new Error(message), taskId ? 'TASK_NOT_FOUND' : 'NO_ACTIVE_SESSION'));
       } else {
         console.error(chalk.red(`\n${message}`));
       }
@@ -150,7 +154,11 @@ export async function listProcesses(taskIdOrOptions = {}, maybeOptions = {}) {
     printProcessEntries(entries);
   } catch (error) {
     spinner?.fail('Failed to load process registry');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'PROCESS_LIST_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }

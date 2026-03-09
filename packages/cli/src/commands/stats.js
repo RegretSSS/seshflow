@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
-import { formatSuccessResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
+import { formatSuccessResponse, formatErrorResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 
 const PRIORITY_KEYS = ['P0', 'P1', 'P2', 'P3'];
@@ -125,7 +125,11 @@ export async function stats(options = {}) {
     printPretty(data, options);
   } catch (error) {
     spinner?.fail('Failed to load statistics');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'STATS_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }

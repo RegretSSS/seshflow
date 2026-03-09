@@ -1,10 +1,10 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
-import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON } from '../utils/json-output.js';
+import { isJSONMode, formatErrorResponse, formatSuccessResponse, formatWorkspaceJSON, outputJSON } from '../utils/json-output.js';
 
 export async function deleteTask(taskId, options = {}) {
-  const spinner = ora('Loading task').start();
+  const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Loading task').start() : null;
 
   try {
     const manager = new TaskManager();
@@ -12,13 +12,17 @@ export async function deleteTask(taskId, options = {}) {
 
     const task = manager.getTask(taskId);
     if (!task) {
-      spinner.stop();
-      console.error(chalk.red(`\nTask not found: ${taskId}`));
-      console.error(chalk.gray("   Use 'seshflow list' to see all tasks"));
+      spinner?.stop();
+      if (isJSONMode(options)) {
+        outputJSON(formatErrorResponse(new Error(`Task not found: ${taskId}`), 'TASK_NOT_FOUND'));
+      } else {
+        console.error(chalk.red(`\nTask not found: ${taskId}`));
+        console.error(chalk.gray("   Use 'seshflow list' to see all tasks"));
+      }
       process.exit(1);
     }
 
-    spinner.stop();
+    spinner?.stop();
 
     const dependentTasks = manager.getTasks().filter(candidate => candidate.dependencies.includes(taskId));
     const blockedByTasks = manager.getBlockedBy(task);
@@ -71,10 +75,10 @@ export async function deleteTask(taskId, options = {}) {
       }
     }
 
-    const deleteSpinner = ora('Deleting task').start();
+    const deleteSpinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Deleting task').start() : null;
     manager.deleteTask(taskId);
     await manager.saveData();
-    deleteSpinner.succeed('Task deleted');
+    deleteSpinner?.succeed('Task deleted');
 
     if (!isJSONMode(options)) {
       console.log(chalk.green(`\nDeleted task: ${task.title}`));
@@ -86,6 +90,7 @@ export async function deleteTask(taskId, options = {}) {
     } else {
       const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
       outputJSON(formatSuccessResponse({
+        action: 'delete',
         deleted: true,
         taskId,
         taskTitle: task.title,
@@ -93,13 +98,11 @@ export async function deleteTask(taskId, options = {}) {
       }, workspaceJSON));
     }
   } catch (error) {
+    spinner?.fail('Failed to delete task');
     if (!isJSONMode(options)) {
       console.error(chalk.red(`\nError: ${error.message}`));
     } else {
-      outputJSON({
-        success: false,
-        error: error.message
-      });
+      outputJSON(formatErrorResponse(error, 'DELETE_FAILED'));
     }
     process.exit(1);
   }

@@ -38,7 +38,7 @@ describe('managed markdown planning sync', () => {
     await manager.saveData();
 
     const markdownPath = path.join(workspacePath, 'plan.md');
-    const exportResult = runCLI(workspacePath, ['export', markdownPath]);
+    const exportResult = runCLI(workspacePath, ['export', markdownPath, '--md']);
     expect(exportResult.status).toBe(0);
 
     const exported = await fs.readFile(markdownPath, 'utf8');
@@ -78,7 +78,7 @@ describe('managed markdown planning sync', () => {
     await manager.saveData();
 
     const markdownPath = path.join(workspacePath, 'plan.md');
-    const exportResult = runCLI(workspacePath, ['export', markdownPath]);
+    const exportResult = runCLI(workspacePath, ['export', markdownPath, '--md']);
     expect(exportResult.status).toBe(0);
 
     const exported = await fs.readFile(markdownPath, 'utf8');

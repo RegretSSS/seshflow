@@ -107,6 +107,26 @@ export function outputJSON(data) {
 /**
  * Check if JSON output is requested
  */
-export function isJSONMode(options) {
-  return options && (options.json === true || options.JSON === true);
+export function isJSONMode(options = {}, defaultMode = true) {
+  if (options.pretty || options.compact) {
+    return false;
+  }
+
+  if (options.json === false) {
+    return false;
+  }
+
+  if (options.json === true || options.JSON === true) {
+    return true;
+  }
+
+  const envMode = process.env.SESHFLOW_OUTPUT?.toLowerCase();
+  if (envMode === 'pretty' || envMode === 'compact') {
+    return false;
+  }
+  if (envMode === 'json') {
+    return true;
+  }
+
+  return defaultMode;
 }

@@ -76,6 +76,7 @@ program
   .option('-a, --assignee <name>', 'Assignee name')
   .option('-b, --branch <branch>', 'Git branch name')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(add);
 
 // Next command
@@ -89,6 +90,7 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(next);
 
 // Done command
@@ -100,6 +102,7 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action((taskId, options) => {
     if (typeof taskId === 'string') {
       return done(taskId, options);
@@ -117,6 +120,7 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(completeTask);
 
 // Start specific task
@@ -128,6 +132,7 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(start);
 
 // Skip current task
@@ -139,6 +144,7 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(skip);
 
 // Suspend current task
@@ -150,6 +156,7 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(suspend);
 
 program
@@ -164,6 +171,7 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action((taskId, options) => {
     const resolvedTaskId = typeof taskId === 'string' ? taskId : options;
     const resolvedOptions = typeof taskId === 'string' ? options : taskId;
@@ -184,6 +192,7 @@ announceCommand
   .option('-p, --percent <number>', 'Progress percentage')
   .option('-n, --note <text>', 'Progress note')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action((taskId, options) => {
     const resolvedTaskId = typeof taskId === 'string' ? taskId : options;
     const resolvedOptions = typeof taskId === 'string' ? options : taskId;
@@ -200,6 +209,7 @@ processCommand
   .option('-n, --note <text>', 'Note for this process')
   .option('--state <running|missing|exited|unknown>', 'Explicit initial state')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action((taskId, options) => {
     const resolvedTaskId = typeof taskId === 'string' ? taskId : options;
     const resolvedOptions = typeof taskId === 'string' ? options : taskId;
@@ -212,6 +222,7 @@ processCommand
   .option('--refresh', 'Refresh liveness state before output')
   .option('-l, --limit <number>', 'Limit number of entries displayed')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action((taskId, options) => {
     const resolvedTaskId = typeof taskId === 'string' ? taskId : options;
     const resolvedOptions = typeof taskId === 'string' ? options : taskId;
@@ -223,6 +234,7 @@ program
   .alias('add-dependency')
   .description('Add a task dependency')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(addDependency);
 
 program
@@ -230,6 +242,7 @@ program
   .alias('remove-dependency')
   .description('Remove a task dependency')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(removeDependency);
 
 // Import command
@@ -254,6 +267,7 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(newchatfirstround);
 
 // Dependencies command
@@ -265,6 +279,7 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(deps);
 
 // Query command
@@ -281,6 +296,7 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(query);
 
 // Stats command
@@ -292,6 +308,7 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(stats);
 
 // List command
@@ -309,6 +326,7 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(list);
 
 // Show command
@@ -319,6 +337,7 @@ program
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(show);
 
 // Delete command
@@ -326,6 +345,8 @@ program
   .command('delete <taskId>')
   .description('Delete a task')
   .option('-f, --force', 'Force delete without confirmation')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(deleteTask);
 
 // Edit command
@@ -346,6 +367,7 @@ program
   .option('-a, --assignee <name>', 'New assignee')
   .option('-b, --branch <branch>', 'New git branch')
   .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
   .action(edit);
 
 // Magic command (Skills)
@@ -367,7 +389,8 @@ program
   .description('Export tasks to markdown or json')
   .option('-s, --status <statuses>', 'Filter by status (comma-separated)')
   .option('-p, --priority <priorities>', 'Filter by priority (comma-separated)')
-  .option('-f, --format <markdown|json>', 'Export format', 'markdown')
+  .option('-f, --format <json|markdown>', 'Export format', 'json')
+  .option('--md', 'Alias for --format markdown')
   .option('--json', 'Alias for --format json')
   .action(exportTasks);
 

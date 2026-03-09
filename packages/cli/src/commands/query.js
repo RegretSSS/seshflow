@@ -1,7 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
-import { formatTaskJSON, formatTaskSummaryJSON, formatSuccessResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
+import { formatTaskJSON, formatTaskSummaryJSON, formatSuccessResponse, formatErrorResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { truncate } from '../utils/helpers.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
@@ -139,13 +139,17 @@ export async function query(options = {}) {
       console.log(chalk.gray(`  seshflow show ${filteredTasks[0].id}`));
     }
     if (await shouldShowWorkspaceHint(manager.storage, 'query:pretty-hint')) {
-      console.log(chalk.gray('  seshflow query --json'));
-      console.log(chalk.gray('  seshflow query --json --full'));
+      console.log(chalk.gray('  seshflow query'));
+      console.log(chalk.gray('  seshflow query --full'));
     }
     console.log('');
   } catch (error) {
     spinner?.fail('Failed to query tasks');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'QUERY_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }

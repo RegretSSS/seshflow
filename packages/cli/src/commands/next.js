@@ -1,4 +1,4 @@
-import { formatTaskJSON, formatWorkspaceJSON, formatSuccessResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
+import { formatTaskJSON, formatWorkspaceJSON, formatSuccessResponse, formatErrorResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
 import chalk from 'chalk';
 import ora from 'ora';
 import simpleGit from 'simple-git';
@@ -306,7 +306,11 @@ export async function next(options = {}) {
     }
   } catch (error) {
     spinner?.fail('Failed to get next task');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'NEXT_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }

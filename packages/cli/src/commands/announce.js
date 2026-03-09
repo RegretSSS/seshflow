@@ -17,8 +17,9 @@ export async function announceProgress(taskIdOrOptions = {}, maybeOptions = {}) 
       const error = new Error(taskId ? `Task not found: ${taskId}` : 'No active task to announce progress for');
       if (isJSONMode(options)) {
         outputJSON(formatErrorResponse(error, taskId ? 'TASK_NOT_FOUND' : 'NO_ACTIVE_TASK'));
+      } else {
+        console.error(chalk.red(`\nError: ${error.message}`));
       }
-      console.error(chalk.red(`\nError: ${error.message}`));
       process.exit(1);
     }
 
@@ -64,8 +65,9 @@ export async function announceProgress(taskIdOrOptions = {}, maybeOptions = {}) 
     }
     if (isJSONMode(options)) {
       outputJSON(formatErrorResponse(error, 'ANNOUNCE_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
     }
-    console.error(chalk.red(`\nError: ${error.message}`));
     process.exit(1);
   }
 }

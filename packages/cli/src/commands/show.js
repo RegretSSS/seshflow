@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { truncate } from '../utils/helpers.js';
-import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON } from '../utils/json-output.js';
+import { isJSONMode, formatErrorResponse, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 
@@ -140,8 +140,12 @@ export async function show(taskId, options = {}) {
     const task = manager.getTask(taskId);
     if (!task) {
       spinner?.stop();
-      console.error(chalk.red(`\nTask not found: ${taskId}`));
-      console.error(chalk.gray(`  Use 'seshflow list' to see all tasks`));
+      if (isJSONMode(options)) {
+        outputJSON(formatErrorResponse(new Error(`Task not found: ${taskId}`), 'TASK_NOT_FOUND'));
+      } else {
+        console.error(chalk.red(`\nTask not found: ${taskId}`));
+        console.error(chalk.gray(`  Use 'seshflow list' to see all tasks`));
+      }
       process.exit(1);
     }
 
@@ -196,7 +200,11 @@ export async function show(taskId, options = {}) {
     }
   } catch (error) {
     spinner?.fail('Failed to show task');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'SHOW_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }

@@ -202,9 +202,9 @@ export async function init(options = {}) {
     const shellHints = getShellHints();
 
     console.log(chalk.blue('\nQuick start:'));
-    console.log(chalk.gray('  seshflow ncfr --json'));
+    console.log(chalk.gray('  seshflow ncfr'));
     console.log(chalk.gray('  seshflow add "My first task"'));
-    console.log(chalk.gray('  seshflow next --json'));
+    console.log(chalk.gray('  seshflow next'));
     console.log('');
     console.log(chalk.gray('  # Batch planning with managed Markdown'));
     console.log(chalk.gray(`  ${shellHints.copyCmd}`));
@@ -212,7 +212,7 @@ export async function init(options = {}) {
     console.log(chalk.gray('  seshflow import my-tasks.md'));
     console.log(chalk.gray('  # Later: edit the same file, then'));
     console.log(chalk.gray('  seshflow import my-tasks.md --update'));
-    console.log(chalk.gray('  seshflow next --json'));
+    console.log(chalk.gray('  seshflow next'));
 
     console.log(chalk.blue('\nReference:'));
     console.log(chalk.gray(`  ${shellHints.viewCmd}`));

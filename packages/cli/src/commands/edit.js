@@ -11,7 +11,7 @@ import {
 } from '../utils/json-output.js';
 
 export async function edit(taskId, options = {}) {
-  const spinner = ora('Loading task').start();
+  const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Loading task').start() : null;
 
   try {
     const manager = new TaskManager();
@@ -19,13 +19,24 @@ export async function edit(taskId, options = {}) {
 
     const task = manager.getTask(taskId);
     if (!task) {
-      spinner.stop();
-      console.error(chalk.red(`\nTask not found: ${taskId}`));
-      console.error(chalk.gray("   Use 'seshflow list' to see all tasks"));
+      spinner?.stop();
+      if (isJSONMode(options)) {
+        outputJSON({
+          success: false,
+          error: {
+            code: 'TASK_NOT_FOUND',
+            message: `Task not found: ${taskId}`,
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } else {
+        console.error(chalk.red(`\nTask not found: ${taskId}`));
+        console.error(chalk.gray("   Use 'seshflow list' to see all tasks"));
+      }
       process.exit(1);
     }
 
-    spinner.stop();
+    spinner?.stop();
 
     const description = options.description ?? options.desc;
     const estimatedHours = options.hours ?? options.estimate;
@@ -83,8 +94,19 @@ export async function edit(taskId, options = {}) {
     }
 
     if (!process.stdin.isTTY) {
-      console.error(chalk.red('\nInteractive edit is not available in non-TTY environments.'));
-      console.error(chalk.gray('   Use flags, e.g. seshflow edit <taskId> --title "..." --description "..."'));
+      if (isJSONMode(options)) {
+        outputJSON({
+          success: false,
+          error: {
+            code: 'INTERACTIVE_EDIT_UNAVAILABLE',
+            message: 'Interactive edit is not available in non-TTY environments.',
+            timestamp: new Date().toISOString(),
+          },
+        });
+      } else {
+        console.error(chalk.red('\nInteractive edit is not available in non-TTY environments.'));
+        console.error(chalk.gray('   Use flags, e.g. seshflow edit <taskId> --title "..." --description "..."'));
+      }
       process.exit(1);
     }
 
@@ -145,8 +167,19 @@ export async function edit(taskId, options = {}) {
 
     console.log(chalk.green(`\nUpdated task: ${task.title}`));
   } catch (error) {
-    spinner.fail('Failed to edit task');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    spinner?.fail('Failed to edit task');
+    if (isJSONMode(options)) {
+      outputJSON({
+        success: false,
+        error: {
+          code: 'EDIT_FAILED',
+          message: error.message,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }

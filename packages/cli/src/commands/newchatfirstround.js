@@ -3,7 +3,7 @@ import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { existsSync } from 'fs';
 import path from 'path';
-import { formatTaskJSON, formatTaskSummaryJSON, formatWorkspaceJSON, formatSuccessResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
+import { formatTaskJSON, formatTaskSummaryJSON, formatWorkspaceJSON, formatSuccessResponse, formatErrorResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { truncate } from '../utils/helpers.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
@@ -162,7 +162,7 @@ function printPrettyContext(data, options = {}) {
     console.log(chalk.blue('\nQuick Commands:'));
     console.log(chalk.gray('  seshflow next --compact'));
     console.log(chalk.gray('  seshflow list --compact'));
-    console.log(chalk.gray('  seshflow show <task-id> --json'));
+    console.log(chalk.gray('  seshflow show <task-id>'));
     console.log('');
   }
 }
@@ -293,7 +293,11 @@ export async function newchatfirstround(options = {}) {
     }
   } catch (error) {
     spinner?.fail('Failed to load context');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'NCFR_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }

@@ -122,8 +122,8 @@ describe('output layering', () => {
     const result = runCLI(workspacePath, ['init']);
 
     expect(result.status).toBe(0);
-    expect(result.stdout).toContain('seshflow ncfr --json');
-    expect(result.stdout).toContain('seshflow next --json');
+    expect(result.stdout).toContain('seshflow ncfr');
+    expect(result.stdout).toContain('seshflow next');
     expect(result.stdout).not.toContain('CMD alternative');
   });
 });

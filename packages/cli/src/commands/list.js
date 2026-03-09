@@ -2,7 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { truncate } from '../utils/helpers.js';
-import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON, formatTaskSummaryJSON } from '../utils/json-output.js';
+import { isJSONMode, formatErrorResponse, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON, formatTaskSummaryJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 
@@ -191,13 +191,17 @@ export async function list(options = {}) {
 
     if (await shouldShowWorkspaceHint(manager.storage, 'list:pretty-hint')) {
       console.log(chalk.blue('Machine step:'));
-      console.log(chalk.gray('  seshflow list --json'));
-      console.log(chalk.gray('  seshflow list --json --full'));
+      console.log(chalk.gray('  seshflow list'));
+      console.log(chalk.gray('  seshflow list --full'));
       console.log('');
     }
   } catch (error) {
     spinner?.fail('Failed to list tasks');
-    console.error(chalk.red(`\nError: ${error.message}`));
+    if (isJSONMode(options)) {
+      outputJSON(formatErrorResponse(error, 'LIST_FAILED'));
+    } else {
+      console.error(chalk.red(`\nError: ${error.message}`));
+    }
     process.exit(1);
   }
 }
