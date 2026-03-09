@@ -1,10 +1,9 @@
-import chalk from 'chalk';
-import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { truncate } from '../utils/helpers.js';
 import { isJSONMode, formatErrorResponse, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
+import { loadTextUI } from '../utils/text-ui.js';
 
 function subtaskProgress(task) {
   const total = task.subtasks?.length || 0;
@@ -44,7 +43,7 @@ function displayCompact(task, blockers = []) {
   }
 }
 
-function displayPretty(task, blockers = [], runtimeEntries = [], processEntries = []) {
+function displayPretty(task, chalk, blockers = [], runtimeEntries = [], processEntries = []) {
   const progress = subtaskProgress(task);
 
   console.log(chalk.bold.cyan(`\n- ${task.title}`));
@@ -131,7 +130,9 @@ function displayPretty(task, blockers = [], runtimeEntries = [], processEntries 
 export async function show(taskId, options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
-  const spinner = (!compactMode && process.stdout.isTTY) ? ora('Loading task').start() : null;
+  const jsonMode = isJSONMode(options);
+  const { chalk, ora } = jsonMode ? { chalk: null, ora: null } : await loadTextUI();
+  const spinner = (!jsonMode && !compactMode && process.stdout.isTTY) ? ora('Loading task').start() : null;
 
   try {
     const manager = new TaskManager();
@@ -140,7 +141,7 @@ export async function show(taskId, options = {}) {
     const task = manager.getTask(taskId);
     if (!task) {
       spinner?.stop();
-      if (isJSONMode(options)) {
+      if (jsonMode) {
         outputJSON(formatErrorResponse(new Error(`Task not found: ${taskId}`), 'TASK_NOT_FOUND'));
       } else {
         console.error(chalk.red(`\nTask not found: ${taskId}`));
@@ -162,7 +163,7 @@ export async function show(taskId, options = {}) {
 
     spinner?.stop();
 
-    if (isJSONMode(options)) {
+    if (jsonMode) {
       const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
       outputJSON(formatSuccessResponse({
         detailLevel: includeFullJSON ? 'full' : 'summary',
@@ -185,7 +186,7 @@ export async function show(taskId, options = {}) {
       return;
     }
 
-    displayPretty(task, blockers, runtimeEntries, processEntries);
+    displayPretty(task, chalk, blockers, runtimeEntries, processEntries);
 
     if (await shouldShowWorkspaceHint(manager.storage, 'show:pretty-hint')) {
       console.log(chalk.blue('\nCommands:'));
@@ -200,7 +201,7 @@ export async function show(taskId, options = {}) {
     }
   } catch (error) {
     spinner?.fail('Failed to show task');
-    if (isJSONMode(options)) {
+    if (jsonMode) {
       outputJSON(formatErrorResponse(error, 'SHOW_FAILED'));
     } else {
       console.error(chalk.red(`\nError: ${error.message}`));

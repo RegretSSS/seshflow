@@ -1,5 +1,3 @@
-import chalk from 'chalk';
-import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { existsSync } from 'fs';
 import path from 'path';
@@ -7,6 +5,7 @@ import { formatTaskJSON, formatTaskSummaryJSON, formatWorkspaceJSON, formatSucce
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { truncate } from '../utils/helpers.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
+import { loadTextUI } from '../utils/text-ui.js';
 
 function collectStats(tasks) {
   return {
@@ -82,7 +81,7 @@ function printCompactContext(data) {
   }
 }
 
-function printPrettyContext(data, options = {}) {
+function printPrettyContext(data, chalk, options = {}) {
   const { project, stats, currentTask, nextReadyTask, dependencies, dependents, keyFiles, blockedTasks, recentlyCompleted, fullMode, showCommandHints } = data;
 
   console.log(chalk.bold.cyan('\nSeshflow Project Context\n'));
@@ -171,7 +170,9 @@ export async function newchatfirstround(options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const fullMode = options.full === true;
-  const spinner = (!compactMode && process.stdout.isTTY) ? ora('Loading project context').start() : null;
+  const jsonMode = isJSONMode(options);
+  const { chalk, ora } = jsonMode ? { chalk: null, ora: null } : await loadTextUI();
+  const spinner = (!jsonMode && !compactMode && process.stdout.isTTY) ? ora('Loading project context').start() : null;
 
   try {
     const manager = new TaskManager();
@@ -240,7 +241,7 @@ export async function newchatfirstround(options = {}) {
       showCommandHints: await shouldShowWorkspaceHint(manager.storage, 'ncfr:pretty-hints'),
     };
 
-    if (isJSONMode(options)) {
+    if (jsonMode) {
       spinner?.stop();
       const responseData = {
         statistics: stats,
@@ -289,11 +290,11 @@ export async function newchatfirstround(options = {}) {
     if (compactMode) {
       printCompactContext(contextData);
     } else {
-      printPrettyContext(contextData, options);
+      printPrettyContext(contextData, chalk, options);
     }
   } catch (error) {
     spinner?.fail('Failed to load context');
-    if (isJSONMode(options)) {
+    if (jsonMode) {
       outputJSON(formatErrorResponse(error, 'NCFR_FAILED'));
     } else {
       console.error(chalk.red(`\nError: ${error.message}`));

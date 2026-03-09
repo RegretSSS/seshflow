@@ -1,10 +1,9 @@
-import chalk from 'chalk';
-import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { truncate } from '../utils/helpers.js';
 import { isJSONMode, formatErrorResponse, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON, formatTaskSummaryJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
+import { loadTextUI } from '../utils/text-ui.js';
 
 function subtaskProgress(task) {
   if (!task.subtasks || task.subtasks.length === 0) {
@@ -18,7 +17,7 @@ function displayCompactTask(task) {
   console.log(`${task.id} | ${task.status} | ${task.priority} | ${truncate(task.title, 72)}${subtaskProgress(task)}`);
 }
 
-function displayPrettyTask(task) {
+function displayPrettyTask(task, chalk) {
   const statusEmoji = {
     backlog: 'B',
     todo: 'T',
@@ -43,13 +42,13 @@ function displayPrettyTask(task) {
   console.log(line);
 }
 
-function displayPrettyHeader() {
+function displayPrettyHeader(chalk) {
   console.log(chalk.cyan('\n' + '='.repeat(100)));
   console.log(chalk.cyan.bold('  STATUS       ID                            PRI  TITLE'));
   console.log(chalk.cyan('='.repeat(100)));
 }
 
-function displayPrettyFooter(taskCount) {
+function displayPrettyFooter(taskCount, chalk) {
   console.log(chalk.cyan('='.repeat(100)));
   console.log(chalk.gray(`\n  Total: ${taskCount} tasks\n`));
 }
@@ -58,7 +57,8 @@ export async function list(options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const jsonMode = isJSONMode(options);
-  const spinner = compactMode ? null : ora('Loading tasks').start();
+  const { chalk, ora } = jsonMode ? { chalk: null, ora: null } : await loadTextUI();
+  const spinner = (!jsonMode && !compactMode) ? ora('Loading tasks').start() : null;
 
   try {
     const manager = new TaskManager();
@@ -169,12 +169,12 @@ export async function list(options = {}) {
       return;
     }
 
-    displayPrettyHeader();
-    tasks.forEach(displayPrettyTask);
-    displayPrettyFooter(tasks.length);
+      displayPrettyHeader(chalk);
+      tasks.forEach(task => displayPrettyTask(task, chalk));
+      displayPrettyFooter(tasks.length, chalk);
 
     if (!options.all && !hasExplicitFilter && totalBeforePaging > tasks.length) {
-      console.log(chalk.blue(`Showing ${tasks.length}/${totalBeforePaging} tasks (use --all or --limit/--offset)`));
+        console.log(chalk.blue(`Showing ${tasks.length}/${totalBeforePaging} tasks (use --all or --limit/--offset)`));
       console.log('');
     }
 

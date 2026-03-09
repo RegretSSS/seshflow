@@ -1,14 +1,12 @@
 import { formatTaskJSON, formatWorkspaceJSON, formatSuccessResponse, formatErrorResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
-import chalk from 'chalk';
-import ora from 'ora';
-import simpleGit from 'simple-git';
 import { TaskManager } from '../core/task-manager.js';
 import { TaskTransitionService } from '../core/task-transition-service.js';
 import { truncate } from '../utils/helpers.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
+import { loadTextUI } from '../utils/text-ui.js';
 
-function displayTask(task, showFull = false) {
+function displayTask(task, chalk, showFull = false) {
   console.log(chalk.bold.cyan(`\n- ${task.title}`));
   console.log(chalk.cyan(`  ID: ${task.id}`));
   console.log(chalk.cyan(`  Priority: ${task.priority}`));
@@ -132,14 +130,16 @@ function compactTaskContext(task, manager) {
 export async function next(options = {}) {
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
-  const spinner = compactMode ? null : ora('Loading workspace').start();
+  const jsonMode = isJSONMode(options);
+  const { chalk, ora } = jsonMode ? { chalk: null, ora: null } : await loadTextUI();
+  const spinner = (!jsonMode && !compactMode) ? ora('Loading workspace').start() : null;
 
   try {
     const manager = new TaskManager();
     await manager.init();
     const transitions = new TaskTransitionService(manager);
 
-    if (isJSONMode(options)) {
+    if (jsonMode) {
       const currentTask = manager.getCurrentTask();
       if (currentTask) {
         spinner?.stop();
@@ -194,7 +194,7 @@ export async function next(options = {}) {
         compactTaskContext(currentTask, manager);
       } else {
         console.log(chalk.yellow('\nYou have an active session:'));
-        displayTask(currentTask, true);
+        displayTask(currentTask, chalk, true);
         console.log(
           chalk.blue('\nCommands:'),
           chalk.gray('seshflow done'),
@@ -270,11 +270,12 @@ export async function next(options = {}) {
       console.log(`NEXT | ${toCompactLine(nextTask)}${subtaskInfo}`);
       compactTaskContext(nextTask, manager);
     } else {
-      displayTask(nextTask, true);
+      displayTask(nextTask, chalk, true);
     }
 
     if (nextTask.gitBranch && options.git) {
       try {
+        const { default: simpleGit } = await import('simple-git');
         const git = simpleGit();
         const currentBranch = (await git.branch()).current;
 
@@ -306,7 +307,7 @@ export async function next(options = {}) {
     }
   } catch (error) {
     spinner?.fail('Failed to get next task');
-    if (isJSONMode(options)) {
+    if (jsonMode) {
       outputJSON(formatErrorResponse(error, 'NEXT_FAILED'));
     } else {
       console.error(chalk.red(`\nError: ${error.message}`));
