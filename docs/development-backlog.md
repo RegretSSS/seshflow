@@ -144,6 +144,12 @@
 - Scope: add a global workspace registry/index and overview path for multiple workspaces without redefining `apifirst`.
 - Done: multi-workspace visibility exists without redefining what API-first means.
 
+### 1.3.0-09 Boundary Hardening and Package-consumption Best Practices
+
+- Priority: P1
+- Scope: codify what belongs in Seshflow, how Agent-side code should consume its seams, and which feature classes must stay outside the package core.
+- Done: package consumers and future maintainers can evaluate scope changes against an explicit best-practices guide instead of ad hoc discussion.
+
 ## v1.4.0 - Realtime + Visualization
 
 ### 1.4.0-01 WebSocket Realtime Sync

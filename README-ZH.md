@@ -102,6 +102,8 @@ Seshflow 到“开发内核”这一层为止：
 
 Seshflow 不会扩成完整 Agent 产品。后续 Agent 项目中的模型路由、长循环自治、prompt 策略、跨工具编排等能力，应当通过 Seshflow 预留的 RPC/API/hooks 接入，而不是继续塞进 Seshflow 核心。
 
+关于包消费方式和范围判断，请直接参照 `docs/best-practices.zh-CN.md`。
+
 ## 输出模式
 
 - 默认：给 AI 和工具用的结构化 JSON 输出

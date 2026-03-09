@@ -120,6 +120,7 @@ Use these boundaries as hard constraints, not inspiration.
 - Seshflow should stop major scope growth once task/hook/mode/contract seams are stable enough for external Agent code to compose against them.
 - After that point, Seshflow work should bias toward optimization, hardening, compatibility, and carefully bounded extension points.
 - The future Agent project should consume Seshflow through RPC/API/hooks rather than forcing conversation policy or autonomous loop logic into the Seshflow core.
+- Package-consumption and boundary best practices are documented in `docs/best-practices.md` and `docs/best-practices.zh-CN.md`.
 
 ## 11. Testing and Release Boundary
 

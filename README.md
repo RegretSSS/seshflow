@@ -102,6 +102,8 @@ Seshflow stops at the development kernel:
 
 Seshflow does not aim to become the full Agent product. Future Agent-specific concerns such as model routing, long-running autonomous loops, prompt policy, and cross-tool orchestration should live in the Agent project and integrate through Seshflow's RPC/API/hooks.
 
+For package-consumption and scope decisions, use `docs/best-practices.md`.
+
 ## Output modes
 
 - default: structured JSON for AI/tooling
