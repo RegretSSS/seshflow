@@ -112,6 +112,12 @@ When a long-running background job matters for resuming work, register and refre
 
 Transition-triggered hooks now write persisted runtime events. Treat blocking `before_*` hook failures as authoritative and inspect `show <taskId> --json` for `recentRuntimeEvents` when a transition fails unexpectedly.
 
+When the lightweight web control plane is available, treat it as a read-only runtime surface backed by `.seshflow/tasks.json`:
+
+- use it to inspect current focus, runtime summaries, process summaries, and recent runtime events
+- do not assume drag-and-drop board edits are authoritative
+- keep state mutation in the CLI contract until the web/API control plane is explicitly expanded
+
 ## Guardrails
 
 - Keep command set minimal in each turn.
