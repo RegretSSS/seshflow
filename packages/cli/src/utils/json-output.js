@@ -21,6 +21,9 @@ export function formatTaskJSON(task) {
     updatedAt: task.updatedAt,
     startedAt: task.startedAt || null,
     completedAt: task.completedAt || null,
+    contractIds: task.contractIds || [],
+    contractRole: task.contractRole || null,
+    boundFiles: task.boundFiles || [],
   };
 }
 
@@ -37,6 +40,7 @@ export function formatTaskSummaryJSON(task) {
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
     blockedBy: task.blockedBy || [],
+    contractIds: task.contractIds || [],
     subtaskCount: task.subtasks?.length || 0,
     completedSubtasks: task.subtasks?.filter(st => st.completed).length || 0,
   };
@@ -56,14 +60,30 @@ function pickWorkspaceFields(info, fields) {
  */
 export async function formatWorkspaceJSON(storage, taskCount = 0, options = {}) {
   const info = await storage.getWorkspaceInfo(taskCount);
+  const modeInfo = await resolveWorkspaceMode(storage);
   const baseFields = ['path', 'name', 'gitBranch', 'totalTasks', 'source', 'sourcePath'];
   const fullFields = ['requestedPath', 'seshflowDir', 'tasksFile', 'configPath'];
+  const modeFields = {
+    mode: modeInfo.mode,
+    requestedMode: modeInfo.requestedMode,
+  };
 
-  if (options.full) {
-    return pickWorkspaceFields(info, [...baseFields, ...fullFields]);
+  if (modeInfo.fallbackMode) {
+    modeFields.fallbackMode = modeInfo.fallbackMode;
+    modeFields.fallbackReason = modeInfo.fallbackReason;
   }
 
-  return pickWorkspaceFields(info, baseFields);
+  if (options.full) {
+    return {
+      ...pickWorkspaceFields(info, [...baseFields, ...fullFields]),
+      ...modeFields,
+    };
+  }
+
+  return {
+    ...pickWorkspaceFields(info, baseFields),
+    ...modeFields,
+  };
 }
 
 /**
@@ -130,3 +150,4 @@ export function isJSONMode(options = {}, defaultMode = true) {
 
   return defaultMode;
 }
+import { resolveWorkspaceMode } from '../core/workspace-mode.js';

@@ -1,4 +1,4 @@
-import { HOOK_ACTIONS, HOOK_MODES, HOOK_NAMES } from '../../../shared/constants/hooks.js';
+import { HOOK_ACTIONS, HOOK_MODES, HOOK_NAMES, HOOK_TAXONOMY } from '../../../shared/constants/hooks.js';
 
 const ALLOWED_HOOKS = new Set(Object.values(HOOK_NAMES));
 const ALLOWED_MODES = new Set(Object.values(HOOK_MODES));
@@ -23,11 +23,16 @@ export class HookRegistry {
     const id = hook.id || `${hookName}_${index + 1}`;
     const mode = ALLOWED_MODES.has(hook.mode) ? hook.mode : HOOK_MODES.BLOCKING;
     const action = ALLOWED_ACTIONS.has(hook.action) ? hook.action : HOOK_ACTIONS.NOOP;
+    const taxonomy = HOOK_TAXONOMY[hookName] || null;
     return {
       id,
       hookName,
       mode,
       action,
+      family: taxonomy?.family || null,
+      surface: taxonomy?.surface || null,
+      phase: taxonomy?.phase || null,
+      trigger: taxonomy?.trigger || null,
       message: hook.message || '',
       timeoutMs: Number.isInteger(hook.timeoutMs) ? hook.timeoutMs : 1000,
       retries: Number.isInteger(hook.retries) ? hook.retries : 0,

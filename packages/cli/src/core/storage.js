@@ -1,5 +1,6 @@
 import fs from 'fs-extra';
 import path from 'path';
+import os from 'os';
 import { PATHS, DEFAULT_TASK_FILE } from '../constants.js';
 import { existsSync } from 'fs';
 import { ANNOUNCEMENT_KINDS, ANNOUNCEMENT_ACTIONS } from '../../../shared/constants/announcements.js';
@@ -8,10 +9,18 @@ import { ANNOUNCEMENT_KINDS, ANNOUNCEMENT_ACTIONS } from '../../../shared/consta
  * Default configuration
  */
 const DEFAULT_CONFIG = {
+  mode: 'default',
   workspace: {
     name: 'seshflow-workspace',
     type: 'linux',
     path: process.cwd()
+  },
+  contracts: {
+    dir: PATHS.CONTRACTS_DIR
+  },
+  planning: {
+    plansDir: PATHS.PLANS_DIR,
+    defaultPlan: '.seshflow/plans/api-planning.md'
   },
   network: {
     port: 5423,
@@ -31,7 +40,12 @@ const DEFAULT_CONFIG = {
     before_start: [],
     after_start: [],
     before_done: [],
-    after_done: []
+    after_done: [],
+    'contract.bound': [],
+    'contract.unbound': [],
+    'contract.changed': [],
+    'contract.drift_detected': [],
+    'mode.changed': []
   },
   announcements: {
     [ANNOUNCEMENT_KINDS.START]: [
@@ -159,7 +173,18 @@ export class Storage {
     this.tasksFile = path.join(this.workspacePath, PATHS.TASKS_FILE);
     this.configFile = path.join(this.workspacePath, PATHS.CONFIG_FILE);
     this.uiStateFile = path.join(this.workspacePath, PATHS.UI_STATE_FILE);
+    this.contractsDir = path.join(this.workspacePath, PATHS.CONTRACTS_DIR);
     this.cachedGitBranch = null;
+  }
+
+  getGlobalHomeDir() {
+    return process.env.SESHFLOW_HOME
+      ? path.resolve(process.env.SESHFLOW_HOME)
+      : path.join(os.homedir(), PATHS.GLOBAL_WORKSPACES_DIR);
+  }
+
+  getWorkspaceIndexFilePath() {
+    return path.join(this.getGlobalHomeDir(), 'workspaces.json');
   }
 
   /**
@@ -183,6 +208,8 @@ export class Storage {
       if (!(await this.exists(this.uiStateFile))) {
         await this.writeUIState({ hintsShown: {} });
       }
+
+      await this.registerWorkspace();
 
       return true;
     } catch (error) {
@@ -256,13 +283,21 @@ export class Storage {
       return {
         ...DEFAULT_CONFIG,
         ...parsed,
-        workspace: {
-          ...DEFAULT_CONFIG.workspace,
-          ...(parsed.workspace || {}),
-          name: parsed.workspace?.name || path.basename(this.workspacePath) || '',
-          path: this.workspacePath
-        }
-      };
+      workspace: {
+        ...DEFAULT_CONFIG.workspace,
+        ...(parsed.workspace || {}),
+        name: parsed.workspace?.name || path.basename(this.workspacePath) || '',
+        path: this.workspacePath
+      },
+      contracts: {
+        ...DEFAULT_CONFIG.contracts,
+        ...(parsed.contracts || {})
+      },
+      planning: {
+        ...DEFAULT_CONFIG.planning,
+        ...(parsed.planning || {})
+      }
+    };
     } catch (error) {
       throw new Error(`Failed to read config file: ${error.message}`);
     }
@@ -323,13 +358,21 @@ export class Storage {
       const normalizedConfig = {
         ...DEFAULT_CONFIG,
         ...config,
-        workspace: {
-          ...DEFAULT_CONFIG.workspace,
-          ...(config.workspace || {}),
-          name: config.workspace?.name || path.basename(this.workspacePath) || '',
-          path: this.workspacePath
-        }
-      };
+      workspace: {
+        ...DEFAULT_CONFIG.workspace,
+        ...(config.workspace || {}),
+        name: config.workspace?.name || path.basename(this.workspacePath) || '',
+        path: this.workspacePath
+      },
+      contracts: {
+        ...DEFAULT_CONFIG.contracts,
+        ...(config.contracts || {})
+      },
+      planning: {
+        ...DEFAULT_CONFIG.planning,
+        ...(config.planning || {})
+      }
+    };
       const content = yaml.stringify(normalizedConfig);
       await fs.writeFile(this.configFile, content, 'utf-8');
       return true;
@@ -420,6 +463,100 @@ export class Storage {
     return { ...this.workspaceResolution };
   }
 
+  async readWorkspaceIndex() {
+    const indexFile = this.getWorkspaceIndexFilePath();
+    if (!(await this.exists(indexFile))) {
+      return {
+        schemaVersion: 1,
+        updatedAt: null,
+        workspaces: [],
+      };
+    }
+
+    const content = await fs.readFile(indexFile, 'utf-8');
+    const parsed = JSON.parse(content);
+    return {
+      schemaVersion: 1,
+      updatedAt: parsed?.updatedAt || null,
+      workspaces: Array.isArray(parsed?.workspaces) ? parsed.workspaces : [],
+    };
+  }
+
+  async writeWorkspaceIndex(data = {}) {
+    const indexFile = this.getWorkspaceIndexFilePath();
+    await fs.ensureDir(path.dirname(indexFile));
+    const normalized = {
+      schemaVersion: 1,
+      updatedAt: new Date().toISOString(),
+      workspaces: Array.isArray(data?.workspaces) ? data.workspaces : [],
+    };
+    await fs.writeFile(indexFile, JSON.stringify(normalized, null, 2), 'utf-8');
+    return normalized;
+  }
+
+  async registerWorkspace() {
+    const index = await this.readWorkspaceIndex();
+    const info = await this.getWorkspaceInfo();
+    const record = {
+      path: info.path,
+      name: info.name,
+      mode: (await this.readConfigFile()).mode || 'default',
+      gitBranch: info.gitBranch,
+      tasksFile: this.tasksFile,
+      configPath: this.configFile,
+      lastSeenAt: new Date().toISOString(),
+    };
+
+    const nextWorkspaces = index.workspaces.filter(workspace => workspace.path !== record.path);
+    nextWorkspaces.push(record);
+    nextWorkspaces.sort((left, right) => left.name.localeCompare(right.name) || left.path.localeCompare(right.path));
+    await this.writeWorkspaceIndex({ workspaces: nextWorkspaces });
+  }
+
+  getContractsDir() {
+    return this.contractsDir;
+  }
+
+  getContractFilePath(contractId) {
+    return path.join(this.contractsDir, `${contractId}.json`);
+  }
+
+  async ensureContractsDir() {
+    await fs.ensureDir(this.contractsDir);
+    return this.contractsDir;
+  }
+
+  async listContractFiles() {
+    if (!(await this.exists(this.contractsDir))) {
+      return [];
+    }
+
+    const entries = await fs.readdir(this.contractsDir);
+    return entries
+      .filter(entry => entry.endsWith('.json'))
+      .sort()
+      .map(entry => path.join(this.contractsDir, entry));
+  }
+
+  async readContractFile(contractId) {
+    try {
+      const content = await fs.readFile(this.getContractFilePath(contractId), 'utf-8');
+      return JSON.parse(content);
+    } catch (error) {
+      throw new Error(`Failed to read contract file: ${error.message}`);
+    }
+  }
+
+  async writeContractFile(contractId, data) {
+    try {
+      await this.ensureContractsDir();
+      await fs.writeFile(this.getContractFilePath(contractId), JSON.stringify(data, null, 2), 'utf-8');
+      return true;
+    } catch (error) {
+      throw new Error(`Failed to write contract file: ${error.message}`);
+    }
+  }
+
   getWorkspaceRecordSync(taskCount = 0) {
     return {
       path: this.workspacePath,
@@ -449,6 +586,12 @@ export class Storage {
         name: path.basename(this.workspacePath) || 'seshflow-workspace',
         type: process.platform,
         path: this.workspacePath
+      },
+      contracts: {
+        ...DEFAULT_CONFIG.contracts
+      },
+      planning: {
+        ...DEFAULT_CONFIG.planning
       }
     };
   }

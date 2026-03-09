@@ -44,6 +44,10 @@ export const PATHS = {
   TASKS_FILE: '.seshflow/tasks.json',
   CONFIG_FILE: '.seshflow/config.yaml',
   UI_STATE_FILE: '.seshflow/ui-state.json',
+  GLOBAL_WORKSPACES_DIR: '.seshflow',
+  GLOBAL_WORKSPACES_INDEX: '.seshflow/workspaces.json',
+  CONTRACTS_DIR: '.seshflow/contracts',
+  PLANS_DIR: '.seshflow/plans',
   SESSIONS_DIR: '.seshflow/sessions',
   GIT_HOOKS_DIR: '.git/hooks'
 };

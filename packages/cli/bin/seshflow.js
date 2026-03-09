@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import { spawnSync } from 'node:child_process';
 
-const VERSION = '1.2.0';
+const VERSION = '1.3.0';
 const program = new Command();
 
 function configureWindowsUtf8() {
@@ -36,10 +36,15 @@ program
   .version(VERSION);
 
 program
-  .command('init')
+  .command('init [mode]')
   .description('Initialize seshflow workspace')
   .option('-f, --force', 'Reinitialize even if already initialized')
-  .action(lazyAction(() => import('../src/commands/init.js'), 'init'));
+  .action(async (mode, options) => {
+    const mod = await import('../src/commands/init.js');
+    const resolvedMode = typeof mode === 'string' ? mode : 'default';
+    const resolvedOptions = typeof mode === 'string' ? options : mode;
+    return mod.init(resolvedMode, resolvedOptions);
+  });
 
 program
   .command('add <title>')
@@ -54,6 +59,9 @@ program
   .option('-e, --estimate <hours>', 'Advanced: estimated hours')
   .option('-a, --assignee <name>', 'Assignee name')
   .option('-b, --branch <branch>', 'Git branch name')
+  .option('--contracts <contractIds>', 'Comma-separated contract IDs')
+  .option('--contract-role <producer|consumer|reviewer>', 'Contract role for this task')
+  .option('--bind-file <paths>', 'Comma-separated implementation file paths')
   .option('--json', 'Output as JSON')
   .option('--no-json', 'Disable JSON output')
   .action(lazyAction(() => import('../src/commands/add.js'), 'add'));
@@ -123,6 +131,7 @@ program
 
 program
   .command('suspend')
+  .alias('pause')
   .description('Suspend current task and return it to todo')
   .option('-r, --reason <text>', 'Reason for suspending')
   .option('-n, --note <text>', 'Alias for --reason')
@@ -154,11 +163,30 @@ program
 
 const processCommand = program
   .command('process')
+  .alias('proc')
   .description('Register and inspect task-scoped background processes');
 
 const announceCommand = program
   .command('announce')
   .description('Emit task-scoped announcement events');
+
+const contractsCommand = program
+  .command('contracts')
+  .alias('contract')
+  .description('Manage API/RPC contracts for api-first workspaces');
+
+const modeCommand = program
+  .command('mode')
+  .description('Inspect or update workspace mode');
+
+const rpcCommand = program
+  .command('rpc')
+  .description('Inspect stable RPC/API integration shell payloads');
+
+const workspacesCommand = program
+  .command('workspaces')
+  .alias('workspace')
+  .description('Inspect the global workspace index');
 
 announceCommand
   .command('progress [taskId]')
@@ -205,6 +233,77 @@ processCommand
     const resolvedOptions = typeof taskId === 'string' ? options : taskId;
     return mod.listProcesses(resolvedTaskId, resolvedOptions);
   });
+
+contractsCommand
+  .command('add <file>')
+  .description('Register a contract from a JSON file')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/contracts.js'), 'addContract'));
+
+contractsCommand
+  .command('import <file>')
+  .description('Import contracts from a JSON array, JSON object, or JSONL file')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/contracts.js'), 'importContracts'));
+
+contractsCommand
+  .command('list')
+  .description('List registered contracts')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/contracts.js'), 'listContracts'));
+
+contractsCommand
+  .command('show <contractId>')
+  .description('Show a registered contract')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/contracts.js'), 'showContract'));
+
+contractsCommand
+  .command('check')
+  .description('Validate registered contract files')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/contracts.js'), 'checkContracts'));
+
+modeCommand
+  .command('set <mode>')
+  .description('Set workspace mode')
+  .option('--drift-reminders <inherit|on|off>', 'Override contract drift reminders for this mode profile')
+  .option('--context-priority <inherit|basic-task|contract-first>', 'Override context priority strategy for this mode profile')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/mode.js'), 'setMode'));
+
+modeCommand
+  .command('show')
+  .description('Show current workspace mode')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/mode.js'), 'showMode'));
+
+rpcCommand
+  .command('shell [surface] [targetId]')
+  .description('Output a stable integration shell payload for workspace, task, or contract')
+  .action(async (surface, targetId) => {
+    const mod = await import('../src/commands/rpc.js');
+    return mod.rpcShell(surface || 'workspace', targetId || null);
+  });
+
+workspacesCommand
+  .command('list')
+  .description('List indexed workspaces')
+  .option('--recent <number>', 'Return only the most recently seen workspaces in summary mode')
+  .option('--full', 'Return the full workspace index payload')
+  .action(lazyAction(() => import('../src/commands/workspaces.js'), 'listWorkspaces'));
+
+workspacesCommand
+  .command('current')
+  .description('Show the current workspace record')
+  .action(lazyAction(() => import('../src/commands/workspaces.js'), 'showCurrentWorkspace'));
 
 program
   .command('add-dep <taskId> <dependsOnTaskId>')
@@ -312,6 +411,8 @@ program
 
 program
   .command('delete <taskId>')
+  .alias('remove')
+  .alias('rm')
   .description('Delete a task')
   .option('-f, --force', 'Force delete without confirmation')
   .option('--json', 'Output as JSON')
@@ -330,6 +431,12 @@ program
   .option('--tag <tags>', 'Alias for --tags')
   .option('--add-dep <taskIds>', 'Comma-separated dependency task IDs to add')
   .option('--remove-dep <taskIds>', 'Comma-separated dependency task IDs to remove')
+  .option('--contracts <contractIds>', 'Replace contract bindings with a comma-separated list')
+  .option('--bind-contract <contractIds>', 'Comma-separated contract IDs to add')
+  .option('--unbind-contract <contractIds>', 'Comma-separated contract IDs to remove')
+  .option('--contract-role <producer|consumer|reviewer>', 'Set contract role')
+  .option('--bind-file <paths>', 'Comma-separated implementation file paths to add')
+  .option('--unbind-file <paths>', 'Comma-separated implementation file paths to remove')
   .option('--hours <hours>', 'Advanced: alias for --estimate')
   .option('-e, --estimate <hours>', 'Advanced: new estimated hours')
   .option('-a, --assignee <name>', 'New assignee')

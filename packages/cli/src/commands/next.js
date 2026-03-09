@@ -5,6 +5,8 @@ import { truncate } from '../utils/helpers.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 import { loadTextUI } from '../utils/text-ui.js';
+import { resolveWorkspaceMode } from '../core/workspace-mode.js';
+import { buildApiFirstContext } from '../core/apifirst-context.js';
 
 function displayTask(task, chalk, showFull = false) {
   console.log(chalk.bold.cyan(`\n- ${task.title}`));
@@ -138,14 +140,23 @@ export async function next(options = {}) {
     const manager = new TaskManager();
     await manager.init();
     const transitions = new TaskTransitionService(manager);
+    const modeInfo = await resolveWorkspaceMode(manager.storage);
 
     if (jsonMode) {
       const currentTask = manager.getCurrentTask();
       if (currentTask) {
         spinner?.stop();
+        const apiFirstContext = await buildApiFirstContext(manager, modeInfo, currentTask);
         const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
         outputJSON(formatSuccessResponse({
+          mode: modeInfo.mode,
           task: formatTaskJSON(currentTask),
+          contextPriority: apiFirstContext?.contextPriority || null,
+          currentContract: apiFirstContext?.currentContract || null,
+          relatedContracts: apiFirstContext?.relatedContracts || [],
+          openContractQuestions: apiFirstContext?.openContractQuestions || [],
+          contractReminders: apiFirstContext?.contractReminders || [],
+          contractReminderSummary: apiFirstContext?.contractReminderSummary || { total: 0, errors: 0, warnings: 0 },
           runtimeSummary: manager.getRuntimeSummary(currentTask),
           processSummary: manager.getProcessSummary(currentTask),
           hasActiveSession: true,
@@ -164,6 +175,7 @@ export async function next(options = {}) {
       if (!nextTask) {
         const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
         outputJSON(formatSuccessResponse({
+          mode: modeInfo.mode,
           task: null,
           message: 'No tasks to work on',
         }, workspaceJSON));
@@ -171,9 +183,17 @@ export async function next(options = {}) {
       }
 
       const unmetDeps = manager.getUnmetDependencies(nextTask);
+      const apiFirstContext = await buildApiFirstContext(manager, modeInfo, nextTask);
       const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
       outputJSON(formatSuccessResponse({
+        mode: modeInfo.mode,
         task: formatTaskJSON(nextTask),
+        contextPriority: apiFirstContext?.contextPriority || null,
+        currentContract: apiFirstContext?.currentContract || null,
+        relatedContracts: apiFirstContext?.relatedContracts || [],
+        openContractQuestions: apiFirstContext?.openContractQuestions || [],
+        contractReminders: apiFirstContext?.contractReminders || [],
+        contractReminderSummary: apiFirstContext?.contractReminderSummary || { total: 0, errors: 0, warnings: 0 },
         unmetDependencies: unmetDeps.map(d => ({
           id: d.id,
           title: d.title,

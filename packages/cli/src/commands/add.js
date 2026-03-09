@@ -1,11 +1,18 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
+import path from 'node:path';
+import fs from 'fs-extra';
 import { TaskManager } from '../core/task-manager.js';
-import { isValidPriority, truncate } from '../utils/helpers.js';
+import { WorkspaceEventService } from '../core/workspace-event-service.js';
+import { isValidContractId, isValidPriority, truncate } from '../utils/helpers.js';
 import { formatErrorResponse, formatSuccessResponse, formatTaskJSON, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
+import { CONTRACT_CHECK_CODES, CONTRACT_ROLES } from '../../../shared/constants/contracts.js';
+import { INTEGRATION_EVENT_TYPES } from '../../../shared/constants/integration.js';
 
 const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
+const CONTRACT_PREFIX_RE = /^contracts?\s*:/i;
+const FILE_PREFIX_RE = /^(files?|bound-files?)\s*:/i;
 const HOURS_RE = /^(\d+(?:\.\d+)?)\s*h?$/i;
 
 function parseHoursInput(value) {
@@ -22,6 +29,8 @@ function parseInlineMetadataFromTitle(rawTitle = '') {
   let estimatedHours = null;
   const tags = [];
   const dependencies = [];
+  const contractIds = [];
+  const boundFiles = [];
 
   const matches = [...cleanTitle.matchAll(/\[([^\]]+)\]/g)];
   matches.forEach(match => {
@@ -48,6 +57,28 @@ function parseInlineMetadataFromTitle(rawTitle = '') {
       return;
     }
 
+    if (CONTRACT_PREFIX_RE.test(token)) {
+      contractIds.push(
+        ...token
+          .replace(CONTRACT_PREFIX_RE, '')
+          .split(',')
+          .map(value => value.trim())
+          .filter(Boolean)
+      );
+      return;
+    }
+
+    if (FILE_PREFIX_RE.test(token)) {
+      boundFiles.push(
+        ...token
+          .replace(FILE_PREFIX_RE, '')
+          .split(',')
+          .map(value => value.trim())
+          .filter(Boolean)
+      );
+      return;
+    }
+
     tags.push(
       ...token
         .split(/[,\uff0c]/)
@@ -64,7 +95,24 @@ function parseInlineMetadataFromTitle(rawTitle = '') {
     estimatedHours,
     tags: [...new Set(tags)],
     dependencies: [...new Set(dependencies)],
+    contractIds: [...new Set(contractIds)],
+    boundFiles: [...new Set(boundFiles)],
   };
+}
+
+async function collectBoundFileWarnings(workspacePath, boundFiles = []) {
+  const warnings = [];
+  for (const filePath of [...new Set(boundFiles.filter(Boolean))]) {
+    const resolvedPath = path.isAbsolute(filePath) ? filePath : path.join(workspacePath, filePath);
+    if (!(await fs.pathExists(resolvedPath))) {
+      warnings.push({
+        code: CONTRACT_CHECK_CODES.BOUND_FILE_MISSING,
+        filePath,
+        message: `Bound file does not exist yet: ${filePath}`,
+      });
+    }
+  }
+  return warnings;
 }
 
 /**
@@ -105,6 +153,22 @@ export async function add(title, options = {}) {
       ? options.depends.split(',').map(d => d.trim()).filter(Boolean)
       : [];
     const dependencies = [...new Set([...parsed.dependencies, ...cliDependencies])];
+    const cliContracts = options.contracts
+      ? String(options.contracts).split(',').map(value => value.trim()).filter(Boolean)
+      : [];
+    const contractIds = [...new Set([...parsed.contractIds, ...cliContracts])];
+    const invalidContracts = contractIds.filter(contractId => !isValidContractId(contractId));
+    if (invalidContracts.length > 0) {
+      throw new Error(`Invalid contract id(s): ${invalidContracts.join(', ')}`);
+    }
+
+    const cliBoundFiles = options.bindFile
+      ? String(options.bindFile).split(',').map(value => value.trim()).filter(Boolean)
+      : [];
+    const boundFiles = [...new Set([...parsed.boundFiles, ...cliBoundFiles])];
+    const contractRole = options.contractRole && Object.values(CONTRACT_ROLES).includes(options.contractRole)
+      ? options.contractRole
+      : null;
 
     // Validate priority
     const priority = isValidPriority(options.priority || parsed.priority)
@@ -118,6 +182,8 @@ export async function add(title, options = {}) {
       dependencyId,
       message: `Referenced dependency does not exist yet: ${dependencyId}`,
     }));
+    const fileWarnings = await collectBoundFileWarnings(manager.storage.getWorkspacePath(), boundFiles);
+    warnings.push(...fileWarnings);
     if (!jsonMode && invalidDeps.length > 0) {
       console.warn(
         chalk.yellow(
@@ -126,6 +192,11 @@ export async function add(title, options = {}) {
           )}`
         )
       );
+    }
+    if (!jsonMode && fileWarnings.length > 0) {
+      fileWarnings.forEach(warning => {
+        console.warn(chalk.yellow(`\n⚠️  Warning: ${warning.message}`));
+      });
     }
 
     // Create task
@@ -143,10 +214,22 @@ export async function add(title, options = {}) {
       priority,
       tags,
       dependencies,
+      contractIds,
+      contractRole,
+      boundFiles,
       estimatedHours: estimatedHours ?? 0,
       assignee: options.assignee || null,
       branch: options.branch || null
     });
+
+    const eventService = new WorkspaceEventService(manager);
+    for (const contractId of contractIds) {
+      await eventService.emit(INTEGRATION_EVENT_TYPES.CONTRACT_BOUND, {
+        taskId: task.id,
+        contractId,
+        message: `Task ${task.id} bound to ${contractId}`,
+      });
+    }
 
     await manager.saveData();
     spinner?.succeed('Task created');
@@ -174,6 +257,15 @@ export async function add(title, options = {}) {
     }
     if (dependencies.length > 0) {
       console.log(chalk.gray(`  Dependencies: ${dependencies.join(', ')}`));
+    }
+    if (contractIds.length > 0) {
+      console.log(chalk.gray(`  Contracts: ${contractIds.join(', ')}`));
+    }
+    if (contractRole) {
+      console.log(chalk.gray(`  Contract role: ${contractRole}`));
+    }
+    if (boundFiles.length > 0) {
+      console.log(chalk.gray(`  Bound files: ${boundFiles.join(', ')}`));
     }
     if (task.estimatedHours > 0) {
       console.log(chalk.gray(`  Estimated: ${task.estimatedHours}h`));

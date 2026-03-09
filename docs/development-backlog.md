@@ -82,6 +82,8 @@
 
 ## v1.3.0 - API-first Contract-first Development Mode
 
+- Authoritative target model, contract examples, CLI walkthrough, and default-vs-apifirst output differences are defined in `docs/apifirst-mode.md` and `docs/apifirst-mode.zh-CN.md`.
+
 ### 1.3.0-00 `init apifirst` Mode Bootstrap
 
 - Priority: P0
@@ -105,6 +107,12 @@
 - Priority: P0
 - Scope: make `ncfr`, `next`, and `show` surface the active contract, related tasks, and unresolved protocol questions before broader repo context.
 - Done: AI receives protocol truth first when working inside API-first mode.
+
+### 1.3.0-03a Explicit AI Context Priority
+
+- Priority: P0
+- Scope: make context-priority ordering explicit in API-first payloads and RPC shell seams so Agent code does not need to infer which sections are primary, secondary, or suppressed.
+- Done: `ncfr`, `next`, `show`, and `rpc shell` expose a stable context-priority contract instead of relying on implicit field order.
 
 ### 1.3.0-04 Contract Drift and Conflict Reminders
 
@@ -133,8 +141,14 @@
 ### 1.3.0-08 Workspace Index and Multi-Workspace Overview
 
 - Priority: P2
-- Scope: add a workspace registry/index and overview path for multiple workspaces.
+- Scope: add a global workspace registry/index and overview path for multiple workspaces without redefining `apifirst`.
 - Done: multi-workspace visibility exists without redefining what API-first means.
+
+### 1.3.0-09 Boundary Hardening and Package-consumption Best Practices
+
+- Priority: P1
+- Scope: codify what belongs in Seshflow, how Agent-side code should consume its seams, and which feature classes must stay outside the package core.
+- Done: package consumers and future maintainers can evaluate scope changes against an explicit best-practices guide instead of ad hoc discussion.
 
 ## v1.4.0 - Realtime + Visualization
 
@@ -142,13 +156,13 @@
 
 - Priority: P1
 - Scope: realtime events with reconnect and ordering policy.
-- Done: multi-tab propagation and reconnect behavior are reliable.
+- Target: multi-tab propagation and reconnect behavior are reliable.
 
 ### 1.4.0-02 Dependency Graph and Advanced Observability
 
 - Priority: P2
 - Scope: dependency graph and richer analytics views based on real runtime events.
-- Done: rendering remains responsive for medium datasets.
+- Target: rendering remains responsive for medium datasets.
 
 ## Deferred / Not This Stage
 

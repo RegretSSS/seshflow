@@ -73,11 +73,13 @@ export async function deps(taskId, options = {}) {
           task: formatTaskJSON(task),
           dependencies,
           dependents,
+          contractIds: task.contractIds || [],
         }));
       } else {
         const allDeps = allTasks.map(task => ({
           id: task.id,
           title: task.title,
+          contractIds: task.contractIds || [],
           dependencies: task.dependencies || [],
           dependents: allTasks
             .filter(t => t.dependencies && t.dependencies.includes(task.id))

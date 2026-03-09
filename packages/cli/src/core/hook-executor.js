@@ -1,4 +1,16 @@
-import { HOOK_ACTIONS, HOOK_MODES } from '../../../shared/constants/hooks.js';
+import { HOOK_ACTIONS, HOOK_CONTEXT_SCHEMA_VERSION, HOOK_MODES, HOOK_PHASES, HOOK_RESULT_KINDS } from '../../../shared/constants/hooks.js';
+
+function classifyHookResultKind(hook, ok) {
+  if (hook.mode === HOOK_MODES.BLOCKING && hook.phase === HOOK_PHASES.BEFORE) {
+    return HOOK_RESULT_KINDS.GUARD;
+  }
+
+  if (!ok || hook.mode === HOOK_MODES.NON_BLOCKING) {
+    return HOOK_RESULT_KINDS.ADVISORY;
+  }
+
+  return HOOK_RESULT_KINDS.ENRICHMENT;
+}
 
 function withTimeout(promise, timeoutMs) {
   return Promise.race([
@@ -38,8 +50,14 @@ export class HookExecutor {
       try {
         await withTimeout(this.invokeHook(hook, context), hook.timeoutMs);
         return {
+          schemaVersion: HOOK_CONTEXT_SCHEMA_VERSION,
           hookId: hook.id,
           hookName: hook.hookName,
+          hookFamily: hook.family,
+          hookSurface: hook.surface,
+          hookPhase: hook.phase,
+          trigger: hook.trigger,
+          resultKind: classifyHookResultKind(hook, true),
           mode: hook.mode,
           ok: true,
           attempts,
@@ -51,8 +69,14 @@ export class HookExecutor {
     }
 
     return {
+      schemaVersion: HOOK_CONTEXT_SCHEMA_VERSION,
       hookId: hook.id,
       hookName: hook.hookName,
+      hookFamily: hook.family,
+      hookSurface: hook.surface,
+      hookPhase: hook.phase,
+      trigger: hook.trigger,
+      resultKind: classifyHookResultKind(hook, false),
       mode: hook.mode,
       ok: false,
       attempts,

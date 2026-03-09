@@ -6,6 +6,8 @@ import { resolveOutputMode } from '../utils/output-mode.js';
 import { truncate } from '../utils/helpers.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 import { loadTextUI } from '../utils/text-ui.js';
+import { resolveWorkspaceMode } from '../core/workspace-mode.js';
+import { buildApiFirstContext } from '../core/apifirst-context.js';
 
 function collectStats(tasks) {
   return {
@@ -179,6 +181,7 @@ export async function newchatfirstround(options = {}) {
     await manager.init();
 
     const workspaceInfo = await manager.storage.getWorkspaceInfo();
+    const modeInfo = await resolveWorkspaceMode(manager.storage);
     const workspacePath = workspaceInfo.path;
     const projectName = workspaceInfo.name;
     const gitBranch = workspaceInfo.gitBranch;
@@ -189,6 +192,7 @@ export async function newchatfirstround(options = {}) {
     const currentTask = manager.getCurrentTask();
     const nextTask = manager.getNextTask();
     const focusTask = currentTask || nextTask;
+    const apiFirstContext = await buildApiFirstContext(manager, modeInfo, focusTask);
 
     let dependencies = [];
     let dependents = [];
@@ -245,6 +249,7 @@ export async function newchatfirstround(options = {}) {
       spinner?.stop();
       const responseData = {
         statistics: stats,
+        mode: modeInfo.mode,
         currentTask: currentTask ? formatTaskJSON(currentTask) : null,
         dependencies: dependencies.map(t => ({
           id: t.id,
@@ -253,8 +258,18 @@ export async function newchatfirstround(options = {}) {
           priority: t.priority,
         })),
         nextReadyTask: nextTask ? formatTaskSummaryJSON(nextTask) : null,
-        focus: currentTask ? 'current-task' : (nextTask ? 'next-ready-task' : 'none'),
+        focus: apiFirstContext?.currentContract ? 'contract-first' : (currentTask ? 'current-task' : (nextTask ? 'next-ready-task' : 'none')),
       };
+
+      if (apiFirstContext) {
+        responseData.contextPriority = apiFirstContext.contextPriority;
+        responseData.currentContract = apiFirstContext.currentContract;
+        responseData.relatedContracts = apiFirstContext.relatedContracts;
+        responseData.openContractQuestions = apiFirstContext.openContractQuestions;
+        responseData.relatedTasks = apiFirstContext.relatedTasks;
+        responseData.contractReminders = apiFirstContext.contractReminders;
+        responseData.contractReminderSummary = apiFirstContext.contractReminderSummary;
+      }
 
       if (fullMode) {
         responseData.dependents = dependents.map(t => ({

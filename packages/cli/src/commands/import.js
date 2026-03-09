@@ -3,9 +3,14 @@ import ora from 'ora';
 import fs from 'fs-extra';
 import { TaskManager } from '../core/task-manager.js';
 import crypto from 'crypto';
-import { isValidTaskId } from '../utils/helpers.js';
+import { isValidContractId, isValidTaskId } from '../utils/helpers.js';
+import { CONTRACT_ROLES } from '../../../shared/constants/contracts.js';
 
 const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
+const CONTRACT_PREFIX_RE = /^contracts?\s*:/i;
+const CONTRACT_HEADING_PREFIX_RE = /^contract\s*:/i;
+const CONTRACT_ROLE_PREFIX_RE = /^contract-role\s*:/i;
+const FILE_PREFIX_RE = /^(files?|bound-files?)\s*:/i;
 const ID_PREFIX_RE = /^id\s*:/i;
 const TAG_PREFIX_RE = /^(\u6807\u7b7e|tags?)\s*[:\uff1a]\s*/i;
 const PRIORITY_PREFIX_RE = /^(\u4f18\u5148\u7ea7|priority)\s*[:\uff1a]\s*/i;
@@ -44,6 +49,10 @@ function parseTaskLine(line, lineNumber, isCompleted = false) {
     estimatedHours: 0,
     assignee: null,
     dependencies: [],
+    contractIds: [],
+    contractRole: null,
+    contractRoleSpecified: false,
+    boundFiles: [],
   };
 
   // Extract title (everything before first bracket or end)
@@ -98,6 +107,27 @@ function parseTaskLine(line, lineNumber, isCompleted = false) {
       continue;
     }
 
+    const contractIds = parseContractToken(content);
+    if (contractIds.length > 0) {
+      task.contractIds.push(...contractIds);
+      continue;
+    }
+
+    const contractRole = parseContractRoleToken(content);
+    if (CONTRACT_ROLE_PREFIX_RE.test(content)) {
+      task.contractRoleSpecified = true;
+    }
+    if (contractRole) {
+      task.contractRole = contractRole;
+      continue;
+    }
+
+    const boundFiles = parseFileToken(content);
+    if (boundFiles.length > 0) {
+      task.boundFiles.push(...boundFiles);
+      continue;
+    }
+
     // Everything else is a tag - split by comma and add
     const tags = content.split(',').map(t => t.trim()).filter(Boolean);
     task.tags.push(...tags);
@@ -106,6 +136,8 @@ function parseTaskLine(line, lineNumber, isCompleted = false) {
   // Remove duplicate tags
   task.tags = [...new Set(task.tags)];
   task.dependencies = [...new Set(task.dependencies)];
+  task.contractIds = [...new Set(task.contractIds)];
+  task.boundFiles = [...new Set(task.boundFiles)];
 
   return task.title ? task : null;
 }
@@ -131,8 +163,44 @@ function parseIdToken(content) {
   return value || null;
 }
 
+function parseContractToken(content) {
+  if (!CONTRACT_PREFIX_RE.test(content)) {
+    return [];
+  }
+
+  return content
+    .replace(CONTRACT_PREFIX_RE, '')
+    .split(',')
+    .map(value => value.trim())
+    .filter(Boolean);
+}
+
+function parseContractRoleToken(content) {
+  if (!CONTRACT_ROLE_PREFIX_RE.test(content)) {
+    return null;
+  }
+
+  const value = content.replace(CONTRACT_ROLE_PREFIX_RE, '').trim().toLowerCase();
+  return Object.values(CONTRACT_ROLES).includes(value) ? value : value || null;
+}
+
+function parseFileToken(content) {
+  if (!FILE_PREFIX_RE.test(content)) {
+    return [];
+  }
+
+  return content
+    .replace(FILE_PREFIX_RE, '')
+    .split(',')
+    .map(value => value.trim())
+    .filter(Boolean);
+}
+
 function mapHeadingToStatus(heading = '') {
   const normalized = String(heading).trim().toLowerCase();
+  if (CONTRACT_HEADING_PREFIX_RE.test(normalized)) {
+    return null;
+  }
   const explicit = normalized.match(/\[(backlog|todo|in-progress|review|done|blocked)\]/i);
   if (explicit) {
     return explicit[1].toLowerCase();
@@ -209,6 +277,27 @@ function applyMetadataLine(task, content) {
     return true;
   }
 
+  const contractIds = parseContractToken(content);
+  if (contractIds.length > 0) {
+    task.contractIds = [...new Set([...(task.contractIds || []), ...contractIds])];
+    return true;
+  }
+
+  const contractRole = parseContractRoleToken(content);
+  if (CONTRACT_ROLE_PREFIX_RE.test(content)) {
+    task.contractRoleSpecified = true;
+  }
+  if (contractRole) {
+    task.contractRole = contractRole;
+    return true;
+  }
+
+  const boundFiles = parseFileToken(content);
+  if (boundFiles.length > 0) {
+    task.boundFiles = [...new Set([...(task.boundFiles || []), ...boundFiles])];
+    return true;
+  }
+
   if (TAG_PREFIX_RE.test(content)) {
     const tags = content
       .replace(TAG_PREFIX_RE, '')
@@ -258,6 +347,7 @@ async function parseMarkdownFile(filePath) {
 
   const tasks = [];
   let currentStatus = null;
+  let currentContractIds = [];
   let currentTask = null;
 
   for (let i = 0; i < lines.length; i++) {
@@ -270,6 +360,14 @@ async function parseMarkdownFile(filePath) {
     // Check for phase/group heading (## or ###)
     if (line.startsWith('##')) {
       const heading = line.replace(/^#+\s*/, '').trim();
+      if (CONTRACT_HEADING_PREFIX_RE.test(heading)) {
+        currentContractIds = heading
+          .replace(CONTRACT_HEADING_PREFIX_RE, '')
+          .split(',')
+          .map(value => value.trim())
+          .filter(Boolean);
+        continue;
+      }
       currentStatus = mapHeadingToStatus(heading);
       continue;
     }
@@ -337,6 +435,10 @@ async function parseMarkdownFile(filePath) {
           task.status = currentStatus;
         }
 
+        if (currentContractIds.length > 0) {
+          task.contractIds = [...new Set([...(task.contractIds || []), ...currentContractIds])];
+        }
+
         tasks.push(task);
         currentTask = task; // Set as current task for descriptions
       }
@@ -392,6 +494,26 @@ function validateTasks(tasks) {
       }
     }
 
+    if (task.contractIds?.length > 0) {
+      task.contractIds.forEach((contractId) => {
+        if (!isValidContractId(contractId)) {
+          errors.push({
+            line: task.lineNumber,
+            message: `${taskLabel}: invalid contract id ${contractId}`,
+            suggestion: 'use ids like [contracts:contract.domain.action]',
+          });
+        }
+      });
+    }
+
+    if (task.contractRole && !Object.values(CONTRACT_ROLES).includes(task.contractRole)) {
+      warnings.push({
+        line: task.lineNumber,
+        message: `${taskLabel}: invalid contract role ${task.contractRole}`,
+        suggestion: `use one of: ${Object.values(CONTRACT_ROLES).join(', ')}`,
+      });
+    }
+
     // Check priority
     if (!['P0', 'P1', 'P2', 'P3'].includes(task.priority)) {
       warnings.push({
@@ -431,9 +553,11 @@ function formatValidationIssue(issue) {
 function printMarkdownImportHints(logger = console.error) {
   logger(chalk.blue('\nAccepted task patterns:'));
   logger(chalk.gray('  - [ ] Task title [P1] [id:task_example] [dependency:task_other]'));
+  logger(chalk.gray('  - [ ] Task title [contracts:contract.user.create] [contract-role:producer] [files:src/api.ts]'));
   logger(chalk.gray('    priority: P1'));
   logger(chalk.gray('    estimate: 2h'));
   logger(chalk.gray('    depends: task_other'));
+  logger(chalk.gray('  ## Contract: contract.user.create'));
 }
 
 /**
@@ -472,7 +596,7 @@ function resolveDependencies(createdTasks, knownTasks = []) {
   });
 }
 
-function buildPlanningUpdatePayload(taskData) {
+function buildPlanningUpdatePayload(existingTask, taskData) {
   return {
     title: taskData.title,
     description: taskData.description,
@@ -481,6 +605,9 @@ function buildPlanningUpdatePayload(taskData) {
     estimatedHours: taskData.estimatedHours,
     assignee: taskData.assignee,
     dependencies: taskData.dependencies,
+    contractIds: taskData.contractIds,
+    contractRole: taskData.contractRoleSpecified ? taskData.contractRole : (existingTask.contractRole || null),
+    boundFiles: taskData.boundFiles,
     subtasks: taskData.subtasks || [],
   };
 }
@@ -601,6 +728,9 @@ export async function importTasks(filePath, options = {}) {
           estimatedHours: taskData.estimatedHours,
           assignee: taskData.assignee,
           dependencies: taskData.dependencies,
+          contractIds: taskData.contractIds,
+          contractRole: taskData.contractRole,
+          boundFiles: taskData.boundFiles,
         });
 
         created.subtasks = taskData.subtasks || [];
@@ -610,7 +740,7 @@ export async function importTasks(filePath, options = {}) {
       }
       else if (options.update) {
         // Task exists - update
-        await manager.updateTask(existing.id, buildPlanningUpdatePayload(taskData));
+        await manager.updateTask(existing.id, buildPlanningUpdatePayload(existing, taskData));
         importedTasks.push(manager.getTask(existing.id));
         results.updated++;
       }
@@ -626,6 +756,9 @@ export async function importTasks(filePath, options = {}) {
           estimatedHours: taskData.estimatedHours,
           assignee: taskData.assignee,
           dependencies: taskData.dependencies,
+          contractIds: taskData.contractIds,
+          contractRole: taskData.contractRole,
+          boundFiles: taskData.boundFiles,
         });
 
         created.subtasks = taskData.subtasks || [];
@@ -653,6 +786,9 @@ export async function importTasks(filePath, options = {}) {
     for (const task of importedTasks) {
       await manager.updateTask(task.id, {
         dependencies: task.dependencies,
+        contractIds: task.contractIds,
+        contractRole: task.contractRole,
+        boundFiles: task.boundFiles,
         subtasks: task.subtasks
       });
     }

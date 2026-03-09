@@ -19,6 +19,15 @@ export function isValidTaskId(taskId) {
 }
 
 /**
+ * Validate contract ID format
+ * @param {string} contractId - Candidate contract ID
+ * @returns {boolean} True when the value matches the contract ID contract
+ */
+export function isValidContractId(contractId) {
+  return /^contract\.[a-z0-9.-]+$/i.test(String(contractId || '').trim());
+}
+
+/**
  * Generate a unique subtask ID
  * @returns {string} Subtask ID
  */
@@ -172,4 +181,40 @@ export function formatHours(hours) {
   if (!hours || hours === 0) return '0h';
   if (hours < 1) return `${Math.round(hours * 60)}m`;
   return `${hours}h`;
+}
+
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Remove null/empty fields recursively while preserving meaningful false/0 values.
+ * @param {unknown} value - Value to compact
+ * @returns {unknown} Value without empty fields
+ */
+export function omitEmptyFields(value) {
+  if (Array.isArray(value)) {
+    const items = value
+      .map(item => omitEmptyFields(item))
+      .filter(item => item !== undefined);
+    return items.length > 0 ? items : undefined;
+  }
+
+  if (isPlainObject(value)) {
+    const entries = Object.entries(value)
+      .map(([key, item]) => [key, omitEmptyFields(item)])
+      .filter(([, item]) => item !== undefined);
+
+    return entries.length > 0 ? Object.fromEntries(entries) : undefined;
+  }
+
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+
+  if (typeof value === 'string' && value.trim() === '') {
+    return undefined;
+  }
+
+  return value;
 }
