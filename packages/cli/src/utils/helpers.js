@@ -59,6 +59,16 @@ export function generateProcessRecordId() {
 }
 
 /**
+ * Generate a unique transition event ID
+ * @returns {string} Transition event ID
+ */
+export function generateTransitionEventId() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 6);
+  return `evt_${timestamp}_${random}`;
+}
+
+/**
  * Format date to ISO string
  * @param {Date} date - Date object
  * @returns {string} ISO 8601 timestamp

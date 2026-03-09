@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
 import { TaskManager } from '../core/task-manager.js';
+import { TaskTransitionService } from '../core/task-transition-service.js';
 import { formatErrorResponse, formatSuccessResponse, formatTaskJSON, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 
@@ -66,6 +67,7 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
   try {
     const manager = new TaskManager();
     await manager.init();
+    const transitions = new TaskTransitionService(manager);
 
     let targetTask = null;
     const currentTask = manager.getCurrentTask();
@@ -135,9 +137,10 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
     }
 
     const completeSpinner = compactMode ? null : ora('Completing task').start();
-    await manager.completeTask(targetTask.id, {
+    const result = await transitions.completeTask(targetTask.id, {
       hours,
-      note
+      note,
+      source: 'cli.done',
     });
     await manager.saveData();
     completeSpinner?.succeed('Task completed');
@@ -154,6 +157,7 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
         changed: true,
         task: formatTaskJSON(targetTask),
         runtimeSummary: manager.getRuntimeSummary(targetTask),
+        transitionEvent: result.transitionEvent,
         hasActiveSession: false,
         hours: hours ? Number.parseFloat(hours) : null,
         note: note || '',

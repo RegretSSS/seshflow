@@ -5,6 +5,7 @@ import {
   generateSessionId,
   generateRuntimeRecordId,
   generateProcessRecordId,
+  generateTransitionEventId,
   toISOString,
   isValidPriority,
   isValidTaskId,
@@ -54,6 +55,14 @@ export class TaskManager {
    */
   getTasks() {
     return this.data?.tasks || [];
+  }
+
+  getTransitionEvents(limit = null) {
+    const events = this.data?.transitions || [];
+    if (!limit) {
+      return events;
+    }
+    return events.slice(-limit);
   }
 
   /**
@@ -687,6 +696,10 @@ export class TaskManager {
       return;
     }
 
+    this.data.transitions = Array.isArray(this.data.transitions)
+      ? this.data.transitions.map(event => this.normalizeTransitionEvent(event))
+      : [];
+
     this.data.tasks.forEach(task => {
       this.normalizeTask(task);
       task.blockedBy = this.getBlockedBy(task);
@@ -738,6 +751,28 @@ export class TaskManager {
       note: entry.note || '',
       recordedAt: entry.recordedAt || toISOString(),
       sessionId: entry.sessionId || null,
+    };
+  }
+
+  appendTransitionEvent(event = {}) {
+    const normalizedEvent = this.normalizeTransitionEvent(event);
+    this.data.transitions = Array.isArray(this.data.transitions) ? this.data.transitions : [];
+    this.data.transitions.push(normalizedEvent);
+    this.data.metadata.updatedAt = toISOString();
+    return normalizedEvent;
+  }
+
+  normalizeTransitionEvent(event = {}) {
+    return {
+      id: event.id || generateTransitionEventId(),
+      schemaVersion: Number.isInteger(event.schemaVersion) ? event.schemaVersion : 1,
+      type: event.type || 'task.transition',
+      taskId: event.taskId || null,
+      statusFrom: event.statusFrom || null,
+      statusTo: event.statusTo || null,
+      changed: typeof event.changed === 'boolean' ? event.changed : true,
+      context: event.context && typeof event.context === 'object' ? event.context : {},
+      occurredAt: event.occurredAt || toISOString(),
     };
   }
 

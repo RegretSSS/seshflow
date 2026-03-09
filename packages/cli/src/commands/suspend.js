@@ -1,6 +1,7 @@
 import chalk from 'chalk';
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
+import { TaskTransitionService } from '../core/task-transition-service.js';
 import { formatErrorResponse, formatSuccessResponse, formatTaskJSON, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 
@@ -12,6 +13,7 @@ export async function suspend(options = {}) {
   try {
     const manager = new TaskManager();
     await manager.init();
+    const transitions = new TaskTransitionService(manager);
 
     const currentTask = manager.getCurrentTask();
     if (!currentTask) {
@@ -37,7 +39,12 @@ export async function suspend(options = {}) {
     }
 
     const reason = options.reason || options.note || 'Suspended';
-    const suspendedTask = await manager.suspendCurrentTask(reason);
+    const result = await transitions.suspendCurrentTask({
+      reason,
+      note: reason,
+      source: 'cli.suspend',
+    });
+    const suspendedTask = result.task;
     await manager.saveData();
 
     const nextTask = manager.getNextTask();
@@ -50,6 +57,7 @@ export async function suspend(options = {}) {
         changed: true,
         task: formatTaskJSON(suspendedTask),
         runtimeSummary: manager.getRuntimeSummary(suspendedTask),
+        transitionEvent: result.transitionEvent,
         hasActiveSession: false,
         reason,
         nextTask: nextTask ? formatTaskJSON(nextTask) : null,

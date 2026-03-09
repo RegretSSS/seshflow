@@ -451,6 +451,7 @@ export class Storage {
     normalized.workspace.configPath = workspaceInfo.configPath;
     normalized.workspace.tasksFile = workspaceInfo.tasksFile;
     normalized.tasks = Array.isArray(data.tasks) ? data.tasks : [];
+    normalized.transitions = Array.isArray(data.transitions) ? data.transitions : [];
     normalized.currentSession = data.currentSession || null;
 
     return normalized;

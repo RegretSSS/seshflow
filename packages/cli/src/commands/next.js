@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import simpleGit from 'simple-git';
 import { TaskManager } from '../core/task-manager.js';
+import { TaskTransitionService } from '../core/task-transition-service.js';
 import { truncate } from '../utils/helpers.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
@@ -136,6 +137,7 @@ export async function next(options = {}) {
   try {
     const manager = new TaskManager();
     await manager.init();
+    const transitions = new TaskTransitionService(manager);
 
     if (isJSONMode(options)) {
       const currentTask = manager.getCurrentTask();
@@ -255,7 +257,9 @@ export async function next(options = {}) {
     }
 
     const sessionSpinner = compactMode ? null : ora('Starting session').start();
-    manager.startSession(nextTask.id);
+    await transitions.startTask(nextTask.id, {
+      source: 'cli.next',
+    });
     await manager.saveData();
     sessionSpinner?.succeed('Session started');
 

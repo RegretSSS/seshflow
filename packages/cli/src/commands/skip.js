@@ -1,6 +1,7 @@
 ﻿import chalk from 'chalk';
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
+import { TaskTransitionService } from '../core/task-transition-service.js';
 import { formatErrorResponse, formatSuccessResponse, formatTaskJSON, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 
@@ -12,6 +13,7 @@ export async function skip(options = {}) {
   try {
     const manager = new TaskManager();
     await manager.init();
+    const transitions = new TaskTransitionService(manager);
 
     const currentTask = manager.getCurrentTask();
     if (!currentTask) {
@@ -38,12 +40,10 @@ export async function skip(options = {}) {
 
     const reason = options.reason || options.note || 'Skipped';
 
-    await manager.endSession(reason);
-    manager.updateTask(currentTask.id, {
-      status: 'todo',
-      blockedReason: null,
-      skippedReason: reason,
-      skippedAt: new Date().toISOString(),
+    const result = await transitions.skipCurrentTask({
+      reason,
+      note: reason,
+      source: 'cli.skip',
     });
     await manager.saveData();
 
@@ -57,6 +57,7 @@ export async function skip(options = {}) {
         changed: true,
         task: formatTaskJSON(currentTask),
         runtimeSummary: manager.getRuntimeSummary(currentTask),
+        transitionEvent: result.transitionEvent,
         hasActiveSession: false,
         reason,
         nextTask: nextTask ? formatTaskJSON(nextTask) : null,
