@@ -1,9 +1,7 @@
 import fs from 'fs-extra';
 import path from 'path';
-import yaml from 'yaml';
 import { PATHS, DEFAULT_TASK_FILE } from '../constants.js';
 import { existsSync } from 'fs';
-import simpleGit from 'simple-git';
 import { ANNOUNCEMENT_KINDS, ANNOUNCEMENT_ACTIONS } from '../../../shared/constants/announcements.js';
 
 /**
@@ -161,6 +159,7 @@ export class Storage {
     this.tasksFile = path.join(this.workspacePath, PATHS.TASKS_FILE);
     this.configFile = path.join(this.workspacePath, PATHS.CONFIG_FILE);
     this.uiStateFile = path.join(this.workspacePath, PATHS.UI_STATE_FILE);
+    this.cachedGitBranch = null;
   }
 
   /**
@@ -252,6 +251,7 @@ export class Storage {
   async readConfigFile() {
     try {
       const content = await fs.readFile(this.configFile, 'utf-8');
+      const { default: yaml } = await import('yaml');
       const parsed = yaml.parse(content) || {};
       return {
         ...DEFAULT_CONFIG,
@@ -319,6 +319,7 @@ export class Storage {
    */
   async writeConfigFile(config) {
     try {
+      const { default: yaml } = await import('yaml');
       const normalizedConfig = {
         ...DEFAULT_CONFIG,
         ...config,
@@ -524,11 +525,18 @@ export class Storage {
    * Get current git branch
    */
   async getGitBranch() {
+    if (this.cachedGitBranch !== null) {
+      return this.cachedGitBranch;
+    }
+
     try {
+      const { default: simpleGit } = await import('simple-git');
       const git = simpleGit({ baseDir: this.workspacePath });
       const branch = await git.branch();
-      return branch.current || '';
+      this.cachedGitBranch = branch.current || '';
+      return this.cachedGitBranch;
     } catch {
+      this.cachedGitBranch = '';
       return '';
     }
   }

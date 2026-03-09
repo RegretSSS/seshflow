@@ -28,7 +28,6 @@ export class TaskManager {
   async init() {
     await this.storage.init();
     await this.loadData();
-    await this.syncWorkspaceInfo();
     return this;
   }
 
