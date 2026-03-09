@@ -22,6 +22,7 @@ import { start } from '../src/commands/start.js';
 import { skip } from '../src/commands/skip.js';
 import { suspend } from '../src/commands/suspend.js';
 import { record } from '../src/commands/record.js';
+import { addProcess, listProcesses } from '../src/commands/process.js';
 import { addDependency, removeDependency } from '../src/commands/dependency-mutation.js';
 import { spawnSync } from 'node:child_process';
 
@@ -165,6 +166,38 @@ program
     const resolvedTaskId = typeof taskId === 'string' ? taskId : options;
     const resolvedOptions = typeof taskId === 'string' ? options : taskId;
     return record(resolvedTaskId, resolvedOptions);
+  });
+
+const processCommand = program
+  .command('process')
+  .description('Register and inspect task-scoped background processes');
+
+processCommand
+  .command('add [taskId]')
+  .description('Register a background process for a task')
+  .requiredOption('--pid <pid>', 'Process ID')
+  .option('-c, --command <command>', 'Launch command')
+  .option('--cwd <path>', 'Working directory used')
+  .option('--output-root <path>', 'Output root directory')
+  .option('-n, --note <text>', 'Note for this process')
+  .option('--state <running|missing|exited|unknown>', 'Explicit initial state')
+  .option('--json', 'Output as JSON')
+  .action((taskId, options) => {
+    const resolvedTaskId = typeof taskId === 'string' ? taskId : options;
+    const resolvedOptions = typeof taskId === 'string' ? options : taskId;
+    return addProcess(resolvedTaskId, resolvedOptions);
+  });
+
+processCommand
+  .command('list [taskId]')
+  .description('List background processes for a task')
+  .option('--refresh', 'Refresh liveness state before output')
+  .option('-l, --limit <number>', 'Limit number of entries displayed')
+  .option('--json', 'Output as JSON')
+  .action((taskId, options) => {
+    const resolvedTaskId = typeof taskId === 'string' ? taskId : options;
+    const resolvedOptions = typeof taskId === 'string' ? options : taskId;
+    return listProcesses(resolvedTaskId, resolvedOptions);
   });
 
 program

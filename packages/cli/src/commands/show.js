@@ -39,9 +39,12 @@ function displayCompact(task, blockers = []) {
   if (task.runtime?.runs?.length) {
     console.log(`runtime_records=${task.runtime.runs.length}`);
   }
+  if (task.runtime?.processes?.length) {
+    console.log(`process_records=${task.runtime.processes.length}`);
+  }
 }
 
-function displayPretty(task, blockers = [], runtimeEntries = []) {
+function displayPretty(task, blockers = [], runtimeEntries = [], processEntries = []) {
   const progress = subtaskProgress(task);
 
   console.log(chalk.bold.cyan(`\n- ${task.title}`));
@@ -113,6 +116,16 @@ function displayPretty(task, blockers = [], runtimeEntries = []) {
       console.log(chalk.cyan(`    - ${parts.join(' | ') || 'recorded context'}`));
     });
   }
+
+  if (processEntries.length > 0) {
+    console.log(chalk.cyan(`\n  Processes (${processEntries.length}):`));
+    processEntries.forEach(entry => {
+      const parts = [`pid=${entry.pid}`, `state=${entry.state}`];
+      if (entry.command) parts.push(`cmd=${truncate(entry.command, 48)}`);
+      if (entry.outputRoot) parts.push(`out=${truncate(entry.outputRoot, 32)}`);
+      console.log(chalk.cyan(`    - ${parts.join(' | ')}`));
+    });
+  }
 }
 
 export async function show(taskId, options = {}) {
@@ -137,6 +150,8 @@ export async function show(taskId, options = {}) {
       .filter(Boolean);
     const runtimeEntries = manager.getRecentRuntimeEntries(task);
     const runtimeSummary = manager.getRuntimeSummary(task);
+    const processEntries = manager.getRecentProcessEntries(task);
+    const processSummary = manager.getProcessSummary(task);
 
     spinner?.stop();
 
@@ -149,6 +164,8 @@ export async function show(taskId, options = {}) {
         blockedBy: blockers.map(t => ({ id: t.id, title: t.title, status: t.status })),
         runtimeSummary,
         recentRuntime: runtimeEntries,
+        processSummary,
+        recentProcesses: processEntries,
       }, workspaceJSON));
       return;
     }
@@ -158,7 +175,7 @@ export async function show(taskId, options = {}) {
       return;
     }
 
-    displayPretty(task, blockers, runtimeEntries);
+    displayPretty(task, blockers, runtimeEntries, processEntries);
 
     if (await shouldShowWorkspaceHint(manager.storage, 'show:pretty-hint')) {
       console.log(chalk.blue('\nCommands:'));

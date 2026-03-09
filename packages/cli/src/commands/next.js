@@ -118,6 +118,14 @@ function compactTaskContext(task, manager) {
     if (runtimeSummary.lastArtifacts.length > 0) parts.push(`artifacts=${runtimeSummary.lastArtifacts.length}`);
     console.log(`runtime=${parts.join(' | ')}`);
   }
+  const processSummary = manager.getProcessSummary(task);
+  if (processSummary.recordCount > 0) {
+    const parts = [`count=${processSummary.recordCount}`];
+    if (processSummary.runningCount > 0) parts.push(`running=${processSummary.runningCount}`);
+    if (processSummary.missingCount > 0) parts.push(`missing=${processSummary.missingCount}`);
+    if (processSummary.lastPid) parts.push(`pid=${processSummary.lastPid}`);
+    console.log(`processes=${parts.join(' | ')}`);
+  }
 }
 
 export async function next(options = {}) {
@@ -137,6 +145,7 @@ export async function next(options = {}) {
         outputJSON(formatSuccessResponse({
           task: formatTaskJSON(currentTask),
           runtimeSummary: manager.getRuntimeSummary(currentTask),
+          processSummary: manager.getProcessSummary(currentTask),
           hasActiveSession: true,
         }, workspaceJSON));
         return;
@@ -169,6 +178,7 @@ export async function next(options = {}) {
           status: d.status,
         })),
         runtimeSummary: manager.getRuntimeSummary(nextTask),
+        processSummary: manager.getProcessSummary(nextTask),
         hasActiveSession: false,
       }, workspaceJSON));
       return;

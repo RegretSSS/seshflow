@@ -49,6 +49,16 @@ export function generateRuntimeRecordId() {
 }
 
 /**
+ * Generate a unique process record ID
+ * @returns {string} Process record ID
+ */
+export function generateProcessRecordId() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 6);
+  return `proc_${timestamp}_${random}`;
+}
+
+/**
  * Format date to ISO string
  * @param {Date} date - Date object
  * @returns {string} ISO 8601 timestamp

@@ -62,6 +62,7 @@ Only reveal commands that match the immediate user intent:
 
 - Execution: `next`, `start`, `done`, `suspend`
 - Runtime capture: `record`
+- Background processes: `process add`, `process list`
 - Inspection: `show`, `list`, `query`, `stats`, `deps`
 - Data flow: `import`, `export`, `validate`
 
@@ -103,6 +104,11 @@ For state-changing machine steps, prefer structured output too:
 When an executed command, log file, output directory, or produced artifact matters for resuming work, persist it explicitly:
 
 - `seshflow record --json --command "<cmd>" --cwd "<dir>" --log "<logfile>" --output-root "<dir>" --artifact "<file1,file2>"`
+
+When a long-running background job matters for resuming work, register and refresh it explicitly:
+
+- `seshflow process add --json --pid <pid> --command "<cmd>" --cwd "<dir>" --output-root "<dir>"`
+- `seshflow process list --json --refresh`
 
 ## Guardrails
 

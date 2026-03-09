@@ -4,6 +4,7 @@ import {
   generateSubtaskId,
   generateSessionId,
   generateRuntimeRecordId,
+  generateProcessRecordId,
   toISOString,
   isValidPriority,
   isValidTaskId,
@@ -104,6 +105,7 @@ export class TaskManager {
       },
       runtime: {
         runs: [],
+        processes: [],
         lastRecordedAt: null
       }
     };
@@ -367,6 +369,108 @@ export class TaskManager {
     return entry;
   }
 
+  registerProcess(taskId, details = {}) {
+    const task = this.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+
+    const pid = Number.parseInt(details.pid, 10);
+    if (!Number.isInteger(pid) || pid <= 0) {
+      throw new Error(`Invalid pid: ${details.pid}`);
+    }
+
+    const now = toISOString();
+    const state = this.detectProcessState(pid, details.state);
+    const existing = task.runtime.processes.find(entry => entry.pid === pid && entry.state !== 'exited');
+
+    if (existing) {
+      existing.command = details.command || existing.command;
+      existing.cwd = details.cwd || existing.cwd;
+      existing.outputRoot = details.outputRoot || existing.outputRoot;
+      existing.note = details.note || existing.note;
+      existing.state = state;
+      existing.lastCheckedAt = now;
+      task.updatedAt = now;
+      this.refreshDerivedState();
+      this.updateWorkspaceInfo();
+      return existing;
+    }
+
+    const entry = this.normalizeProcessEntry({
+      id: generateProcessRecordId(),
+      pid,
+      command: details.command || '',
+      cwd: details.cwd || this.storage.getWorkspacePath(),
+      outputRoot: details.outputRoot || null,
+      note: details.note || '',
+      state,
+      launchedAt: details.launchedAt || now,
+      lastCheckedAt: now,
+    });
+
+    task.runtime.processes.push(entry);
+    task.updatedAt = now;
+    this.refreshDerivedState();
+    this.updateWorkspaceInfo();
+    return entry;
+  }
+
+  refreshProcessStates(taskId) {
+    const task = this.getTask(taskId);
+    if (!task) {
+      throw new Error(`Task not found: ${taskId}`);
+    }
+
+    const now = toISOString();
+    task.runtime.processes = task.runtime.processes.map(entry => {
+      if (entry.state === 'exited') {
+        return {
+          ...entry,
+          lastCheckedAt: now,
+        };
+      }
+
+      const alive = this.isProcessAlive(entry.pid);
+      return {
+        ...entry,
+        state: alive ? 'running' : 'missing',
+        lastCheckedAt: now,
+      };
+    });
+
+    task.updatedAt = now;
+    this.refreshDerivedState();
+    this.updateWorkspaceInfo();
+    return task.runtime.processes;
+  }
+
+  getRecentProcessEntries(task, limit = 5) {
+    if (!task?.runtime?.processes?.length) {
+      return [];
+    }
+
+    return [...task.runtime.processes]
+      .sort((a, b) => new Date(b.launchedAt) - new Date(a.launchedAt))
+      .slice(0, limit);
+  }
+
+  getProcessSummary(task) {
+    const entries = task?.runtime?.processes || [];
+    const [lastEntry] = this.getRecentProcessEntries(task, 1);
+
+    return {
+      recordCount: entries.length,
+      runningCount: entries.filter(entry => entry.state === 'running').length,
+      missingCount: entries.filter(entry => entry.state === 'missing').length,
+      exitedCount: entries.filter(entry => entry.state === 'exited').length,
+      lastPid: lastEntry?.pid || null,
+      lastCommand: lastEntry?.command || null,
+      lastOutputRoot: lastEntry?.outputRoot || null,
+      lastCheckedAt: lastEntry?.lastCheckedAt || null,
+    };
+  }
+
   /**
    * Add a git commit to a task
    */
@@ -601,6 +705,7 @@ export class TaskManager {
     };
     task.runtime = {
       runs: Array.isArray(task.runtime?.runs) ? task.runtime.runs.map(entry => this.normalizeRuntimeEntry(entry)) : [],
+      processes: Array.isArray(task.runtime?.processes) ? task.runtime.processes.map(entry => this.normalizeProcessEntry(entry)) : [],
       lastRecordedAt: task.runtime?.lastRecordedAt || null
     };
     task.sessions = task.sessions.map(session => this.normalizeSession(session));
@@ -634,6 +739,49 @@ export class TaskManager {
       recordedAt: entry.recordedAt || toISOString(),
       sessionId: entry.sessionId || null,
     };
+  }
+
+  normalizeProcessEntry(entry = {}) {
+    return {
+      id: entry.id || generateProcessRecordId(),
+      pid: Number.parseInt(entry.pid, 10),
+      command: entry.command || '',
+      cwd: entry.cwd || this.storage.getWorkspacePath(),
+      outputRoot: entry.outputRoot || null,
+      note: entry.note || '',
+      state: entry.state || this.detectProcessState(entry.pid),
+      launchedAt: entry.launchedAt || toISOString(),
+      lastCheckedAt: entry.lastCheckedAt || null,
+    };
+  }
+
+  detectProcessState(pid, preferredState = null) {
+    if (preferredState === 'exited') {
+      return 'exited';
+    }
+
+    if (!Number.isInteger(Number.parseInt(pid, 10)) || Number.parseInt(pid, 10) <= 0) {
+      return 'unknown';
+    }
+
+    return this.isProcessAlive(pid) ? 'running' : (preferredState || 'missing');
+  }
+
+  isProcessAlive(pid) {
+    const parsedPid = Number.parseInt(pid, 10);
+    if (!Number.isInteger(parsedPid) || parsedPid <= 0) {
+      return false;
+    }
+
+    try {
+      process.kill(parsedPid, 0);
+      return true;
+    } catch (error) {
+      if (error.code === 'EPERM') {
+        return true;
+      }
+      return false;
+    }
   }
 
   /**
