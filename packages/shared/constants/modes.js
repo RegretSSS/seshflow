@@ -5,6 +5,20 @@ export const WORKSPACE_MODES = {
 
 export const VALID_WORKSPACE_MODES = Object.values(WORKSPACE_MODES);
 
+export const WORKSPACE_MODE_ALIASES = {
+  'contractfirst': WORKSPACE_MODES.APIFIRST,
+  'contract-first': WORKSPACE_MODES.APIFIRST,
+};
+
+export function normalizeWorkspaceMode(mode = WORKSPACE_MODES.DEFAULT) {
+  const normalized = String(mode || '').trim().toLowerCase();
+  if (!normalized) {
+    return WORKSPACE_MODES.DEFAULT;
+  }
+
+  return WORKSPACE_MODE_ALIASES[normalized] || normalized;
+}
+
 export const MODE_COMPATIBILITY = {
   default: {
     contractCommands: 'optional',

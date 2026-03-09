@@ -5,6 +5,7 @@ import path from 'path';
 import { TaskManager } from '../core/task-manager.js';
 import { Storage } from '../core/storage.js';
 import { CONTRACT_KINDS, CONTRACT_PROTOCOLS } from '../../../shared/constants/contracts.js';
+import { normalizeWorkspaceMode, WORKSPACE_MODES } from '../../../shared/constants/modes.js';
 
 export function getDefaultTaskTemplate() {
   const now = new Date().toISOString().split('T')[0];
@@ -56,7 +57,7 @@ export function getDefaultTaskTemplate() {
 - [ ] Build board UI [id:task_ui] [P1] [frontend] [8h] [dependency:task_api]
 \`\`\`
 
-Template version: 1.2.0
+Template version: 1.3.0
 Last updated: ${now}
 `;
 }
@@ -320,13 +321,13 @@ function getShellHints() {
 function resolveInitArgs(modeOrOptions, maybeOptions) {
   if (typeof modeOrOptions === 'string') {
     return {
-      mode: modeOrOptions.trim() || 'default',
+      mode: normalizeWorkspaceMode(modeOrOptions) || WORKSPACE_MODES.DEFAULT,
       options: maybeOptions || {}
     };
   }
 
   return {
-    mode: 'default',
+    mode: WORKSPACE_MODES.DEFAULT,
     options: modeOrOptions || {}
   };
 }

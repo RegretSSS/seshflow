@@ -131,6 +131,7 @@ program
 
 program
   .command('suspend')
+  .alias('pause')
   .description('Suspend current task and return it to todo')
   .option('-r, --reason <text>', 'Reason for suspending')
   .option('-n, --note <text>', 'Alias for --reason')
@@ -162,6 +163,7 @@ program
 
 const processCommand = program
   .command('process')
+  .alias('proc')
   .description('Register and inspect task-scoped background processes');
 
 const announceCommand = program
@@ -170,6 +172,7 @@ const announceCommand = program
 
 const contractsCommand = program
   .command('contracts')
+  .alias('contract')
   .description('Manage API/RPC contracts for api-first workspaces');
 
 const modeCommand = program
@@ -182,6 +185,7 @@ const rpcCommand = program
 
 const workspacesCommand = program
   .command('workspaces')
+  .alias('workspace')
   .description('Inspect the global workspace index');
 
 announceCommand
@@ -400,6 +404,8 @@ program
 
 program
   .command('delete <taskId>')
+  .alias('remove')
+  .alias('rm')
   .description('Delete a task')
   .option('-f, --force', 'Force delete without confirmation')
   .option('--json', 'Output as JSON')

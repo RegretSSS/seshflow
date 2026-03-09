@@ -19,6 +19,7 @@ When the repository clearly needs contract-first work, the allowed initializatio
 - `seshflow init apifirst`
 
 Treat `apifirst` as the current command name for Seshflow's contract-first mode, not as a claim that the work must be frontend/backend coding only.
+The accepted mode names are `apifirst`, `contractfirst`, and `contract-first`.
 
 Everything else must be introduced only when needed by intent.
 
@@ -87,6 +88,14 @@ Only reveal commands that match the immediate user intent:
 - Multi-workspace overview: `workspaces current`, `workspaces list`
 - Inspection: `show`, `list`, `query`, `stats`, `deps`
 - Data flow: `import`, `export`, `validate`
+
+Stable convenience aliases:
+
+- `contract ...` for `contracts ...`
+- `workspace ...` for `workspaces ...`
+- `proc ...` for `process ...`
+- `pause` for `suspend`
+- `rm <taskId>` for `delete <taskId>`
 
 For dependency work, prefer explicit mutation commands over manual file edits:
 

@@ -41,7 +41,7 @@ Recommended sequence:
 
 AI-facing commands now default to structured JSON, so `ncfr` already returns the minimal workspace snapshot needed to decide what to do next.
 
-## Contract-first mode (`v1.3.0`, command: `apifirst`)
+## Contract-first mode (`v1.3.0`, current command: `apifirst`)
 
 ```bash
 seshflow init apifirst
@@ -61,6 +61,12 @@ seshflow mode set apifirst
 ```
 
 That preserves the current task/runtime state and upgrades the workspace into contract-first operation.
+
+Accepted mode names today:
+
+- `apifirst`
+- `contractfirst`
+- `contract-first`
 
 ## Planning flow
 
@@ -142,6 +148,14 @@ Skill guidance follows the same boundary:
 
 - start with `seshflow init` for ordinary task work
 - switch immediately to contract-first mode with `seshflow init apifirst` or `seshflow mode set apifirst` once API/RPC coordination becomes part of the work
+
+Stable convenience aliases:
+
+- `seshflow contract ...` for `seshflow contracts ...`
+- `seshflow workspace ...` for `seshflow workspaces ...`
+- `seshflow proc ...` for `seshflow process ...`
+- `seshflow pause` for `seshflow suspend`
+- `seshflow rm <taskId>` for `seshflow delete <taskId>`
 
 ## License
 

@@ -62,6 +62,12 @@ seshflow mode set apifirst
 
 这样会保留现有任务和 runtime 状态，只把 workspace 切到契约先行运作方式。
 
+当前可接受的模式名：
+
+- `apifirst`
+- `contractfirst`
+- `contract-first`
+
 ## 任务规划流程
 
 单条任务可直接添加：
@@ -142,6 +148,14 @@ Skill 的建议路径也遵循同一条规则：
 
 - 普通任务先用 `seshflow init`
 - 一旦引入 API / RPC / 消息契约协同，就立刻使用 `seshflow init apifirst` 或 `seshflow mode set apifirst`
+
+当前稳定的便利别名：
+
+- `seshflow contract ...` 等价于 `seshflow contracts ...`
+- `seshflow workspace ...` 等价于 `seshflow workspaces ...`
+- `seshflow proc ...` 等价于 `seshflow process ...`
+- `seshflow pause` 等价于 `seshflow suspend`
+- `seshflow rm <taskId>` 等价于 `seshflow delete <taskId>`
 
 ## 许可证
 

@@ -2,6 +2,7 @@ import {
   MODE_CAPABILITIES,
   MODE_COMPATIBILITY,
   MODE_PROFILE_ALLOWED_OVERRIDES,
+  normalizeWorkspaceMode,
   VALID_WORKSPACE_MODES,
   WORKSPACE_MODES,
 } from '../../../shared/constants/modes.js';
@@ -53,16 +54,17 @@ function createFallback(mode, fallbackReason = null) {
 
 export function resolveModeFromConfig(config = {}) {
   const requestedMode = String(config?.mode || WORKSPACE_MODES.DEFAULT).trim() || WORKSPACE_MODES.DEFAULT;
+  const normalizedMode = normalizeWorkspaceMode(requestedMode);
   const rawOverrides = config?.modeProfile?.overrides || {};
 
-  if (VALID_WORKSPACE_MODES.includes(requestedMode)) {
-    const profile = buildModeProfile(requestedMode, rawOverrides);
+  if (VALID_WORKSPACE_MODES.includes(normalizedMode)) {
+    const profile = buildModeProfile(normalizedMode, rawOverrides);
     return {
-      mode: requestedMode,
+      mode: normalizedMode,
       requestedMode,
       fallbackMode: null,
       fallbackReason: null,
-      compatibility: MODE_COMPATIBILITY[requestedMode] || MODE_COMPATIBILITY[WORKSPACE_MODES.DEFAULT],
+      compatibility: MODE_COMPATIBILITY[normalizedMode] || MODE_COMPATIBILITY[WORKSPACE_MODES.DEFAULT],
       capabilities: profile.capabilities,
       profile,
     };

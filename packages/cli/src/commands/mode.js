@@ -7,7 +7,7 @@ import { TaskManager } from '../core/task-manager.js';
 import { buildModeGuidance, resolveWorkspaceMode } from '../core/workspace-mode.js';
 import { WorkspaceEventService } from '../core/workspace-event-service.js';
 import { formatErrorResponse, formatSuccessResponse, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
-import { VALID_WORKSPACE_MODES, WORKSPACE_MODES } from '../../../shared/constants/modes.js';
+import { normalizeWorkspaceMode, VALID_WORKSPACE_MODES, WORKSPACE_MODES } from '../../../shared/constants/modes.js';
 import { INTEGRATION_EVENT_TYPES } from '../../../shared/constants/integration.js';
 
 const VALID_MODES = new Set(VALID_WORKSPACE_MODES);
@@ -111,7 +111,9 @@ export async function setMode(mode, options = {}) {
   const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Updating workspace mode').start() : null;
 
   try {
-    if (!VALID_MODES.has(mode)) {
+    const normalizedMode = normalizeWorkspaceMode(mode);
+
+    if (!VALID_MODES.has(normalizedMode)) {
       throw Object.assign(new Error(`Unsupported mode: ${mode}`), { code: 'MODE_INVALID' });
     }
 
@@ -121,14 +123,14 @@ export async function setMode(mode, options = {}) {
     await manager.init();
     const previousModeInfo = await resolveWorkspaceMode(storage);
     const config = await storage.readConfigFile();
-    config.mode = mode;
+    config.mode = normalizedMode;
     config.modeProfile = {
-      preset: mode,
+      preset: normalizedMode,
       overrides: parseModeOverrides(options),
     };
     await storage.writeConfigFile(config);
 
-    if (mode === WORKSPACE_MODES.APIFIRST) {
+    if (normalizedMode === WORKSPACE_MODES.APIFIRST) {
       await ensureApiFirstScaffold(storage);
     }
 
