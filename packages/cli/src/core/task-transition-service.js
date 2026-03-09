@@ -4,6 +4,7 @@ import { ANNOUNCEMENT_KINDS } from '../../../shared/constants/announcements.js';
 import { HookRegistry } from './hook-registry.js';
 import { HookExecutor } from './hook-executor.js';
 import { AnnouncementService } from './announcement-service.js';
+import { buildHookExecutionContext } from './hook-context.js';
 
 export class TaskTransitionService {
   constructor(manager) {
@@ -235,12 +236,13 @@ export class TaskTransitionService {
       return [];
     }
 
-    const executionContext = {
+    const executionContext = await buildHookExecutionContext(this.manager, hookName, {
       ...context,
+      task,
       taskId: task.id,
+      transitionEvent,
       transitionEventId: transitionEvent?.id || null,
-      hookName,
-    };
+    });
 
     let results;
     try {
@@ -289,6 +291,11 @@ export class TaskTransitionService {
       attempts: result.attempts,
       data: {
         mode: result.mode,
+        family: result.hookFamily,
+        surface: result.hookSurface,
+        phase: result.hookPhase,
+        trigger: result.trigger,
+        schemaVersion: result.schemaVersion,
       },
     });
   }

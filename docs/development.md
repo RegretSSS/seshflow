@@ -109,6 +109,7 @@ Use these boundaries as hard constraints, not inspiration.
   - task-to-contract binding
   - contract-aware context resolution
   - explicit AI context-priority contract for contract-first surfaces
+  - stable hook taxonomy and payload envelope for task, contract, and mode seams
   - conflict/drift reminder rules
 - Supporting API/Web work is allowed only insofar as it serves this development mode.
 - Multi-workspace overview is a secondary control-plane concern, not the definition of `API-first`.

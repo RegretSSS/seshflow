@@ -49,6 +49,15 @@ describe('hook registry and runtime event log', () => {
     expect(runtimeEvents).toHaveLength(1);
     expect(runtimeEvents[0].type).toBe('hook.execution');
     expect(runtimeEvents[0].status).toBe('failed');
+    expect(runtimeEvents[0].data).toEqual(
+      expect.objectContaining({
+        family: 'task-transition',
+        surface: 'task',
+        phase: 'before',
+        trigger: 'task.start',
+        schemaVersion: 1,
+      })
+    );
   }, 15000);
 
   test('non-blocking after_done hook records warning event without rolling back state', async () => {
@@ -77,5 +86,62 @@ describe('hook registry and runtime event log', () => {
     const hookEvent = runtimeEvents.find(event => event.type === 'hook.execution');
     expect(hookEvent.level).toBe('warn');
     expect(hookEvent.attempts).toBe(2);
+    expect(hookEvent.data).toEqual(
+      expect.objectContaining({
+        family: 'task-transition',
+        surface: 'task',
+        phase: 'after',
+        trigger: 'task.done',
+        schemaVersion: 1,
+      })
+    );
+  }, 15000);
+
+  test('mode change workspace hooks receive workspace-scoped taxonomy and payload envelope', async () => {
+    const { workspacePath, manager } = await createWorkspace();
+    await manager.storage.writeConfigFile({
+      hooks: {
+        'mode.changed': [
+          { id: 'mode_audit', mode: 'non_blocking', action: 'noop', message: 'mode hook observed' }
+        ]
+      }
+    });
+
+    const result = runCLI(workspacePath, ['mode', 'set', 'apifirst']);
+    expect(result.status).toBe(0);
+
+    const reloaded = new TaskManager(workspacePath);
+    await reloaded.init();
+    const runtimeEvents = reloaded.getRuntimeEvents();
+    const modeChanged = runtimeEvents.find(event => event.type === 'mode.changed');
+    expect(modeChanged).toBeTruthy();
+    expect(modeChanged.data.hookContext).toEqual(
+      expect.objectContaining({
+        schemaVersion: 1,
+        hook: expect.objectContaining({
+          name: 'mode.changed',
+          family: 'mode',
+          surface: 'workspace',
+          phase: 'event',
+          trigger: 'mode.changed',
+        }),
+        workspace: expect.objectContaining({
+          path: workspacePath,
+        }),
+        mode: expect.objectContaining({
+          current: 'apifirst',
+        }),
+      })
+    );
+    expect(modeChanged.data.hookResults).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          hookFamily: 'mode',
+          hookSurface: 'workspace',
+          hookPhase: 'event',
+          trigger: 'mode.changed',
+        })
+      ])
+    );
   }, 15000);
 });

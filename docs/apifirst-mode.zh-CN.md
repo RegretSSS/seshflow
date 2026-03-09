@@ -454,6 +454,8 @@ seshflow contracts check
 - contract-aware hook payload 规范
 - 给未来 Agent 用的 RPC/API shell 边界说明
 
+更详细的 hook seam 说明见 `docs/hook-seams.zh-CN.md`。
+
 到 `v1.3.0` 结束时，至少应有这些 contract-aware hook 事件：
 
 - `contract.bound`

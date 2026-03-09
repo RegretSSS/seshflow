@@ -1,5 +1,6 @@
 import { HookRegistry } from './hook-registry.js';
 import { HookExecutor } from './hook-executor.js';
+import { buildHookExecutionContext } from './hook-context.js';
 
 export class WorkspaceEventService {
   constructor(manager) {
@@ -10,11 +11,12 @@ export class WorkspaceEventService {
 
   async emit(eventType, context = {}) {
     const hooks = await this.registry.getHooks(eventType);
+    const executionContext = await buildHookExecutionContext(this.manager, eventType, {
+      ...context,
+      eventType,
+    });
     const results = hooks.length > 0
-      ? await this.executor.runHooks(hooks, {
-        eventType,
-        ...context,
-      })
+      ? await this.executor.runHooks(hooks, executionContext)
       : [];
 
     const runtimeEvent = this.manager.appendRuntimeEvent({
@@ -26,6 +28,7 @@ export class WorkspaceEventService {
       attempts: 0,
       data: {
         ...context,
+        hookContext: executionContext,
         hookResults: results,
       },
     });

@@ -455,6 +455,8 @@ This milestone reserves stable seams. It does not require shipping a full RPC se
 - documented hook payload shape for contract-aware events
 - documented RPC/API shell boundary for future Agent integration
 
+Detailed hook seam guidance lives in `docs/hook-seams.md`.
+
 Contract-aware hook events that should exist by the end of `v1.3.0`:
 
 - `contract.bound`

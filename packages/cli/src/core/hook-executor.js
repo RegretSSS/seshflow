@@ -1,4 +1,4 @@
-import { HOOK_ACTIONS, HOOK_MODES } from '../../../shared/constants/hooks.js';
+import { HOOK_ACTIONS, HOOK_CONTEXT_SCHEMA_VERSION, HOOK_MODES } from '../../../shared/constants/hooks.js';
 
 function withTimeout(promise, timeoutMs) {
   return Promise.race([
@@ -38,8 +38,13 @@ export class HookExecutor {
       try {
         await withTimeout(this.invokeHook(hook, context), hook.timeoutMs);
         return {
+          schemaVersion: HOOK_CONTEXT_SCHEMA_VERSION,
           hookId: hook.id,
           hookName: hook.hookName,
+          hookFamily: hook.family,
+          hookSurface: hook.surface,
+          hookPhase: hook.phase,
+          trigger: hook.trigger,
           mode: hook.mode,
           ok: true,
           attempts,
@@ -51,8 +56,13 @@ export class HookExecutor {
     }
 
     return {
+      schemaVersion: HOOK_CONTEXT_SCHEMA_VERSION,
       hookId: hook.id,
       hookName: hook.hookName,
+      hookFamily: hook.family,
+      hookSurface: hook.surface,
+      hookPhase: hook.phase,
+      trigger: hook.trigger,
       mode: hook.mode,
       ok: false,
       attempts,

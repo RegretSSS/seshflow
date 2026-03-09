@@ -40,7 +40,12 @@ const DEFAULT_CONFIG = {
     before_start: [],
     after_start: [],
     before_done: [],
-    after_done: []
+    after_done: [],
+    'contract.bound': [],
+    'contract.unbound': [],
+    'contract.changed': [],
+    'contract.drift_detected': [],
+    'mode.changed': []
   },
   announcements: {
     [ANNOUNCEMENT_KINDS.START]: [
