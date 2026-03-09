@@ -123,4 +123,38 @@ describe('contract binding flows', () => {
     expect(exported).toContain('[contract-role:producer]');
     expect(exported).toContain('[files:src/api/users.ts]');
   });
+
+  test('import --update preserves existing contract role when markdown omits role metadata', async () => {
+    const { workspacePath } = await createWorkspace();
+    const markdownPath = path.join(workspacePath, 'contract-plan.md');
+    const initialTask = runCLI(workspacePath, [
+      'add',
+      'Implement board controller',
+      '--contracts',
+      'contract.board-service.list-cards',
+      '--contract-role',
+      'producer',
+    ]);
+    expect(initialTask.status).toBe(0);
+    const payload = JSON.parse(initialTask.stdout);
+    const taskId = payload.task.id;
+
+    await fs.writeFile(markdownPath, [
+      '# API planning',
+      '',
+      '## Contract: contract.board-service.list-cards',
+      '',
+      `- [ ] Implement board controller [id:${taskId}] [contracts:contract.board-service.list-cards] [P0]`,
+      '> Updated description without rewriting role metadata.',
+    ].join('\n'), 'utf8');
+
+    const importResult = runCLI(workspacePath, ['import', 'contract-plan.md', '--update', '--force']);
+    expect(importResult.status).toBe(0);
+
+    const manager = new TaskManager(workspacePath);
+    await manager.init();
+    const updated = manager.getTask(taskId);
+    expect(updated.contractRole).toBe('producer');
+    expect(updated.description).toContain('Updated description');
+  });
 });

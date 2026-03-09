@@ -103,7 +103,12 @@ describe('api-first context resolution', () => {
       expect.arrayContaining(['OPEN_CONTRACT_QUESTIONS', 'BOUND_FILE_MISSING'])
     );
     expect(ncfrPayload.contractReminderSummary).toEqual(
-      expect.objectContaining({ total: expect.any(Number) })
+      expect.objectContaining({
+        total: expect.any(Number),
+        aggregatedWarnings: expect.arrayContaining([
+          expect.objectContaining({ code: 'BOUND_FILE_MISSING' }),
+        ]),
+      })
     );
     expect(ncfrPayload.contractReminders.length).toBeGreaterThanOrEqual(3);
 
@@ -117,6 +122,11 @@ describe('api-first context resolution', () => {
       expect.arrayContaining(['OPEN_CONTRACT_QUESTIONS', 'BOUND_FILE_MISSING'])
     );
     expect(nextPayload.contractReminderSummary.total).toBeGreaterThanOrEqual(3);
+    expect(nextPayload.contractReminderSummary.aggregatedWarnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'BOUND_FILE_MISSING', count: expect.any(Number) }),
+      ])
+    );
 
     const showResult = runCLI(workspacePath, ['show', taskA.id]);
     expect(showResult.status).toBe(0);
@@ -130,5 +140,10 @@ describe('api-first context resolution', () => {
       expect.arrayContaining(['OPEN_CONTRACT_QUESTIONS', 'BOUND_FILE_MISSING'])
     );
     expect(showPayload.contractReminderSummary.total).toBeGreaterThanOrEqual(3);
+    expect(showPayload.contractReminderSummary.aggregatedWarnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: 'BOUND_FILE_MISSING', affectedTaskCount: expect.any(Number) }),
+      ])
+    );
   });
 });

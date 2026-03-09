@@ -51,6 +51,7 @@ function parseTaskLine(line, lineNumber, isCompleted = false) {
     dependencies: [],
     contractIds: [],
     contractRole: null,
+    contractRoleSpecified: false,
     boundFiles: [],
   };
 
@@ -113,6 +114,9 @@ function parseTaskLine(line, lineNumber, isCompleted = false) {
     }
 
     const contractRole = parseContractRoleToken(content);
+    if (CONTRACT_ROLE_PREFIX_RE.test(content)) {
+      task.contractRoleSpecified = true;
+    }
     if (contractRole) {
       task.contractRole = contractRole;
       continue;
@@ -280,6 +284,9 @@ function applyMetadataLine(task, content) {
   }
 
   const contractRole = parseContractRoleToken(content);
+  if (CONTRACT_ROLE_PREFIX_RE.test(content)) {
+    task.contractRoleSpecified = true;
+  }
   if (contractRole) {
     task.contractRole = contractRole;
     return true;
@@ -589,7 +596,7 @@ function resolveDependencies(createdTasks, knownTasks = []) {
   });
 }
 
-function buildPlanningUpdatePayload(taskData) {
+function buildPlanningUpdatePayload(existingTask, taskData) {
   return {
     title: taskData.title,
     description: taskData.description,
@@ -599,7 +606,7 @@ function buildPlanningUpdatePayload(taskData) {
     assignee: taskData.assignee,
     dependencies: taskData.dependencies,
     contractIds: taskData.contractIds,
-    contractRole: taskData.contractRole,
+    contractRole: taskData.contractRoleSpecified ? taskData.contractRole : (existingTask.contractRole || null),
     boundFiles: taskData.boundFiles,
     subtasks: taskData.subtasks || [],
   };
@@ -733,7 +740,7 @@ export async function importTasks(filePath, options = {}) {
       }
       else if (options.update) {
         // Task exists - update
-        await manager.updateTask(existing.id, buildPlanningUpdatePayload(taskData));
+        await manager.updateTask(existing.id, buildPlanningUpdatePayload(existing, taskData));
         importedTasks.push(manager.getTask(existing.id));
         results.updated++;
       }

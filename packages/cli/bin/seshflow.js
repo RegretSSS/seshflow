@@ -283,6 +283,8 @@ rpcCommand
 workspacesCommand
   .command('list')
   .description('List indexed workspaces')
+  .option('--recent <number>', 'Return only the most recently seen workspaces in summary mode')
+  .option('--full', 'Return the full workspace index payload')
   .action(lazyAction(() => import('../src/commands/workspaces.js'), 'listWorkspaces'));
 
 workspacesCommand

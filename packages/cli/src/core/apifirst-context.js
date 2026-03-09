@@ -1,6 +1,6 @@
 import { ContractRegistry } from './contract-registry.js';
 import { WORKSPACE_MODES } from '../../../shared/constants/modes.js';
-import { collectContractScopedReminders, collectTaskContractReminders } from './contract-reminders.js';
+import { collectContractScopedReminders, collectTaskContractReminders, summarizeContractReminders } from './contract-reminders.js';
 
 function summarizeContract(contract) {
   return {
@@ -66,11 +66,7 @@ export async function buildApiFirstContext(manager, modeInfo, focusTask = null) 
   const contractReminders = primaryContract
     ? await collectContractScopedReminders(manager, [primaryContract.id], { registry })
     : await collectTaskContractReminders(manager, primaryTask, { registry });
-  const reminderSummary = {
-    total: contractReminders.length,
-    errors: contractReminders.filter(reminder => reminder.level === 'error').length,
-    warnings: contractReminders.filter(reminder => reminder.level !== 'error').length,
-  };
+  const reminderSummary = summarizeContractReminders(contractReminders);
 
   return {
     currentContract: primaryContract ? summarizeContract(primaryContract) : null,

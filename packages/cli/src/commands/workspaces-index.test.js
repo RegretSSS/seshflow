@@ -39,10 +39,20 @@ describe('workspace index', () => {
       expect(listResult.status).toBe(0);
       const listPayload = JSON.parse(listResult.stdout);
       expect(listPayload.total).toBe(2);
+      expect(listPayload.returned).toBe(2);
+      expect(listPayload.detailLevel).toBe('summary');
       expect(listPayload.workspaces.map(workspace => workspace.path)).toEqual(
         expect.arrayContaining([workspaceA, workspaceB])
       );
       expect(listPayload.workspaces.find(workspace => workspace.path === workspaceA)?.current).toBe(true);
+      expect(listPayload.workspaces[0].tasksFile).toBeUndefined();
+      expect(listPayload.summary.byMode.default).toBe(2);
+
+      const fullListResult = runCLI(workspaceA, ['workspaces', 'list', '--full'], { SESHFLOW_HOME: seshflowHome });
+      expect(fullListResult.status).toBe(0);
+      const fullPayload = JSON.parse(fullListResult.stdout);
+      expect(fullPayload.detailLevel).toBe('full');
+      expect(fullPayload.workspaces[0].tasksFile).toBeDefined();
 
       const currentResult = runCLI(workspaceB, ['workspaces', 'current'], { SESHFLOW_HOME: seshflowHome });
       expect(currentResult.status).toBe(0);

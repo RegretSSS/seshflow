@@ -14,6 +14,58 @@ function createReminder({ code, level = 'warn', taskId, contractId = null, messa
   };
 }
 
+export function summarizeContractReminders(reminders = []) {
+  const aggregatedWarnings = [];
+  const grouped = new Map();
+
+  for (const reminder of reminders) {
+    const key = `${reminder.level}:${reminder.code}`;
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        code: reminder.code,
+        level: reminder.level,
+        count: 0,
+        affectedTasks: new Set(),
+        contractIds: new Set(),
+      });
+    }
+
+    const entry = grouped.get(key);
+    entry.count += 1;
+    if (reminder.taskId) {
+      entry.affectedTasks.add(reminder.taskId);
+    }
+    if (reminder.contractId) {
+      entry.contractIds.add(reminder.contractId);
+    }
+  }
+
+  for (const entry of grouped.values()) {
+    aggregatedWarnings.push({
+      code: entry.code,
+      level: entry.level,
+      count: entry.count,
+      affectedTaskCount: entry.affectedTasks.size,
+      affectedTasks: [...entry.affectedTasks].sort(),
+      contractIds: [...entry.contractIds].sort(),
+    });
+  }
+
+  aggregatedWarnings.sort((left, right) => {
+    if (right.count !== left.count) {
+      return right.count - left.count;
+    }
+    return left.code.localeCompare(right.code);
+  });
+
+  return {
+    total: reminders.length,
+    errors: reminders.filter(reminder => reminder.level === 'error').length,
+    warnings: reminders.filter(reminder => reminder.level !== 'error').length,
+    aggregatedWarnings,
+  };
+}
+
 export async function collectTaskContractReminders(manager, task, options = {}) {
   if (!task) {
     return [];
