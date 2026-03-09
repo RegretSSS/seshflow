@@ -91,6 +91,9 @@ describe('api-first context resolution', () => {
     expect(ncfrPayload.currentContract.id).toBe('contract.user-service.create-user');
     expect(ncfrPayload.openContractQuestions).toHaveLength(1);
     expect(ncfrPayload.relatedTasks.map(task => task.id)).toContain(taskA.id);
+    expect(ncfrPayload.contractReminders.map(reminder => reminder.code)).toEqual(
+      expect.arrayContaining(['OPEN_CONTRACT_QUESTIONS', 'BOUND_FILE_MISSING'])
+    );
 
     const nextResult = runCLI(workspacePath, ['next']);
     expect(nextResult.status).toBe(0);
@@ -98,6 +101,9 @@ describe('api-first context resolution', () => {
     expect(nextPayload.mode).toBe('apifirst');
     expect(nextPayload.currentContract.id).toBe('contract.user-service.create-user');
     expect(nextPayload.relatedContracts).toHaveLength(1);
+    expect(nextPayload.contractReminders.map(reminder => reminder.code)).toEqual(
+      expect.arrayContaining(['OPEN_CONTRACT_QUESTIONS', 'BOUND_FILE_MISSING'])
+    );
 
     const showResult = runCLI(workspacePath, ['show', taskA.id]);
     expect(showResult.status).toBe(0);
@@ -107,5 +113,8 @@ describe('api-first context resolution', () => {
     expect(showPayload.relatedContracts).toHaveLength(1);
     expect(showPayload.openContractQuestions[0].id).toBe('question_duplicate_email');
     expect(showPayload.relatedContractTasks.map(task => task.id)).toContain(taskA.id);
+    expect(showPayload.contractReminders.map(reminder => reminder.code)).toEqual(
+      expect.arrayContaining(['OPEN_CONTRACT_QUESTIONS', 'BOUND_FILE_MISSING'])
+    );
   });
 });

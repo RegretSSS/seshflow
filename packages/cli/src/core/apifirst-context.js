@@ -1,5 +1,6 @@
 import { ContractRegistry } from './contract-registry.js';
 import { WORKSPACE_MODES } from '../../../shared/constants/modes.js';
+import { collectTaskContractReminders } from './contract-reminders.js';
 
 function summarizeContract(contract) {
   return {
@@ -61,6 +62,7 @@ export async function buildApiFirstContext(manager, modeInfo, focusTask = null) 
       .filter(task => (task.contractIds || []).includes(primaryContract.id))
       .map(taskSummary)
     : [];
+  const contractReminders = await collectTaskContractReminders(manager, primaryTask, { registry });
 
   return {
     currentContract: primaryContract ? summarizeContract(primaryContract) : null,
@@ -68,5 +70,6 @@ export async function buildApiFirstContext(manager, modeInfo, focusTask = null) 
     openContractQuestions: primaryContract?.openQuestions || [],
     relatedTasks,
     primaryContractId: primaryContract?.id || null,
+    contractReminders,
   };
 }

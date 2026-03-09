@@ -2,6 +2,8 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { Storage } from '../core/storage.js';
 import { ContractRegistry } from '../core/contract-registry.js';
+import { TaskManager } from '../core/task-manager.js';
+import { collectWorkspaceContractReminders } from '../core/contract-reminders.js';
 import {
   formatErrorResponse,
   formatSuccessResponse,
@@ -125,6 +127,9 @@ export async function checkContracts(options = {}) {
     await storage.init();
     const registry = new ContractRegistry(storage);
     const result = await registry.checkContracts();
+    const manager = new TaskManager(storage.getWorkspacePath());
+    await manager.init();
+    const reminders = await collectWorkspaceContractReminders(manager);
     spinner?.succeed('Contracts checked');
 
     if (isJSONMode(options)) {
@@ -132,17 +137,22 @@ export async function checkContracts(options = {}) {
       outputJSON(formatSuccessResponse({
         action: 'contracts.check',
         ...result,
+        reminders,
+        reminderCount: reminders.length,
       }, workspace));
       return;
     }
 
-    if (result.issues.length === 0) {
+    if (result.issues.length === 0 && reminders.length === 0) {
       console.log(`CONTRACT_CHECK | ok | checked=${result.contractsChecked}`);
       return;
     }
 
     result.issues.forEach(issue => {
       console.log(`CONTRACT_ISSUE | ${issue.code} | ${issue.message}`);
+    });
+    reminders.forEach(reminder => {
+      console.log(`CONTRACT_REMINDER | ${reminder.code} | ${reminder.message}`);
     });
   } catch (error) {
     spinner?.fail('Failed to check contracts');

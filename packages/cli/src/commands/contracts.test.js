@@ -98,4 +98,62 @@ describe('contracts commands', () => {
     expect(payload.success).toBe(false);
     expect(payload.error.code).toBe('CONTRACT_VALIDATION_FAILED');
   });
+
+  test('contracts check surfaces workspace-level contract reminders', async () => {
+    const { workspacePath, manager } = await createWorkspace();
+    const sourceFile = path.join(workspacePath, 'create-user.contract.json');
+
+    await fs.writeJson(sourceFile, {
+      id: 'contract.user-service.create-user',
+      version: '1.0.0',
+      kind: 'api',
+      protocol: 'http-json',
+      name: 'Create User',
+      owner: {
+        service: 'user-service',
+        team: 'identity',
+        ownerTaskIds: ['task_contract']
+      },
+      endpoint: {
+        method: 'POST',
+        path: '/users'
+      },
+      requestSchema: {
+        type: 'object'
+      },
+      responseSchema: {
+        type: 'object'
+      },
+      openQuestions: [
+        {
+          id: 'question_duplicate_email',
+          title: 'How should duplicate email conflicts be returned?'
+        }
+      ]
+    }, { spaces: 2 });
+
+    const addResult = runCLI(workspacePath, ['contracts', 'add', sourceFile]);
+    expect(addResult.status).toBe(0);
+
+    manager.createTask({
+      title: 'Implement create user route',
+      contractIds: ['contract.user-service.create-user'],
+      contractRole: 'producer',
+      boundFiles: ['src/api/users.ts']
+    });
+    manager.createTask({
+      title: 'Broken contract binding',
+      contractIds: ['contract.missing.example']
+    });
+    await manager.saveData();
+
+    const checkResult = runCLI(workspacePath, ['contracts', 'check']);
+    expect(checkResult.status).toBe(0);
+    const payload = JSON.parse(checkResult.stdout);
+    expect(payload.issues).toEqual([]);
+    expect(payload.reminderCount).toBeGreaterThanOrEqual(3);
+    expect(payload.reminders.map(reminder => reminder.code)).toEqual(
+      expect.arrayContaining(['OPEN_CONTRACT_QUESTIONS', 'BOUND_FILE_MISSING', 'MISSING_BOUND_CONTRACT'])
+    );
+  });
 });

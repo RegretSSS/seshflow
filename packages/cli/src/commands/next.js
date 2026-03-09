@@ -154,6 +154,7 @@ export async function next(options = {}) {
           currentContract: apiFirstContext?.currentContract || null,
           relatedContracts: apiFirstContext?.relatedContracts || [],
           openContractQuestions: apiFirstContext?.openContractQuestions || [],
+          contractReminders: apiFirstContext?.contractReminders || [],
           runtimeSummary: manager.getRuntimeSummary(currentTask),
           processSummary: manager.getProcessSummary(currentTask),
           hasActiveSession: true,
@@ -188,6 +189,7 @@ export async function next(options = {}) {
         currentContract: apiFirstContext?.currentContract || null,
         relatedContracts: apiFirstContext?.relatedContracts || [],
         openContractQuestions: apiFirstContext?.openContractQuestions || [],
+        contractReminders: apiFirstContext?.contractReminders || [],
         unmetDependencies: unmetDeps.map(d => ({
           id: d.id,
           title: d.title,
