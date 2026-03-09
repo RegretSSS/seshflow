@@ -56,3 +56,37 @@ describe('UTF-8 stabilization', () => {
     expect(persisted.columns.find(column => column.id === 'backlog')?.name).toBe('Backlog');
   });
 });
+
+describe('workspace auto-discovery', () => {
+  test('resolves an existing seshflow workspace from a nested directory', async () => {
+    const rootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'seshflow-root-'));
+    const nestedPath = path.join(rootPath, 'packages', 'cli', 'src');
+
+    await fs.ensureDir(path.join(rootPath, '.seshflow'));
+    await fs.ensureDir(nestedPath);
+    await fs.writeFile(path.join(rootPath, '.seshflow', 'tasks.json'), JSON.stringify({ tasks: [] }), 'utf-8');
+
+    const storage = new Storage(nestedPath);
+    const workspaceInfo = storage.getWorkspaceRecordSync();
+
+    expect(storage.getWorkspacePath()).toBe(rootPath);
+    expect(workspaceInfo.source).toBe('workspace-file');
+    expect(workspaceInfo.requestedPath).toBe(path.resolve(nestedPath));
+    expect(workspaceInfo.sourcePath).toBe(path.join(rootPath, '.seshflow', 'tasks.json'));
+  });
+
+  test('prefers git root during init when no seshflow workspace exists yet', async () => {
+    const gitRootPath = await fs.mkdtemp(path.join(os.tmpdir(), 'seshflow-git-'));
+    const nestedPath = path.join(gitRootPath, 'packages', 'cli');
+
+    await fs.ensureDir(path.join(gitRootPath, '.git'));
+    await fs.ensureDir(nestedPath);
+
+    const storage = new Storage(nestedPath, { preferGitRoot: true });
+    const workspaceInfo = storage.getWorkspaceRecordSync();
+
+    expect(storage.getWorkspacePath()).toBe(gitRootPath);
+    expect(workspaceInfo.source).toBe('git-root');
+    expect(workspaceInfo.sourcePath).toBe(path.join(gitRootPath, '.git'));
+  });
+});

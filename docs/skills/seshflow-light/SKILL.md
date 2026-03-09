@@ -25,6 +25,11 @@ Run these at most once per new conversation:
 2. Load context snapshot:
    - `seshflow ncfr --json`
 
+Notes:
+
+- Both commands may be run from a nested subdirectory; `seshflow` resolves the active workspace upward.
+- Read the returned `workspace.source` / `project.source` metadata when repository roots may have moved or when multiple workspaces are possible.
+
 Do not repeatedly run `init` or `ncfr` unless user asks to refresh context explicitly.
 
 ## Intent-based next-step hints

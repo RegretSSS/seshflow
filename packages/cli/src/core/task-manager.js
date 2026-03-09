@@ -13,8 +13,8 @@ import {
  * TaskManager - Core task management logic
  */
 export class TaskManager {
-  constructor(workspacePath = process.cwd()) {
-    this.storage = new Storage(workspacePath);
+  constructor(workspacePath = process.cwd(), options = {}) {
+    this.storage = new Storage(workspacePath, options);
     this.data = null;
   }
 
@@ -24,6 +24,7 @@ export class TaskManager {
   async init() {
     await this.storage.init();
     await this.loadData();
+    await this.syncWorkspaceInfo();
     return this;
   }
 
@@ -32,6 +33,7 @@ export class TaskManager {
    */
   async loadData() {
     this.data = await this.storage.readTasksFile();
+    this.updateWorkspaceInfo();
     return this.data;
   }
 
@@ -39,6 +41,7 @@ export class TaskManager {
    * Save task data to storage
    */
   async saveData() {
+    await this.syncWorkspaceInfo();
     await this.storage.writeTasksFile(this.data);
     return this;
   }
@@ -425,7 +428,14 @@ export class TaskManager {
    */
   updateWorkspaceInfo() {
     if (this.data.workspace) {
-      this.data.workspace.path = this.storage.getWorkspacePath();
+      Object.assign(this.data.workspace, this.storage.getWorkspaceRecordSync(this.getTasks().length));
+    }
+  }
+
+  async syncWorkspaceInfo() {
+    this.updateWorkspaceInfo();
+    if (this.data.workspace) {
+      this.data.workspace.gitBranch = await this.storage.getGitBranch();
     }
   }
 

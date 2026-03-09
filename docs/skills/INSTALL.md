@@ -35,3 +35,5 @@ Get-Item "$HOME\.codex\skills\seshflow-light\SKILL.md"
 ```text
 Use seshflow-light skill to run this task workflow.
 ```
+
+The current CLI resolves an existing `.seshflow` workspace upward from nested directories, and `seshflow ncfr --json` returns workspace source metadata so assistants can confirm which workspace is active.

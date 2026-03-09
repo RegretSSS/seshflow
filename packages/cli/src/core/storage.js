@@ -42,11 +42,73 @@ const DEFAULT_CONFIG = {
  * Storage class for managing seshflow data files
  */
 export class Storage {
-  constructor(workspacePath = process.cwd()) {
-    this.workspacePath = workspacePath;
-    this.seshflowDir = path.join(workspacePath, PATHS.SEHSFLOW_DIR);
-    this.tasksFile = path.join(workspacePath, PATHS.TASKS_FILE);
-    this.configFile = path.join(workspacePath, PATHS.CONFIG_FILE);
+  static findUpward(startPath, predicate) {
+    let currentPath = path.resolve(startPath);
+    let keepSearching = true;
+
+    while (keepSearching) {
+      if (predicate(currentPath)) {
+        return currentPath;
+      }
+
+      const parentPath = path.dirname(currentPath);
+      if (parentPath === currentPath) {
+        keepSearching = false;
+      } else {
+        currentPath = parentPath;
+      }
+    }
+
+    return null;
+  }
+
+  static resolveWorkspace(startPath = process.cwd(), options = {}) {
+    const fromPath = path.resolve(startPath);
+
+    const existingWorkspaceRoot = Storage.findUpward(fromPath, candidate => {
+      const tasksFile = path.join(candidate, PATHS.TASKS_FILE);
+      const configFile = path.join(candidate, PATHS.CONFIG_FILE);
+      return existsSync(tasksFile) || existsSync(configFile);
+    });
+
+    if (existingWorkspaceRoot) {
+      return {
+        path: existingWorkspaceRoot,
+        source: 'workspace-file',
+        sourcePath: existsSync(path.join(existingWorkspaceRoot, PATHS.TASKS_FILE))
+          ? path.join(existingWorkspaceRoot, PATHS.TASKS_FILE)
+          : path.join(existingWorkspaceRoot, PATHS.CONFIG_FILE),
+        requestedPath: fromPath
+      };
+    }
+
+    if (options.preferGitRoot) {
+      const gitRoot = Storage.findUpward(fromPath, candidate => existsSync(path.join(candidate, '.git')));
+      if (gitRoot) {
+        return {
+          path: gitRoot,
+          source: 'git-root',
+          sourcePath: path.join(gitRoot, '.git'),
+          requestedPath: fromPath
+        };
+      }
+    }
+
+    return {
+      path: fromPath,
+      source: 'cwd',
+      sourcePath: fromPath,
+      requestedPath: fromPath
+    };
+  }
+
+  constructor(workspacePath = process.cwd(), options = {}) {
+    this.workspaceResolution = Storage.resolveWorkspace(workspacePath, options);
+    this.workspacePath = this.workspaceResolution.path;
+    this.requestedWorkspacePath = this.workspaceResolution.requestedPath;
+    this.seshflowDir = path.join(this.workspacePath, PATHS.SEHSFLOW_DIR);
+    this.tasksFile = path.join(this.workspacePath, PATHS.TASKS_FILE);
+    this.configFile = path.join(this.workspacePath, PATHS.CONFIG_FILE);
   }
 
   /**
@@ -64,7 +126,7 @@ export class Storage {
 
       // Create default config if it doesn't exist
       if (!(await this.exists(this.configFile))) {
-        await this.writeConfigFile(DEFAULT_CONFIG);
+        await this.writeConfigFile(this.createDefaultConfig());
       }
 
       return true;
@@ -134,7 +196,17 @@ export class Storage {
   async readConfigFile() {
     try {
       const content = await fs.readFile(this.configFile, 'utf-8');
-      return yaml.parse(content);
+      const parsed = yaml.parse(content) || {};
+      return {
+        ...DEFAULT_CONFIG,
+        ...parsed,
+        workspace: {
+          ...DEFAULT_CONFIG.workspace,
+          ...(parsed.workspace || {}),
+          name: parsed.workspace?.name || path.basename(this.workspacePath) || '',
+          path: this.workspacePath
+        }
+      };
     } catch (error) {
       throw new Error(`Failed to read config file: ${error.message}`);
     }
@@ -145,7 +217,17 @@ export class Storage {
    */
   async writeConfigFile(config) {
     try {
-      const content = yaml.stringify(config);
+      const normalizedConfig = {
+        ...DEFAULT_CONFIG,
+        ...config,
+        workspace: {
+          ...DEFAULT_CONFIG.workspace,
+          ...(config.workspace || {}),
+          name: config.workspace?.name || path.basename(this.workspacePath) || '',
+          path: this.workspacePath
+        }
+      };
+      const content = yaml.stringify(normalizedConfig);
       await fs.writeFile(this.configFile, content, 'utf-8');
       return true;
     } catch (error) {
@@ -231,7 +313,45 @@ export class Storage {
     return this.seshflowDir;
   }
 
+  getWorkspaceResolution() {
+    return { ...this.workspaceResolution };
+  }
+
+  getWorkspaceRecordSync(taskCount = 0) {
+    return {
+      path: this.workspacePath,
+      requestedPath: this.requestedWorkspacePath,
+      name: path.basename(this.workspacePath) || '',
+      gitBranch: '',
+      totalTasks: taskCount,
+      seshflowDir: this.seshflowDir,
+      tasksFile: this.tasksFile,
+      configPath: this.configFile,
+      source: this.workspaceResolution.source,
+      sourcePath: this.workspaceResolution.sourcePath
+    };
+  }
+
+  async getWorkspaceInfo(taskCount = 0) {
+    const info = this.getWorkspaceRecordSync(taskCount);
+    info.gitBranch = await this.getGitBranch();
+    return info;
+  }
+
+  createDefaultConfig() {
+    return {
+      ...DEFAULT_CONFIG,
+      workspace: {
+        ...DEFAULT_CONFIG.workspace,
+        name: path.basename(this.workspacePath) || 'seshflow-workspace',
+        type: process.platform,
+        path: this.workspacePath
+      }
+    };
+  }
+
   normalizeTaskFile(data = {}) {
+    const workspaceInfo = this.getWorkspaceRecordSync(Array.isArray(data.tasks) ? data.tasks.length : 0);
     const normalized = {
       ...DEFAULT_TASK_FILE,
       ...data,
@@ -250,9 +370,14 @@ export class Storage {
     };
 
     normalized.columns = this.normalizeColumns(data.columns);
-    normalized.workspace.path = normalized.workspace.path || this.getWorkspacePath();
-    normalized.workspace.name = normalized.workspace.name || path.basename(normalized.workspace.path) || '';
+    normalized.workspace.path = workspaceInfo.path;
+    normalized.workspace.name = workspaceInfo.name;
     normalized.workspace.gitBranch = normalized.workspace.gitBranch || '';
+    normalized.workspace.source = workspaceInfo.source;
+    normalized.workspace.sourcePath = workspaceInfo.sourcePath;
+    normalized.workspace.requestedPath = workspaceInfo.requestedPath;
+    normalized.workspace.configPath = workspaceInfo.configPath;
+    normalized.workspace.tasksFile = workspaceInfo.tasksFile;
     normalized.tasks = Array.isArray(data.tasks) ? data.tasks : [];
     normalized.currentSession = data.currentSession || null;
 
@@ -296,10 +421,10 @@ export class Storage {
    */
   async getGitBranch() {
     try {
-      const git = simpleGit();
+      const git = simpleGit({ baseDir: this.workspacePath });
       const branch = await git.branch();
       return branch.current || '';
-    } catch (error) {
+    } catch {
       return '';
     }
   }

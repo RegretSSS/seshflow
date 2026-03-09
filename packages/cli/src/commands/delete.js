@@ -3,9 +3,6 @@ import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON } from '../utils/json-output.js';
 
-/**
- * Delete a task
- */
 export async function deleteTask(taskId, options = {}) {
   const spinner = ora('Loading task').start();
 
@@ -13,50 +10,47 @@ export async function deleteTask(taskId, options = {}) {
     const manager = new TaskManager();
     await manager.init();
 
-    // Find task
     const task = manager.getTask(taskId);
-
     if (!task) {
       spinner.stop();
-      console.error(chalk.red(`\n✖ Task not found: ${taskId}`));
-      console.error(chalk.gray(`   Use 'seshflow list' to see all tasks`));
+      console.error(chalk.red(`\nTask not found: ${taskId}`));
+      console.error(chalk.gray("   Use 'seshflow list' to see all tasks"));
       process.exit(1);
     }
 
     spinner.stop();
 
-    // Check for dependencies
-    const dependentTasks = manager.getTasks().filter(t =>
-      t.dependencies.includes(taskId)
-    );
-
+    const dependentTasks = manager.getTasks().filter(candidate => candidate.dependencies.includes(taskId));
     const blockedByTasks = task.blockedBy || [];
 
-    // Show warnings unless --force is used
     if (!options.force) {
       let hasWarnings = false;
 
       if (dependentTasks.length > 0) {
         hasWarnings = true;
-        console.log(chalk.yellow('\n⚠️  Warning: This task is being depended on by:'));
+        console.log(chalk.yellow('\nWarning: This task is being depended on by:'));
         dependentTasks.forEach(dep => {
-          console.log(chalk.gray(`   • ${dep.id}: ${dep.title}`));
+          console.log(chalk.gray(`   - ${dep.id}: ${dep.title}`));
         });
       }
 
       if (blockedByTasks.length > 0) {
         hasWarnings = true;
-        console.log(chalk.yellow('\n⚠️  Warning: This task depends on:'));
+        console.log(chalk.yellow('\nWarning: This task depends on:'));
         blockedByTasks.forEach(blocker => {
-          console.log(chalk.gray(`   • ${blocker.id}: ${blocker.title}`));
+          const blockerTask = manager.getTask(blocker) || blocker;
+          if (typeof blockerTask === 'string') {
+            console.log(chalk.gray(`   - ${blockerTask}`));
+          } else {
+            console.log(chalk.gray(`   - ${blockerTask.id}: ${blockerTask.title}`));
+          }
         });
       }
 
       if (hasWarnings) {
-        console.log(chalk.yellow('\n💡 Tip: Use --force to delete anyway'));
+        console.log(chalk.yellow('\nTip: Use --force to delete anyway'));
         console.log(chalk.gray('   This will remove the task from all dependency lists\n'));
 
-        // In non-JSON mode, ask for confirmation
         if (!isJSONMode(options)) {
           const readline = await import('readline');
           const rl = readline.createInterface({
@@ -69,43 +63,35 @@ export async function deleteTask(taskId, options = {}) {
           });
           rl.close();
 
-          if (answer.toLowerCase() !== 'yes' && answer.toLowerCase() !== 'y') {
-            console.log(chalk.gray('\n✖ Delete cancelled'));
+          if (!['yes', 'y'].includes(String(answer).toLowerCase())) {
+            console.log(chalk.gray('\nDelete cancelled'));
             process.exit(0);
           }
         }
       }
     }
 
-    // Delete the task
     const deleteSpinner = ora('Deleting task').start();
+    manager.deleteTask(taskId);
+    await manager.saveData();
+    deleteSpinner.succeed('Task deleted');
 
-    try {
-      manager.deleteTask(taskId);
-      await manager.saveData();
-      deleteSpinner.succeed('Task deleted');
-    } catch (error) {
-      deleteSpinner.fail('Failed to delete task');
-      throw error;
-    }
-
-    // Show success message
     if (!isJSONMode(options)) {
-      console.log(chalk.green(`\n✓ Deleted task: ${task.title}`));
+      console.log(chalk.green(`\nDeleted task: ${task.title}`));
       console.log(chalk.gray(`   ID: ${task.id}`));
 
       if (dependentTasks.length > 0 && !options.force) {
-        console.log(chalk.cyan('\n📝 Note: Dependent tasks had their dependencies updated'));
+        console.log(chalk.cyan('\nNote: dependent tasks had their dependencies updated'));
       }
     } else {
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
       outputJSON(formatSuccessResponse({
         deleted: true,
-        taskId: taskId,
+        taskId,
         taskTitle: task.title,
         dependentTasksUpdated: dependentTasks.length > 0
-      }, formatWorkspaceJSON(manager.storage, manager.getTasks().length)));
+      }, workspaceJSON));
     }
-
   } catch (error) {
     if (!isJSONMode(options)) {
       console.error(chalk.red(`\nError: ${error.message}`));

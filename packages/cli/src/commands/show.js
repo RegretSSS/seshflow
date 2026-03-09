@@ -123,12 +123,13 @@ export async function show(taskId, options = {}) {
     spinner?.stop();
 
     if (isJSONMode(options)) {
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, 1);
       outputJSON(formatSuccessResponse({
         task: formatTaskJSON(task),
         subtasks: task.subtasks || [],
         dependencies: task.dependencies || [],
         blockedBy: blockers.map(t => ({ id: t.id, title: t.title, status: t.status })),
-      }, formatWorkspaceJSON(manager.storage, 1)));
+      }, workspaceJSON));
       return;
     }
 

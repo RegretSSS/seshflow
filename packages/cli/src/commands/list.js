@@ -141,11 +141,12 @@ export async function list(options = {}) {
         completedSubtasks: task.subtasks?.filter(st => st.completed).length || 0,
         createdAt: task.createdAt
       }));
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, tasks.length);
 
       outputJSON(formatSuccessResponse({
         tasks: formattedTasks,
         total: formattedTasks.length
-      }, formatWorkspaceJSON(manager.storage, tasks.length)));
+      }, workspaceJSON));
       return;
     }
 

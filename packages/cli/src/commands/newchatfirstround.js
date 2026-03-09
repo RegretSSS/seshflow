@@ -47,6 +47,7 @@ function printCompactContext(data) {
     keyFiles,
   } = data;
   console.log(`PROJECT | ${project.name} | tasks=${stats.total} | done=${stats.completed} | in_progress=${stats.inProgress}`);
+  console.log(`WORKSPACE_SOURCE | ${project.source} | ${project.sourcePath}`);
   if (project.gitBranch && project.gitBranch !== 'unknown') {
     console.log(`BRANCH | ${project.gitBranch}`);
   }
@@ -86,6 +87,8 @@ function printPrettyContext(data, options = {}) {
   console.log(chalk.bold('Project'));
   console.log(chalk.gray(`  Name: ${project.name}`));
   console.log(chalk.gray(`  Path: ${project.path}`));
+  console.log(chalk.gray(`  Source: ${project.source}`));
+  console.log(chalk.gray(`  Source Path: ${project.sourcePath}`));
   if (project.gitBranch && project.gitBranch !== 'unknown') {
     console.log(chalk.gray(`  Git: ${project.gitBranch}`));
   }
@@ -169,9 +172,10 @@ export async function newchatfirstround(options = {}) {
     const manager = new TaskManager();
     await manager.init();
 
-    const workspacePath = process.cwd();
-    const projectName = path.basename(workspacePath);
-    const gitBranch = await manager.storage.getGitBranch();
+    const workspaceInfo = await manager.storage.getWorkspaceInfo();
+    const workspacePath = workspaceInfo.path;
+    const projectName = workspaceInfo.name;
+    const gitBranch = workspaceInfo.gitBranch;
 
     const allTasks = manager.getTasks() || [];
     const stats = collectStats(allTasks);
@@ -209,6 +213,10 @@ export async function newchatfirstround(options = {}) {
         name: projectName,
         path: workspacePath,
         gitBranch: gitBranch || null,
+        source: workspaceInfo.source,
+        sourcePath: workspaceInfo.sourcePath,
+        requestedPath: workspaceInfo.requestedPath,
+        configPath: workspaceInfo.configPath,
       },
       stats,
       task,
@@ -223,7 +231,7 @@ export async function newchatfirstround(options = {}) {
 
     if (isJSONMode(options)) {
       spinner?.stop();
-      const workspaceJSON = formatWorkspaceJSON(manager.storage, allTasks.length);
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, allTasks.length);
       outputJSON(formatSuccessResponse({
         project: contextData.project,
         statistics: stats,

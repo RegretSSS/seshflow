@@ -27,16 +27,8 @@ export function formatTaskJSON(task) {
 /**
  * Format workspace info as JSON
  */
-export function formatWorkspaceJSON(storage, taskCount = 0) {
-  const workspacePath = storage.getWorkspacePath();
-  return {
-    path: workspacePath,
-    name: workspacePath.split(/[/\\]/).pop() || '',
-    // getGitBranch is async; keep this field stable for synchronous callers.
-    gitBranch: '',
-    totalTasks: taskCount,
-    seshflowDir: storage.getSeshflowDir(),
-  };
+export async function formatWorkspaceJSON(storage, taskCount = 0) {
+  return storage.getWorkspaceInfo(taskCount);
 }
 
 /**

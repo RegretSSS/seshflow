@@ -217,7 +217,7 @@ export async function init(options = {}) {
   const spinner = process.stderr.isTTY ? ora('Initializing Seshflow workspace').start() : null;
 
   try {
-    const storage = new Storage();
+    const storage = new Storage(process.cwd(), { preferGitRoot: true });
 
     if (storage.isInitialized() && !options.force) {
       spinner?.warn('Seshflow already initialized');
@@ -227,7 +227,7 @@ export async function init(options = {}) {
 
     await storage.init();
 
-    const manager = new TaskManager();
+    const manager = new TaskManager(process.cwd(), { preferGitRoot: true });
     await manager.init();
 
     spinner && (spinner.text = 'Copying template files...');
@@ -237,6 +237,8 @@ export async function init(options = {}) {
 
     console.log(chalk.green('\nWorkspace ready!'));
     console.log(chalk.gray(`  Location: ${storage.getSeshflowDir()}`));
+    console.log(chalk.gray(`  Root source: ${storage.getWorkspaceResolution().source}`));
+    console.log(chalk.gray(`  Source path: ${storage.getWorkspaceResolution().sourcePath}`));
     console.log(chalk.gray('  Config: .seshflow/config.yaml'));
 
     console.log(chalk.blue('\nTemplate files created:'));

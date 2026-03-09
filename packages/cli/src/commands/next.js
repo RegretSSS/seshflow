@@ -124,10 +124,11 @@ export async function next(options = {}) {
       const currentTask = manager.getCurrentTask();
       if (currentTask) {
         spinner?.stop();
+        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
         outputJSON(formatSuccessResponse({
           task: formatTaskJSON(currentTask),
           hasActiveSession: true,
-        }, formatWorkspaceJSON(manager.storage, manager.getTasks().length)));
+        }, workspaceJSON));
         return;
       }
 
@@ -140,14 +141,16 @@ export async function next(options = {}) {
       spinner?.stop();
 
       if (!nextTask) {
+        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
         outputJSON(formatSuccessResponse({
           task: null,
           message: 'No tasks to work on',
-        }, formatWorkspaceJSON(manager.storage, manager.getTasks().length)));
+        }, workspaceJSON));
         return;
       }
 
       const unmetDeps = manager.getUnmetDependencies(nextTask);
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
       outputJSON(formatSuccessResponse({
         task: formatTaskJSON(nextTask),
         unmetDependencies: unmetDeps.map(d => ({
@@ -156,7 +159,7 @@ export async function next(options = {}) {
           status: d.status,
         })),
         hasActiveSession: false,
-      }, formatWorkspaceJSON(manager.storage, manager.getTasks().length)));
+      }, workspaceJSON));
       return;
     }
 

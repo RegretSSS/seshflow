@@ -2,11 +2,14 @@ import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
 import { TaskManager } from '../core/task-manager.js';
-import { isJSONMode, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON } from '../utils/json-output.js';
+import {
+  isJSONMode,
+  formatSuccessResponse,
+  formatWorkspaceJSON,
+  outputJSON,
+  formatTaskJSON
+} from '../utils/json-output.js';
 
-/**
- * Edit a task interactively
- */
 export async function edit(taskId, options = {}) {
   const spinner = ora('Loading task').start();
 
@@ -14,13 +17,11 @@ export async function edit(taskId, options = {}) {
     const manager = new TaskManager();
     await manager.init();
 
-    // Find task
     const task = manager.getTask(taskId);
-
     if (!task) {
       spinner.stop();
-      console.error(chalk.red(`\n✖ Task not found: ${taskId}`));
-      console.error(chalk.gray(`   Use 'seshflow list' to see all tasks`));
+      console.error(chalk.red(`\nTask not found: ${taskId}`));
+      console.error(chalk.gray("   Use 'seshflow list' to see all tasks"));
       process.exit(1);
     }
 
@@ -39,9 +40,7 @@ export async function edit(taskId, options = {}) {
       options.tags !== undefined ||
       options.tag !== undefined;
 
-    // If direct options provided, use them
     if (hasDirectOptions) {
-      // Non-interactive mode
       if (options.title) task.title = options.title;
       if (options.priority) task.priority = options.priority;
       if (options.status) task.status = options.status;
@@ -51,30 +50,30 @@ export async function edit(taskId, options = {}) {
       if (options.branch) task.gitBranch = options.branch;
       if (options.tags !== undefined || options.tag !== undefined) {
         const rawTags = options.tags ?? options.tag ?? '';
-        task.tags = rawTags.split(',').map(t => t.trim()).filter(Boolean);
+        task.tags = rawTags.split(',').map(tag => tag.trim()).filter(Boolean);
       }
 
       await manager.saveData();
 
       if (!isJSONMode(options)) {
-        console.log(chalk.green(`\n✓ Task updated: ${task.title}`));
+        console.log(chalk.green(`\nTask updated: ${task.title}`));
         console.log(chalk.gray(`   ID: ${task.id}`));
       } else {
+        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
         outputJSON(formatSuccessResponse({
           updated: true,
           task: formatTaskJSON(task)
-        }, formatWorkspaceJSON(manager.storage, manager.getTasks().length)));
+        }, workspaceJSON));
       }
       return;
     }
 
     if (!process.stdin.isTTY) {
-      console.error(chalk.red('\n✖ Interactive edit is not available in non-TTY environments.'));
-      console.error(chalk.gray("   Use flags, e.g. seshflow edit <taskId> --title \"...\" --description \"...\""));
+      console.error(chalk.red('\nInteractive edit is not available in non-TTY environments.'));
+      console.error(chalk.gray('   Use flags, e.g. seshflow edit <taskId> --title "..." --description "..."'));
       process.exit(1);
     }
 
-    // Interactive mode
     console.log(chalk.cyan(`\nEditing task: ${task.title}`));
     console.log(chalk.gray(`ID: ${task.id}\n`));
 
@@ -119,21 +118,18 @@ export async function edit(taskId, options = {}) {
       }
     ]);
 
-    // Update task
     task.title = answers.title;
     task.priority = answers.priority;
     task.status = answers.status;
     task.description = answers.description;
-    if (answers.assignee) task.assignee = answers.assignee;
-    if (answers.branch) task.gitBranch = answers.branch;
+    task.assignee = answers.assignee || null;
+    task.gitBranch = answers.branch || task.gitBranch;
 
-    // Save
     const saveSpinner = ora('Saving changes').start();
     await manager.saveData();
     saveSpinner.succeed('Task updated');
 
-    console.log(chalk.green(`\n✓ Updated task: ${task.title}`));
-
+    console.log(chalk.green(`\nUpdated task: ${task.title}`));
   } catch (error) {
     spinner.fail('Failed to edit task');
     console.error(chalk.red(`\nError: ${error.message}`));
