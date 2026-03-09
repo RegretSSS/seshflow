@@ -4,6 +4,7 @@ import { Storage } from '../core/storage.js';
 import { ContractRegistry } from '../core/contract-registry.js';
 import { TaskManager } from '../core/task-manager.js';
 import { collectWorkspaceContractReminders } from '../core/contract-reminders.js';
+import { WorkspaceEventService } from '../core/workspace-event-service.js';
 import {
   formatErrorResponse,
   formatSuccessResponse,
@@ -11,6 +12,7 @@ import {
   isJSONMode,
   outputJSON,
 } from '../utils/json-output.js';
+import { INTEGRATION_EVENT_TYPES } from '../../../shared/constants/integration.js';
 
 function printContractSummary(summary) {
   console.log(`CONTRACT | ${summary.id} | ${summary.kind} | ${summary.version} | ${summary.name}`);
@@ -50,6 +52,18 @@ export async function addContract(file, options = {}) {
     await storage.init();
     const registry = new ContractRegistry(storage);
     const result = await registry.addContractFromFile(file);
+    const manager = new TaskManager(storage.getWorkspacePath());
+    await manager.init();
+    const eventService = new WorkspaceEventService(manager);
+    await eventService.emit(INTEGRATION_EVENT_TYPES.CONTRACT_CHANGED, {
+      contractId: result.contract.id,
+      message: result.existed
+        ? `Contract updated: ${result.contract.id}`
+        : `Contract registered: ${result.contract.id}`,
+      existed: result.existed,
+      changed: result.changed,
+    });
+    await manager.saveData();
     spinner?.succeed('Contract registered');
 
     if (isJSONMode(options)) {
@@ -163,6 +177,20 @@ export async function checkContracts(options = {}) {
     const manager = new TaskManager(storage.getWorkspacePath());
     await manager.init();
     const reminders = await collectWorkspaceContractReminders(manager);
+    const eventService = new WorkspaceEventService(manager);
+    for (const reminder of reminders) {
+      await eventService.emit(INTEGRATION_EVENT_TYPES.CONTRACT_DRIFT_DETECTED, {
+        taskId: reminder.taskId,
+        contractId: reminder.contractId,
+        level: reminder.level,
+        status: 'detected',
+        message: reminder.message,
+        reminderCode: reminder.code,
+      });
+    }
+    if (reminders.length > 0) {
+      await manager.saveData();
+    }
     spinner?.succeed('Contracts checked');
 
     if (isJSONMode(options)) {

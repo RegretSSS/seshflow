@@ -2,7 +2,9 @@ import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
 import { TaskManager } from '../core/task-manager.js';
+import { WorkspaceEventService } from '../core/workspace-event-service.js';
 import { CONTRACT_ROLES } from '../../../shared/constants/contracts.js';
+import { INTEGRATION_EVENT_TYPES } from '../../../shared/constants/integration.js';
 import {
   isJSONMode,
   formatSuccessResponse,
@@ -61,6 +63,7 @@ export async function edit(taskId, options = {}) {
       options.unbindFile !== undefined;
 
     if (hasDirectOptions) {
+      const eventService = new WorkspaceEventService(manager);
       if (options.title) task.title = options.title;
       if (options.priority) task.priority = options.priority;
       if (options.status) task.status = options.status;
@@ -91,12 +94,22 @@ export async function edit(taskId, options = {}) {
         const contractIds = String(options.bindContract).split(',').map(value => value.trim()).filter(Boolean);
         for (const contractId of contractIds) {
           manager.addContractBinding(task.id, contractId);
+          await eventService.emit(INTEGRATION_EVENT_TYPES.CONTRACT_BOUND, {
+            taskId: task.id,
+            contractId,
+            message: `Task ${task.id} bound to ${contractId}`,
+          });
         }
       }
       if (options.unbindContract !== undefined) {
         const contractIds = String(options.unbindContract).split(',').map(value => value.trim()).filter(Boolean);
         for (const contractId of contractIds) {
           manager.removeContractBinding(task.id, contractId);
+          await eventService.emit(INTEGRATION_EVENT_TYPES.CONTRACT_UNBOUND, {
+            taskId: task.id,
+            contractId,
+            message: `Task ${task.id} unbound from ${contractId}`,
+          });
         }
       }
       if (options.contractRole !== undefined) {

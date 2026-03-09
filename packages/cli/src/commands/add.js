@@ -2,9 +2,11 @@ import chalk from 'chalk';
 import ora from 'ora';
 import inquirer from 'inquirer';
 import { TaskManager } from '../core/task-manager.js';
+import { WorkspaceEventService } from '../core/workspace-event-service.js';
 import { isValidContractId, isValidPriority, truncate } from '../utils/helpers.js';
 import { formatErrorResponse, formatSuccessResponse, formatTaskJSON, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
 import { CONTRACT_ROLES } from '../../../shared/constants/contracts.js';
+import { INTEGRATION_EVENT_TYPES } from '../../../shared/constants/integration.js';
 
 const DEPENDENCY_PREFIX_RE = /^(dependency|depends|dep|\u4f9d\u8d56)\s*:/i;
 const CONTRACT_PREFIX_RE = /^contracts?\s*:/i;
@@ -195,6 +197,15 @@ export async function add(title, options = {}) {
       assignee: options.assignee || null,
       branch: options.branch || null
     });
+
+    const eventService = new WorkspaceEventService(manager);
+    for (const contractId of contractIds) {
+      await eventService.emit(INTEGRATION_EVENT_TYPES.CONTRACT_BOUND, {
+        taskId: task.id,
+        contractId,
+        message: `Task ${task.id} bound to ${contractId}`,
+      });
+    }
 
     await manager.saveData();
     spinner?.succeed('Task created');

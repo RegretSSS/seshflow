@@ -176,6 +176,10 @@ const modeCommand = program
   .command('mode')
   .description('Inspect or update workspace mode');
 
+const rpcCommand = program
+  .command('rpc')
+  .description('Inspect stable RPC/API integration shell payloads');
+
 announceCommand
   .command('progress [taskId]')
   .description('Emit a progress announcement for a task or the current active task')
@@ -263,6 +267,14 @@ modeCommand
   .option('--json', 'Output as JSON')
   .option('--no-json', 'Disable JSON output')
   .action(lazyAction(() => import('../src/commands/mode.js'), 'showMode'));
+
+rpcCommand
+  .command('shell [surface] [targetId]')
+  .description('Output a stable integration shell payload for workspace, task, or contract')
+  .action(async (surface, targetId) => {
+    const mod = await import('../src/commands/rpc.js');
+    return mod.rpcShell(surface || 'workspace', targetId || null);
+  });
 
 program
   .command('add-dep <taskId> <dependsOnTaskId>')

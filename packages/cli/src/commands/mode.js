@@ -3,9 +3,12 @@ import ora from 'ora';
 import fs from 'fs-extra';
 import path from 'path';
 import { Storage } from '../core/storage.js';
+import { TaskManager } from '../core/task-manager.js';
 import { buildModeGuidance, resolveWorkspaceMode } from '../core/workspace-mode.js';
+import { WorkspaceEventService } from '../core/workspace-event-service.js';
 import { formatErrorResponse, formatSuccessResponse, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
 import { VALID_WORKSPACE_MODES, WORKSPACE_MODES } from '../../../shared/constants/modes.js';
+import { INTEGRATION_EVENT_TYPES } from '../../../shared/constants/integration.js';
 
 const VALID_MODES = new Set(VALID_WORKSPACE_MODES);
 
@@ -96,6 +99,9 @@ export async function setMode(mode, options = {}) {
 
     const storage = new Storage();
     await storage.init();
+    const manager = new TaskManager(storage.getWorkspacePath());
+    await manager.init();
+    const previousModeInfo = await resolveWorkspaceMode(storage);
     const config = await storage.readConfigFile();
     config.mode = mode;
     await storage.writeConfigFile(config);
@@ -107,6 +113,13 @@ export async function setMode(mode, options = {}) {
     spinner?.succeed('Workspace mode updated');
     const modeInfo = await resolveWorkspaceMode(storage);
     const guidance = buildModeGuidance(modeInfo);
+    const eventService = new WorkspaceEventService(manager);
+    await eventService.emit(INTEGRATION_EVENT_TYPES.MODE_CHANGED, {
+      message: `Workspace mode changed from ${previousModeInfo.mode} to ${modeInfo.mode}`,
+      previousMode: previousModeInfo.mode,
+      mode: modeInfo.mode,
+    });
+    await manager.saveData();
 
     if (isJSONMode(options)) {
       const workspace = await formatWorkspaceJSON(storage);
