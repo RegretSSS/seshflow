@@ -74,6 +74,7 @@ The executable remains `seshflow`.
   - execution-surface manifests and bounded handoff bundles without creating a second task truth
   - delegated tasks are skipped by `next` and guarded by `start` unless explicitly reclaimed with `--force`
   - `handoff submit/pause/reclaim/abandon/close` control only handoff lifecycle, not source task completion
+  - `add/edit --expect-artifact` can declare expected task deliverables; `done` and `handoff submit` emit lightweight existence warnings without blocking flow
   - `handoff list/show` recover handoff state without guessing worktree paths or branch names
 
 ## Typical human-readable usage

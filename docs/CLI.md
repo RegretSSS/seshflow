@@ -71,6 +71,12 @@ Default JSON for `next`, `start`, and `done` is intentionally summary-oriented:
 - task payloads are returned as action summaries, not full task documents
 - use `show --full` when you want larger inspection output
 
+If a task explicitly declares `expectedArtifacts`:
+
+- `done` performs a lightweight existence check on those paths
+- missing artifacts return warnings only, they do not block completion
+- in delegated flows, `handoff submit` performs the same lightweight check inside the worktree
+
 ### `seshflow query --text ... --contract ...`
 
 Use `query` as the lightweight lookup surface when you need to find a delegation candidate or recover an existing handoff in a medium-sized workspace.
@@ -133,6 +139,7 @@ Key boundaries:
 - `submit` means "result submitted back to the parent workspace", not "task completed"
 - `reclaim` returns control to the parent workspace so the task can be resumed locally
 - `close` closes the handoff record only
+- when a source task declares `expectedArtifacts`, missing outputs surface as warnings only and do not replace parent acceptance
 
 ### `seshflow handoff list` / `seshflow handoff show <handoffId>`
 

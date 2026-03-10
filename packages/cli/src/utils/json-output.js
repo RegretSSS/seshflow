@@ -27,6 +27,7 @@ export function formatTaskJSON(task) {
     contractIds: task.contractIds || [],
     contractRole: task.contractRole || null,
     boundFiles: task.boundFiles || [],
+    expectedArtifacts: task.expectedArtifacts || [],
   };
 }
 
@@ -58,6 +59,7 @@ export function formatTaskActionJSON(task) {
     contractIds: task.contractIds || [],
     contractRole: task.contractRole || null,
     boundFiles: task.boundFiles || [],
+    expectedArtifacts: task.expectedArtifacts || [],
   });
 }
 

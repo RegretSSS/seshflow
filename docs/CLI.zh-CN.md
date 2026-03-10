@@ -71,6 +71,12 @@
 - `task` 默认返回动作摘要，而不是完整任务文档
 - 如果要看更大的检查 payload，请转用 `show --full`
 
+如果任务显式声明了 `expectedArtifacts`：
+
+- `done` 会轻量检查这些路径是否存在
+- 缺失时只返回 warning，不自动阻塞完成
+- delegated 场景下，`handoff submit` 也会在 worktree 内做同样的轻量检查
+
 ### `seshflow query --text ... --contract ...`
 
 当你需要在中型 workspace 里快速找到要 delegated 或恢复检查的对象时，优先用 `query` 的轻量搜索过滤，而不是引入新的搜索系统。
@@ -133,6 +139,7 @@
 - `submit` 表示“已提交结果给 parent 审查”，不是任务已完成
 - `reclaim` 表示 parent 重新接管，任务会重新回到可推荐状态
 - `close` 只关闭 handoff 记录，不等于任务完成
+- 如果 source task 声明了 `expectedArtifacts`，`submit` 只对缺失交付物给出 warning，不会替 parent 做验收判断
 
 ### `seshflow handoff list` / `seshflow handoff show <handoffId>`
 

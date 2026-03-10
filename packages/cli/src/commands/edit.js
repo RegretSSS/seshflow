@@ -14,6 +14,7 @@ import {
   outputJSON,
   formatTaskJSON
 } from '../utils/json-output.js';
+import { parseExpectedArtifactsInput } from '../utils/artifact-check.js';
 
 async function collectBoundFileWarnings(workspacePath, boundFiles = []) {
   const warnings = [];
@@ -77,7 +78,8 @@ export async function edit(taskId, options = {}) {
       options.unbindContract !== undefined ||
       options.contractRole !== undefined ||
       options.bindFile !== undefined ||
-      options.unbindFile !== undefined;
+      options.unbindFile !== undefined ||
+      options.expectArtifact !== undefined;
 
     if (hasDirectOptions) {
       const eventService = new WorkspaceEventService(manager);
@@ -145,6 +147,9 @@ export async function edit(taskId, options = {}) {
         for (const filePath of filePaths) {
           manager.removeBoundFile(task.id, filePath);
         }
+      }
+      if (options.expectArtifact !== undefined) {
+        task.expectedArtifacts = parseExpectedArtifactsInput(options.expectArtifact);
       }
 
       await manager.saveData();

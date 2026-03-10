@@ -7,6 +7,7 @@ import { TaskManager } from '../core/task-manager.js';
 import { WorkspaceEventService } from '../core/workspace-event-service.js';
 import { isValidContractId, isValidPriority, truncate } from '../utils/helpers.js';
 import { formatErrorResponse, formatSuccessResponse, formatTaskJSON, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
+import { parseExpectedArtifactsInput } from '../utils/artifact-check.js';
 import { CONTRACT_CHECK_CODES, CONTRACT_ROLES } from '../../../shared/constants/contracts.js';
 import { INTEGRATION_EVENT_TYPES } from '../../../shared/constants/integration.js';
 
@@ -166,6 +167,7 @@ export async function add(title, options = {}) {
       ? String(options.bindFile).split(',').map(value => value.trim()).filter(Boolean)
       : [];
     const boundFiles = [...new Set([...parsed.boundFiles, ...cliBoundFiles])];
+    const expectedArtifacts = parseExpectedArtifactsInput(options.expectArtifact);
     const contractRole = options.contractRole && Object.values(CONTRACT_ROLES).includes(options.contractRole)
       ? options.contractRole
       : null;
@@ -217,6 +219,7 @@ export async function add(title, options = {}) {
       contractIds,
       contractRole,
       boundFiles,
+      expectedArtifacts,
       estimatedHours: estimatedHours ?? 0,
       assignee: options.assignee || null,
       branch: options.branch || null

@@ -68,6 +68,7 @@ program
   .option('--contracts <contractIds>', 'Comma-separated contract IDs')
   .option('--contract-role <producer|consumer|reviewer>', 'Contract role for this task')
   .option('--bind-file <paths>', 'Comma-separated implementation file paths')
+  .option('--expect-artifact <paths>', 'Comma-separated expected artifact paths')
   .option('--json', 'Output as JSON')
   .option('--no-json', 'Disable JSON output')
   .action(lazyAction(() => import('../src/commands/add.js'), 'add'));
@@ -528,6 +529,7 @@ program
   .option('--contract-role <producer|consumer|reviewer>', 'Set contract role')
   .option('--bind-file <paths>', 'Comma-separated implementation file paths to add')
   .option('--unbind-file <paths>', 'Comma-separated implementation file paths to remove')
+  .option('--expect-artifact <paths>', 'Replace expected artifact paths with a comma-separated list')
   .option('--hours <hours>', 'Advanced: alias for --estimate')
   .option('-e, --estimate <hours>', 'Advanced: new estimated hours')
   .option('-a, --assignee <name>', 'New assignee')

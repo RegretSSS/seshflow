@@ -41,6 +41,7 @@ async function createLifecycleWorkspace() {
       title: 'Delegated contract implementation',
       priority: 'P0',
       contractIds: ['contract.research.presence-sync'],
+      expectedArtifacts: ['dist/presence-bundle.json'],
     });
     const fallbackTask = manager.createTask({
       title: 'Fallback local task',
@@ -91,6 +92,14 @@ describe('handoff lifecycle control', () => {
     expect(payload.action).toBe('handoff.submit');
     expect(payload.handoff.status).toBe('submitted');
     expect(payload.handoff.resultRef).toBe('commit:abc123');
+    expect(payload.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'EXPECTED_ARTIFACT_MISSING',
+          artifactPath: 'dist/presence-bundle.json',
+        }),
+      ])
+    );
 
     const manifest = await fs.readJson(manifestPath);
     expect(manifest.status).toBe('submitted');

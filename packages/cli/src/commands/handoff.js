@@ -12,6 +12,7 @@ import {
 } from '../utils/json-output.js';
 import { handlePreInitGuard } from '../utils/workspace-guard.js';
 import { omitEmptyFields } from '../utils/helpers.js';
+import { checkExpectedArtifacts } from '../utils/artifact-check.js';
 
 function formatHandoffSummary(handoff) {
   return omitEmptyFields({
@@ -198,6 +199,13 @@ async function transitionHandoff(action, handoffId, options = {}) {
       note: options.note || '',
       resultRef: options.resultRef || '',
     });
+    const sourceTask = manager.getTask(handoff.sourceTaskId);
+    const warnings = action === 'submit' && sourceTask
+      ? await checkExpectedArtifacts(
+          handoff.targetWorktreePath || manager.storage.getWorkspacePath(),
+          sourceTask.expectedArtifacts || []
+        )
+      : [];
 
     spinner?.succeed(`Handoff ${action} complete`);
 
@@ -207,11 +215,17 @@ async function transitionHandoff(action, handoffId, options = {}) {
         action: `handoff.${action}`,
         updated: true,
         handoff: formatHandoffSummary(handoff),
+        warnings: warnings.length > 0 ? warnings : undefined,
       }, workspace));
       return;
     }
 
     printLifecycleSummary(action, handoff);
+    if (warnings.length > 0) {
+      warnings.forEach(warning => {
+        console.warn(chalk.yellow(`\nWarning: ${warning.message}`));
+      });
+    }
   } catch (error) {
     spinner?.fail(`Failed to ${action} handoff`);
     if (isJSONMode(options)) {

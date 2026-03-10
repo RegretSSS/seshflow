@@ -78,6 +78,7 @@ yarn global add @seshflow/cli
   - 写入 execution-surface manifest 和受控 handoff bundle，不创建第二套任务真相源
   - delegated 任务默认不会被 `next` 再次推荐，`start` 也会阻止误接管，除非显式使用 `--force`
   - `handoff submit/pause/reclaim/abandon/close` 只控制 handoff 生命周期，不自动完成 source task
+  - `add/edit --expect-artifact` 可声明任务期望交付物；`done` 与 `handoff submit` 只做轻量存在性 warning，不阻塞流转
   - `handoff list/show` 用于恢复 handoff 状态，不必手动猜 worktree 路径或 branch
 
 ## 对人类友好的输出方式

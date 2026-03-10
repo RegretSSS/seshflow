@@ -179,6 +179,7 @@ export class TaskManager {
       contractIds: options.contractIds || [],
       contractRole: options.contractRole || null,
       boundFiles: options.boundFiles || [],
+      expectedArtifacts: options.expectedArtifacts || [],
       gitBranch: options.branch || sanitizeBranchName(options.title),
       gitCommits: [],
       sessions: [],
@@ -933,6 +934,7 @@ export class TaskManager {
     task.contractIds = Array.isArray(task.contractIds) ? [...new Set(task.contractIds)] : [];
     task.contractRole = Object.values(CONTRACT_ROLES).includes(task.contractRole) ? task.contractRole : null;
     task.boundFiles = Array.isArray(task.boundFiles) ? [...new Set(task.boundFiles)] : [];
+    task.expectedArtifacts = Array.isArray(task.expectedArtifacts) ? [...new Set(task.expectedArtifacts)] : [];
     task.sessions = Array.isArray(task.sessions) ? task.sessions : [];
     task.context = {
       relatedFiles: Array.isArray(task.context?.relatedFiles) ? task.context.relatedFiles : [],

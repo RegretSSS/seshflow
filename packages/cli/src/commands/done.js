@@ -15,6 +15,7 @@ import {
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { omitEmptyFields } from '../utils/helpers.js';
 import { handlePreInitGuard } from '../utils/workspace-guard.js';
+import { checkExpectedArtifacts } from '../utils/artifact-check.js';
 
 function getProgress(tasks) {
   const total = tasks.length;
@@ -164,6 +165,10 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
     const progressAfter = getProgress(allTasksAfter);
     const unlockedTasks = getUnlockedTasks(allTasksAfter, targetTask.id);
     const nextTask = manager.getNextTask();
+    const warnings = await checkExpectedArtifacts(
+      manager.storage.getWorkspacePath(),
+      targetTask.expectedArtifacts || []
+    );
 
     if (isJSONMode(options)) {
       const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length, { compact: true });
@@ -181,6 +186,7 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
           before: progressBefore,
           after: progressAfter,
         },
+        warnings: warnings.length > 0 ? warnings : undefined,
         unlockedTasks: unlockedTasks.length > 0 ? unlockedTasks.map(task => formatTaskActionJSON(task)) : undefined,
         nextTask: nextTask ? formatTaskActionJSON(nextTask) : undefined,
       }), workspaceJSON));
@@ -216,6 +222,13 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
       console.log(chalk.blue('\nUnlocked tasks:'));
       unlockedTasks.forEach(task => {
         console.log(chalk.gray(`  - ${task.title} [${task.priority}] (${task.id})`));
+      });
+    }
+
+    if (warnings.length > 0) {
+      console.log(chalk.yellow('\nArtifact warnings:'));
+      warnings.forEach(warning => {
+        console.log(chalk.gray(`  - ${warning.message}`));
       });
     }
 
