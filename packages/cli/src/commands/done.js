@@ -14,6 +14,7 @@ import {
 } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { omitEmptyFields } from '../utils/helpers.js';
+import { handlePreInitGuard } from '../utils/workspace-guard.js';
 
 function getProgress(tasks) {
   const total = tasks.length;
@@ -69,6 +70,10 @@ function normalizeDoneInput(taskIdOrOptions, maybeOptions) {
 
 export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
   const { taskId, options, fromExplicitTaskId } = normalizeDoneInput(taskIdOrOptions, maybeOptions);
+  if (handlePreInitGuard('done', options)) {
+    process.exit(1);
+  }
+
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const spinner = compactMode ? null : ora('Loading workspace').start();

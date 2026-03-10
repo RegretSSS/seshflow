@@ -35,6 +35,12 @@ What it returns:
 - next ready task if no active session exists
 - focus information that tells AI what to inspect next
 
+If the current directory has not been initialized yet:
+
+- `ncfr` returns a lightweight bootstrap hint only
+- it does not create `.seshflow/` as a side effect
+- it does not guess whether you meant `init` or `init contractfirst`
+
 In `contractfirst`, it additionally returns:
 
 - `currentContract`

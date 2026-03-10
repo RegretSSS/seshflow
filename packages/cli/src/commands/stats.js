@@ -2,6 +2,7 @@ import { TaskManager } from '../core/task-manager.js';
 import { formatSuccessResponse, formatErrorResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { loadTextUI } from '../utils/text-ui.js';
+import { handlePreInitGuard } from '../utils/workspace-guard.js';
 
 const PRIORITY_KEYS = ['P0', 'P1', 'P2', 'P3'];
 
@@ -98,6 +99,10 @@ function printPretty(stats, chalk, options = {}) {
 }
 
 export async function stats(options = {}) {
+  if (handlePreInitGuard('stats', options)) {
+    process.exit(1);
+  }
+
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const jsonMode = isJSONMode(options);

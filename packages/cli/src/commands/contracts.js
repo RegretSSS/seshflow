@@ -14,6 +14,7 @@ import {
 } from '../utils/json-output.js';
 import { INTEGRATION_EVENT_TYPES } from '../../../shared/constants/integration.js';
 import { omitEmptyFields } from '../utils/helpers.js';
+import { handlePreInitGuard } from '../utils/workspace-guard.js';
 
 function printContractSummary(summary) {
   console.log(`CONTRACT | ${summary.id} | ${summary.kind} | ${summary.version} | ${summary.name}`);
@@ -123,6 +124,10 @@ function formatContractValidationError(error, registry) {
 }
 
 export async function addContract(file, options = {}) {
+  if (handlePreInitGuard('contracts add', options)) {
+    process.exit(1);
+  }
+
   const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Registering contract').start() : null;
 
   try {
@@ -179,6 +184,10 @@ export async function addContract(file, options = {}) {
 }
 
 export async function importContracts(file, options = {}) {
+  if (handlePreInitGuard('contracts import', options)) {
+    process.exit(1);
+  }
+
   const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Importing contracts').start() : null;
 
   try {
@@ -242,6 +251,10 @@ export async function importContracts(file, options = {}) {
 }
 
 export async function listContracts(options = {}) {
+  if (handlePreInitGuard('contracts list', options)) {
+    process.exit(1);
+  }
+
   const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Loading contracts').start() : null;
 
   try {
@@ -280,6 +293,10 @@ export async function listContracts(options = {}) {
 }
 
 export async function showContract(contractId, options = {}) {
+  if (handlePreInitGuard('contracts show', options)) {
+    process.exit(1);
+  }
+
   const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Loading contract').start() : null;
 
   try {
@@ -318,6 +335,10 @@ export async function showContract(contractId, options = {}) {
 }
 
 export async function checkContracts(options = {}) {
+  if (handlePreInitGuard('contracts check', options)) {
+    process.exit(1);
+  }
+
   const spinner = (!isJSONMode(options) && process.stdout.isTTY) ? ora('Checking contracts').start() : null;
 
   try {

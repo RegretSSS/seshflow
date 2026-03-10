@@ -4,6 +4,7 @@ import { isJSONMode, formatErrorResponse, formatSuccessResponse, formatWorkspace
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 import { loadTextUI } from '../utils/text-ui.js';
+import { handlePreInitGuard } from '../utils/workspace-guard.js';
 
 function subtaskProgress(task) {
   if (!task.subtasks || task.subtasks.length === 0) {
@@ -54,6 +55,10 @@ function displayPrettyFooter(taskCount, chalk) {
 }
 
 export async function list(options = {}) {
+  if (handlePreInitGuard('list', options)) {
+    process.exit(1);
+  }
+
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const jsonMode = isJSONMode(options);

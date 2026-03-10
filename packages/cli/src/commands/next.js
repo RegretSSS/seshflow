@@ -17,6 +17,7 @@ import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 import { loadTextUI } from '../utils/text-ui.js';
 import { resolveWorkspaceMode } from '../core/workspace-mode.js';
 import { buildApiFirstContext } from '../core/apifirst-context.js';
+import { handlePreInitGuard } from '../utils/workspace-guard.js';
 
 function displayTask(task, chalk, showFull = false) {
   console.log(chalk.bold.cyan(`\n- ${task.title}`));
@@ -140,6 +141,10 @@ function compactTaskContext(task, manager) {
 }
 
 export async function next(options = {}) {
+  if (handlePreInitGuard('next', options)) {
+    process.exit(1);
+  }
+
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const jsonMode = isJSONMode(options);

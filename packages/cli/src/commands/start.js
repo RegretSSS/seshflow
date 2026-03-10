@@ -13,8 +13,13 @@ import {
 } from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { omitEmptyFields } from '../utils/helpers.js';
+import { handlePreInitGuard } from '../utils/workspace-guard.js';
 
 export async function start(taskId, options = {}) {
+  if (handlePreInitGuard('start', options)) {
+    process.exit(1);
+  }
+
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const spinner = (!compactMode && process.stdout.isTTY) ? ora('Starting task').start() : null;

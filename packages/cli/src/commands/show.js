@@ -17,6 +17,7 @@ import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 import { loadTextUI } from '../utils/text-ui.js';
 import { resolveWorkspaceMode } from '../core/workspace-mode.js';
 import { buildApiFirstContext } from '../core/apifirst-context.js';
+import { handlePreInitGuard } from '../utils/workspace-guard.js';
 
 function subtaskProgress(task) {
   const total = task.subtasks?.length || 0;
@@ -141,6 +142,10 @@ function displayPretty(task, chalk, blockers = [], runtimeEntries = [], processE
 }
 
 export async function show(taskId, options = {}) {
+  if (handlePreInitGuard('show', options)) {
+    process.exit(1);
+  }
+
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const jsonMode = isJSONMode(options);

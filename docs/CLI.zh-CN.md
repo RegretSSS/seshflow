@@ -35,6 +35,12 @@
 - 如果没有活动 session，则返回 next ready task
 - 告诉 AI 下一步应该先查看什么的 focus 信息
 
+如果当前目录还没有初始化：
+
+- `ncfr` 只会返回一个轻量 bootstrap 提示
+- 不会偷偷创建 `.seshflow/`
+- 不会替你猜应该执行 `init` 还是 `init contractfirst`
+
 在 `contractfirst` 模式下，还会额外返回：
 
 - `currentContract`
