@@ -79,6 +79,10 @@ Seshflow 不会靠任意代码扫描去猜 contract 关联。
 - Seshflow 不靠源码扫描猜 contract
 - `currentContract` 的返回只依赖显式绑定
 - contract 文件里更宽泛的协议内容可以放进 `payload`、`metadata`、`extensions`
+- `seshflow contracts import <file>` 支持：
+  - `.json`：单个 contract object
+  - `.json`：contract 数组
+  - `.jsonl`：每行一个 contract
 
 ## 对人类友好的输出
 

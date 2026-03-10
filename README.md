@@ -123,6 +123,7 @@ What the three core commands return:
 ```bash
 seshflow init contractfirst
 seshflow contracts import .seshflow/contracts/contracts.bundle.json
+seshflow contracts import .seshflow/contracts/contracts.bundle.jsonl
 seshflow contracts add .seshflow/contracts/contract.user-service.create-user.json
 seshflow contracts add .seshflow/contracts/contract.board-service.move-card.json
 seshflow validate .seshflow/plans/api-planning.md
@@ -152,6 +153,9 @@ Contract authoring rules today:
 
 - one contract per JSON file still works well for small workspaces
 - batch contract bootstrap is supported through `seshflow contracts import <file>`
+- recommended batch formats:
+  - `.json` with a JSON array of contracts
+  - `.jsonl` with one contract per line
 - supported import bundle formats:
   - JSON object
   - JSON array

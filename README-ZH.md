@@ -127,6 +127,7 @@ seshflow next
 ```bash
 seshflow init contractfirst
 seshflow contracts import .seshflow/contracts/contracts.bundle.json
+seshflow contracts import .seshflow/contracts/contracts.bundle.jsonl
 seshflow contracts add .seshflow/contracts/contract.user-service.create-user.json
 seshflow contracts add .seshflow/contracts/contract.board-service.move-card.json
 seshflow validate .seshflow/plans/api-planning.md
@@ -156,6 +157,9 @@ seshflow mode set contractfirst
 
 - 小型 workspace 仍然适合一份 contract 一个 JSON 文件
 - 批量初始化时可以用 `seshflow contracts import <file>`
+- 推荐的批量格式：
+  - `.json`：文件内容为 contract 数组
+  - `.jsonl`：每行一个 contract
 - 支持的导入格式：
   - JSON object
   - JSON array
