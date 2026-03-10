@@ -1067,12 +1067,14 @@ export class TaskManager {
       activatedAt: handoff.activatedAt || null,
       submittedAt: handoff.submittedAt || null,
       closedAt: handoff.closedAt || null,
-      resultRef: handoff.resultRef && typeof handoff.resultRef === 'object'
-        ? {
-            type: handoff.resultRef.type || null,
-            value: handoff.resultRef.value || null,
-          }
-        : null,
+      resultRef: typeof handoff.resultRef === 'string'
+        ? handoff.resultRef
+        : (handoff.resultRef && typeof handoff.resultRef === 'object'
+            ? {
+                type: handoff.resultRef.type || null,
+                value: handoff.resultRef.value || null,
+              }
+            : null),
       manifestPath: handoff.manifestPath || null,
       bundle: handoff.bundle && typeof handoff.bundle === 'object' && !Array.isArray(handoff.bundle)
         ? handoff.bundle

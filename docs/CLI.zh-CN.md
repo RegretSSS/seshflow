@@ -102,6 +102,27 @@
 - `show <taskId>` 会暴露当前 delegation 摘要
 - `start <taskId>` 默认阻止误接管，除非显式传入 `--force`
 
+### `seshflow handoff submit|pause|reclaim|abandon|close <handoffId>`
+
+当 delegated worktree 已经开始执行后，使用这些命令管理 handoff 自己的生命周期。
+
+它们会做什么：
+
+- 只修改 handoff lifecycle
+- 同步更新 parent workspace 记录、manifest 和 bundle
+- 允许记录 lifecycle note，以及在 `submit` 时写入 `resultRef`
+
+它们不会做什么：
+
+- 不会自动把 source task 标记为 `done`
+- 不会把 delegated worktree 变成新的任务真相源
+
+关键边界：
+
+- `submit` 表示“已提交结果给 parent 审查”，不是任务已完成
+- `reclaim` 表示 parent 重新接管，任务会重新回到可推荐状态
+- `close` 只关闭 handoff 记录，不等于任务完成
+
 ## 契约先行的关联链路
 
 Seshflow 不会靠任意代码扫描去猜 contract 关联。

@@ -296,4 +296,111 @@ export class HandoffService {
       await fs.remove(targetWorktreePath);
     }
   }
+
+  async transitionLifecycle(handoffId, action, options = {}) {
+    const handoff = this.manager.getHandoff(handoffId);
+    if (!handoff) {
+      throw new Error(`Handoff not found: ${handoffId}`);
+    }
+
+    const nextStatus = this.resolveLifecycleStatus(handoff.status, action);
+    const timestamp = toISOString();
+    const notes = Array.isArray(handoff.notes) ? [...handoff.notes] : [];
+
+    if (options.note) {
+      notes.push({
+        recordedAt: timestamp,
+        action,
+        note: options.note,
+      });
+    }
+
+    const updates = {
+      status: nextStatus,
+      notes,
+    };
+
+    if (action === 'submit' && options.resultRef) {
+      updates.resultRef = options.resultRef;
+      updates.submittedAt = timestamp;
+    }
+
+    if (action === 'activate') {
+      updates.activatedAt = timestamp;
+    }
+
+    if (['abandon', 'reclaim', 'close'].includes(action)) {
+      updates.closedAt = timestamp;
+    }
+
+    const updated = this.manager.updateHandoff(handoffId, updates);
+    await this.syncLifecycleFiles(updated);
+    await this.manager.saveData();
+    return updated;
+  }
+
+  resolveLifecycleStatus(currentStatus, action) {
+    const transitions = {
+      activate: {
+        [HANDOFF_STATUSES.CREATED]: HANDOFF_STATUSES.ACTIVE,
+        [HANDOFF_STATUSES.PAUSED]: HANDOFF_STATUSES.ACTIVE,
+        [HANDOFF_STATUSES.SUBMITTED]: HANDOFF_STATUSES.ACTIVE,
+      },
+      pause: {
+        [HANDOFF_STATUSES.ACTIVE]: HANDOFF_STATUSES.PAUSED,
+        [HANDOFF_STATUSES.CREATED]: HANDOFF_STATUSES.PAUSED,
+      },
+      submit: {
+        [HANDOFF_STATUSES.ACTIVE]: HANDOFF_STATUSES.SUBMITTED,
+        [HANDOFF_STATUSES.PAUSED]: HANDOFF_STATUSES.SUBMITTED,
+      },
+      abandon: {
+        [HANDOFF_STATUSES.CREATED]: HANDOFF_STATUSES.ABANDONED,
+        [HANDOFF_STATUSES.ACTIVE]: HANDOFF_STATUSES.ABANDONED,
+        [HANDOFF_STATUSES.PAUSED]: HANDOFF_STATUSES.ABANDONED,
+        [HANDOFF_STATUSES.SUBMITTED]: HANDOFF_STATUSES.ABANDONED,
+      },
+      reclaim: {
+        [HANDOFF_STATUSES.CREATED]: HANDOFF_STATUSES.RECLAIMED,
+        [HANDOFF_STATUSES.ACTIVE]: HANDOFF_STATUSES.RECLAIMED,
+        [HANDOFF_STATUSES.PAUSED]: HANDOFF_STATUSES.RECLAIMED,
+        [HANDOFF_STATUSES.SUBMITTED]: HANDOFF_STATUSES.RECLAIMED,
+      },
+      close: {
+        [HANDOFF_STATUSES.SUBMITTED]: HANDOFF_STATUSES.CLOSED,
+        [HANDOFF_STATUSES.ABANDONED]: HANDOFF_STATUSES.CLOSED,
+        [HANDOFF_STATUSES.RECLAIMED]: HANDOFF_STATUSES.CLOSED,
+      },
+    };
+
+    const nextStatus = transitions[action]?.[currentStatus];
+    if (!nextStatus) {
+      throw new Error(`Cannot ${action} handoff from status ${currentStatus}`);
+    }
+
+    return nextStatus;
+  }
+
+  async syncLifecycleFiles(handoff) {
+    if (handoff.manifestPath && await fs.pathExists(handoff.manifestPath)) {
+      const manifest = await fs.readJson(handoff.manifestPath);
+      manifest.status = handoff.status;
+      manifest.submittedAt = handoff.submittedAt || null;
+      manifest.closedAt = handoff.closedAt || null;
+      manifest.resultRef = handoff.resultRef || null;
+      manifest.notes = handoff.notes || [];
+      await fs.writeJson(handoff.manifestPath, manifest, { spaces: 2 });
+    }
+
+    const bundlePath = handoff.bundle?.bundlePath;
+    if (bundlePath && await fs.pathExists(bundlePath)) {
+      const bundle = await fs.readJson(bundlePath);
+      bundle.status = handoff.status;
+      bundle.submittedAt = handoff.submittedAt || null;
+      bundle.closedAt = handoff.closedAt || null;
+      bundle.resultRef = handoff.resultRef || null;
+      bundle.notes = handoff.notes || [];
+      await fs.writeJson(bundlePath, bundle, { spaces: 2 });
+    }
+  }
 }

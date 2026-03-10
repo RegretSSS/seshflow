@@ -102,6 +102,27 @@ Delegated tasks remain parent-managed:
 - `show <taskId>` surfaces the active delegation summary
 - `start <taskId>` blocks delegated tasks unless you explicitly pass `--force`
 
+### `seshflow handoff submit|pause|reclaim|abandon|close <handoffId>`
+
+Use these commands to control the handoff lifecycle after a delegated worktree exists.
+
+What they do:
+
+- update only the handoff lifecycle
+- sync the parent record, manifest, and bundle
+- optionally attach a lifecycle note and a `resultRef` on `submit`
+
+What they do not do:
+
+- they do not mark the source task as `done`
+- they do not turn the delegated worktree into a new source of task truth
+
+Key boundaries:
+
+- `submit` means "result submitted back to the parent workspace", not "task completed"
+- `reclaim` returns control to the parent workspace so the task can be resumed locally
+- `close` closes the handoff record only
+
 ## Contract-first linkage
 
 Seshflow does not guess contract linkage from arbitrary code scans.

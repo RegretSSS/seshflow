@@ -329,6 +329,55 @@ handoffCommand
   .option('--no-json', 'Disable JSON output')
   .action(lazyAction(() => import('../src/commands/handoff.js'), 'createHandoff'));
 
+handoffCommand
+  .command('activate <handoffId>')
+  .description('Activate a delegated handoff')
+  .option('-n, --note <text>', 'Lifecycle note')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'activateHandoff'));
+
+handoffCommand
+  .command('pause <handoffId>')
+  .description('Pause a delegated handoff')
+  .option('-n, --note <text>', 'Lifecycle note')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'pauseHandoff'));
+
+handoffCommand
+  .command('submit <handoffId>')
+  .description('Mark a delegated handoff as submitted without completing the source task')
+  .option('-n, --note <text>', 'Lifecycle note')
+  .option('--result-ref <value>', 'Result reference, commit, artifact, or summary pointer')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'submitHandoff'));
+
+handoffCommand
+  .command('abandon <handoffId>')
+  .description('Abandon a delegated handoff without completing the source task')
+  .option('-n, --note <text>', 'Lifecycle note')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'abandonHandoff'));
+
+handoffCommand
+  .command('reclaim <handoffId>')
+  .description('Reclaim a delegated handoff so the parent workspace can resume the task')
+  .option('-n, --note <text>', 'Lifecycle note')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'reclaimHandoff'));
+
+handoffCommand
+  .command('close <handoffId>')
+  .description('Close a finished handoff lifecycle record without completing the source task')
+  .option('-n, --note <text>', 'Lifecycle note')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'closeHandoff'));
+
 program
   .command('add-dep <taskId> <dependsOnTaskId>')
   .alias('add-dependency')
