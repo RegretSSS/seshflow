@@ -25,10 +25,10 @@ Seshflow 虽然 100% 面向 AI，但它依然支持人类使用。
 
 ## 当前状态
 
-- 当前发版主线：`v1.3.1`
-- `v1.3.0` 在 `v1.2.0` 执行内核的基础上，新增了契约先行模式（`contractfirst`）、显式 AI 上下文优先级、hook/RPC 接缝、多工作区索引和边界最佳实践
-- `v1.3.0` 的具体设计目标见 `docs/apifirst-mode.md` 与 `docs/apifirst-mode.zh-CN.md`
-- `v1.4.0` 已在 `development` 上开始开发，当前主轴是 delegated git worktree handoff
+- 当前发版主线：`v1.4.0`
+- `v1.3.x` 在 `v1.2.0` 执行内核的基础上，建立了契约先行模式（`contractfirst`）、显式 AI 上下文优先级、hook/RPC 接缝、多工作区索引和边界最佳实践
+- `v1.4.0` 在此基础上新增了 delegated git worktree handoff，补上“把任务安全交给独立 worktree / subagent”的主链路
+- 契约先行的具体设计目标见 `docs/apifirst-mode.md` 与 `docs/apifirst-mode.zh-CN.md`
 
 ## 安装
 
@@ -72,7 +72,7 @@ yarn global add @seshflow/cli
   - RPC shell payload
   - workspace index 与 mode capability
   - `workspaces list/current` 可显示 active handoff / delegated task 摘要
-- delegated handoff 基础能力（`v1.4.0` 开发中）：
+- delegated handoff 基础能力（`v1.4.0`）：
   - parent 管理的 handoff 记录
   - delegated git worktree 创建
   - `handoff create` 会先检查 parent workspace 是否已有初始 git commit；如果没有，会直接返回可执行提示
@@ -139,7 +139,7 @@ seshflow next
   - 在 `contractfirst` 模式下，还会把该任务的主契约一起带出来
   - `ncfr`、`next`、`start`、`done` 这类高频命令默认会省略空区块；需要更大 payload 时再用 `--full`
 
-## 契约先行模式（`v1.3.0`，命令名：`contractfirst`）
+## 契约先行模式（`v1.4.0`，命令名：`contractfirst`）
 
 ```bash
 seshflow init contractfirst

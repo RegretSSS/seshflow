@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import { spawnSync } from 'node:child_process';
 
-const VERSION = '1.3.0';
+const VERSION = '1.4.0';
 const program = new Command();
 const ADVANCED_HELP_TARGETS = [
   { name: 'rpc', description: 'Inspect stable RPC/API integration shell payloads' },

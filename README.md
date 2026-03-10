@@ -22,10 +22,10 @@ Seshflow is 100% AI-oriented, but the documentation and command flow should stil
 
 ## Status
 
-- `v1.3.1` is the current release line.
-- `v1.3.0` scope: contract-first `apifirst` mode, explicit AI context priority, hook/RPC seams, workspace index, and boundary best practices on top of the `v1.2.0` execution core.
-- `v1.3.0` design target is documented in `docs/apifirst-mode.md`.
-- `v1.4.0` is now in development on `development` and is focused on delegated git worktree handoff.
+- `v1.4.0` is the current release line.
+- `v1.3.x` established the contract-first execution core: contract bindings, explicit AI context priority, hook/RPC seams, workspace index, and boundary best practices.
+- `v1.4.0` adds delegated git worktree handoff as the next completion layer on top of that core.
+- contract-first design details remain documented in `docs/apifirst-mode.md`.
 
 ## Install
 
@@ -68,7 +68,7 @@ The executable remains `seshflow`.
   - RPC shell payloads
   - workspace index and mode capabilities
   - `workspaces list/current` can surface active handoff and delegated-task summaries
-- delegated handoff foundation (`v1.4.0` in progress):
+- delegated handoff foundation (`v1.4.0`):
   - parent-managed handoff records
   - delegated git worktree creation
   - `handoff create` preflights the parent workspace and returns an actionable hint if the repository still has no initial git commit
@@ -135,7 +135,7 @@ What the three core commands return:
   - in `contractfirst`, it also carries the primary contract context for that task
   - high-frequency commands like `ncfr`, `next`, `start`, and `done` omit empty sections by default and keep `--full` for larger inspection payloads
 
-## Contract-first mode (`v1.3.0`, current command aliases: `contractfirst`, `apifirst`)
+## Contract-first mode (`v1.4.0`, current command aliases: `contractfirst`, `apifirst`)
 
 ```bash
 seshflow init contractfirst

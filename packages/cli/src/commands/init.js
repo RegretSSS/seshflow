@@ -57,7 +57,7 @@ export function getDefaultTaskTemplate() {
 - [ ] Build board UI [id:task_ui] [P1] [frontend] [8h] [dependency:task_api]
 \`\`\`
 
-Template version: 1.3.1
+Template version: 1.4.0
 Last updated: ${now}
 `;
 }
