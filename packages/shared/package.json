@@ -1,6 +1,6 @@
 {
   "name": "@seshflow/shared",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Seshflow shared contracts and workspace snapshot utilities",
   "type": "module",
   "exports": {
