@@ -75,11 +75,19 @@ describe('handoff create command', () => {
     expect(payload.handoff.owner.id).toBe('codex');
     expect(await fs.pathExists(payload.targetWorktree.path)).toBe(true);
     expect(await fs.pathExists(payload.manifestPath)).toBe(true);
+    expect(await fs.pathExists(payload.bundlePath)).toBe(true);
 
     const manifest = await fs.readJson(payload.manifestPath);
     expect(manifest.handoffId).toBe(payload.handoff.handoffId);
     expect(manifest.task.id).toBe(taskId);
     expect(manifest.executionBoundary.sourceOfTruth).toBe('parent-workspace');
+    expect(manifest.bundleSummary.bundlePath).toBe(payload.bundlePath);
+
+    const bundle = await fs.readJson(payload.bundlePath);
+    expect(bundle.handoffId).toBe(payload.handoff.handoffId);
+    expect(bundle.task.id).toBe(taskId);
+    expect(bundle.executionBoundary.sourceOfTruth).toBe('parent-workspace');
+    expect(bundle.dependencySummary.upstream).toEqual([]);
 
     const manager = new TaskManager(workspacePath);
     await manager.init();
@@ -87,6 +95,8 @@ describe('handoff create command', () => {
     expect(handoff).not.toBeNull();
     expect(handoff.status).toBe('active');
     expect(handoff.targetBranchName).toContain(`handoff/${taskId}`);
+    expect(handoff.bundle.bundlePath).toBe(payload.bundlePath);
+    expect(handoff.bundle.taskId).toBe(taskId);
   });
 
   test('prevents creating a second active handoff for the same task', async () => {

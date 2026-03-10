@@ -79,7 +79,7 @@
 
 - 在 parent workspace 中创建 handoff 记录
 - 在独立分支上物化一个 git worktree
-- 在 delegated worktree 里写入最小 handoff manifest
+- 在 delegated worktree 里写入 handoff manifest 和受控闭包 bundle
 
 它不会做什么：
 
@@ -93,6 +93,7 @@
 - `sourceTaskId`
 - 目标 branch/path
 - manifest 路径
+- bundle 路径
 - 当前 lifecycle 状态
 
 ## 契约先行的关联链路

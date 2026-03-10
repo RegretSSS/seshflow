@@ -40,6 +40,9 @@ function printHandoffSummary(result) {
   if (result.manifestPath) {
     console.log(`manifest=${result.manifestPath}`);
   }
+  if (result.bundlePath) {
+    console.log(`bundle=${result.bundlePath}`);
+  }
 }
 
 export async function createHandoff(taskId, options = {}) {
@@ -73,6 +76,7 @@ export async function createHandoff(taskId, options = {}) {
         created: true,
         handoff: formatHandoffSummary(result.handoff),
         manifestPath: result.manifestPath,
+        bundlePath: result.bundlePath,
         targetWorktree: {
           path: result.targetWorktreePath,
           branch: result.branchName,

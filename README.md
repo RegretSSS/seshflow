@@ -69,7 +69,7 @@ The executable remains `seshflow`.
 - delegated handoff foundation (`v1.4.0` in progress):
   - parent-managed handoff records
   - delegated git worktree creation
-  - execution-surface manifests without creating a second task truth
+  - execution-surface manifests and bounded handoff bundles without creating a second task truth
 
 ## Typical human-readable usage
 

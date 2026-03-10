@@ -79,7 +79,7 @@ What it does:
 
 - creates a parent-managed handoff record in the source workspace
 - materializes a git worktree on a dedicated branch
-- writes a minimal handoff manifest into the delegated worktree
+- writes a handoff manifest and a bounded handoff bundle into the delegated worktree
 
 What it does not do:
 
@@ -93,6 +93,7 @@ What it returns:
 - `sourceTaskId`
 - target branch/path
 - manifest path
+- bundle path
 - lifecycle status
 
 ## Contract-first linkage

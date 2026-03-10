@@ -73,7 +73,7 @@ yarn global add @seshflow/cli
 - delegated handoff 基础能力（`v1.4.0` 开发中）：
   - parent 管理的 handoff 记录
   - delegated git worktree 创建
-  - 只写 execution-surface manifest，不创建第二套任务真相源
+  - 写入 execution-surface manifest 和受控 handoff bundle，不创建第二套任务真相源
 
 ## 对人类友好的输出方式
 
