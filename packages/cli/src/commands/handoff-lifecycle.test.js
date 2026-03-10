@@ -141,6 +141,9 @@ describe('handoff lifecycle control', () => {
     const payload = JSON.parse(close.stdout);
     expect(payload.handoff.status).toBe('closed');
     expect(payload.handoff.closedAt).toBeTruthy();
+    expect(payload.cleanupGuidance.worktreePath).toContain(path.sep);
+    expect(payload.cleanupGuidance.suggestedCommand).toMatch(/git worktree remove/i);
+    expect(payload.cleanupGuidance.when).toMatch(/reviewing|merging|discarding/i);
 
     const manager = new TaskManager(workspacePath);
     await manager.init();

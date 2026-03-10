@@ -97,6 +97,7 @@ What it does:
 - creates a parent-managed handoff record in the source workspace
 - materializes a git worktree on a dedicated branch
 - writes a handoff manifest and a bounded handoff bundle into the delegated worktree
+- checks that the parent workspace already has an initial git commit before creating the worktree
 
 What it does not do:
 
@@ -112,6 +113,7 @@ What it returns:
 - manifest path
 - bundle path
 - lifecycle status
+- an actionable setup hint instead of a raw `HEAD` error if the repository still has no initial commit
 
 Delegated tasks remain parent-managed:
 
@@ -154,6 +156,8 @@ They return:
 - latest `resultRef` and note summary
 
 `handoff show --full` additionally expands manifest and bundle file content for debugging and recovery, so it should be treated as higher-context inspection output.
+
+When a handoff reaches a terminal state such as `closed`, `reclaimed`, or `abandoned`, both `handoff show` and `handoff close` surface a lightweight cleanup hint with the appropriate `git worktree remove "<path>"` command. This remains guidance only; Seshflow does not take over merge or deletion semantics.
 
 ## Contract-first linkage
 

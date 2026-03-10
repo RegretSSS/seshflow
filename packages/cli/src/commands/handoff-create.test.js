@@ -60,6 +60,34 @@ async function createGitWorkspace() {
   }
 }
 
+async function createUncommittedGitWorkspace() {
+  const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), 'seshflow-handoff-preflight-'));
+  const previousHome = process.env.SESHFLOW_HOME;
+  process.env.SESHFLOW_HOME = path.join(workspacePath, '.test-home');
+
+  try {
+    const manager = new TaskManager(workspacePath);
+    await manager.init();
+    const task = manager.createTask({
+      title: 'Delegate before initial commit',
+      priority: 'P1',
+    });
+    await manager.saveData();
+
+    expect(runGit(workspacePath, ['init']).status).toBe(0);
+    expect(runGit(workspacePath, ['config', 'user.email', 'tests@example.com']).status).toBe(0);
+    expect(runGit(workspacePath, ['config', 'user.name', 'Seshflow Tests']).status).toBe(0);
+
+    return { workspacePath, taskId: task.id };
+  } finally {
+    if (previousHome === undefined) {
+      delete process.env.SESHFLOW_HOME;
+    } else {
+      process.env.SESHFLOW_HOME = previousHome;
+    }
+  }
+}
+
 describe('handoff create command', () => {
   test('creates a delegated git worktree with manifest and parent binding', async () => {
     const { workspacePath, taskId } = await createGitWorkspace();
@@ -112,5 +140,18 @@ describe('handoff create command', () => {
     expect(payload.success).toBe(false);
     expect(payload.error.code).toBe('HANDOFF_CREATE_FAILED');
     expect(payload.error.message).toMatch(/active handoff/i);
+  });
+
+  test('returns an actionable error when the repository has no initial commit', async () => {
+    const { workspacePath, taskId } = await createUncommittedGitWorkspace();
+
+    const result = runCLI(workspacePath, ['handoff', 'create', taskId]);
+    expect(result.status).toBe(1);
+
+    const payload = JSON.parse(result.stdout);
+    expect(payload.success).toBe(false);
+    expect(payload.error.code).toBe('HANDOFF_CREATE_FAILED');
+    expect(payload.error.message).toMatch(/initial commit/i);
+    expect(payload.error.message).toMatch(/git add \. && git commit -m "initial workspace"/i);
   });
 });

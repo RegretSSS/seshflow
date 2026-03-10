@@ -71,11 +71,13 @@ The executable remains `seshflow`.
 - delegated handoff foundation (`v1.4.0` in progress):
   - parent-managed handoff records
   - delegated git worktree creation
+  - `handoff create` preflights the parent workspace and returns an actionable hint if the repository still has no initial git commit
   - execution-surface manifests and bounded handoff bundles without creating a second task truth
   - delegated tasks are skipped by `next` and guarded by `start` unless explicitly reclaimed with `--force`
   - `handoff submit/pause/reclaim/abandon/close` control only handoff lifecycle, not source task completion
   - `add/edit --expect-artifact` can declare expected task deliverables; `done` and `handoff submit` emit lightweight existence warnings without blocking flow
   - `handoff list/show` recover handoff state without guessing worktree paths or branch names
+  - `handoff close` and `handoff show` surface cleanup guidance for delegated worktrees without taking over merge or deletion semantics
 
 ## Typical human-readable usage
 

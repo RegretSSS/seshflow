@@ -97,6 +97,7 @@
 - 在 parent workspace 中创建 handoff 记录
 - 在独立分支上物化一个 git worktree
 - 在 delegated worktree 里写入 handoff manifest 和受控闭包 bundle
+- 在真正创建 worktree 前检查 parent workspace 是否已有初始 git commit
 
 它不会做什么：
 
@@ -112,6 +113,7 @@
 - manifest 路径
 - bundle 路径
 - 当前 lifecycle 状态
+- 如果仓库还没有初始 commit，则返回可执行提示，而不是透传底层 `HEAD` 错误
 
 被 delegated 的任务仍由 parent 管理：
 
@@ -154,6 +156,13 @@
 - 最新 resultRef 和 note 摘要
 
 `handoff show --full` 会进一步展开 manifest 和 bundle 文件内容，适合调试和恢复，但上下文成本明显更高。
+
+当 handoff 已进入 `closed`、`reclaimed` 或 `abandoned` 这类收尾状态时：
+
+- `handoff show`
+- `handoff close`
+
+会额外返回一条轻量 cleanup guidance，告诉你何时可以手动执行 `git worktree remove "<path>"`。它只提示，不会替你自动 merge 或自动删除 worktree。
 
 ## 契约先行的关联链路
 

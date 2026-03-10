@@ -48,12 +48,29 @@ function summarizeTask(task) {
   });
 }
 
+function buildCleanupGuidance(handoff) {
+  if (!handoff?.targetWorktreePath) {
+    return undefined;
+  }
+
+  if (!['closed', 'reclaimed', 'abandoned'].includes(handoff.status)) {
+    return undefined;
+  }
+
+  return {
+    worktreePath: handoff.targetWorktreePath,
+    suggestedCommand: `git worktree remove "${handoff.targetWorktreePath}"`,
+    when: 'after reviewing, merging, or intentionally discarding delegated changes',
+  };
+}
+
 function formatHandoffListItem(manager, handoff) {
   const task = manager.getTask(handoff.sourceTaskId);
   return omitEmptyFields({
     ...formatHandoffSummary(handoff),
     sourceTask: summarizeTask(task),
     bundleSummary: handoff.bundle || undefined,
+    cleanupGuidance: buildCleanupGuidance(handoff),
     notesCount: Array.isArray(handoff.notes) ? handoff.notes.length : 0,
     lastNote: Array.isArray(handoff.notes) && handoff.notes.length > 0
       ? handoff.notes[handoff.notes.length - 1]
@@ -78,6 +95,7 @@ async function formatHandoffDetail(manager, handoff, options = {}) {
       bundlePath: handoff.bundle?.bundlePath || undefined,
     }),
     bundleSummary: handoff.bundle || undefined,
+    cleanupGuidance: buildCleanupGuidance(handoff),
     notes: Array.isArray(handoff.notes) && handoff.notes.length > 0 ? handoff.notes : undefined,
   });
 
@@ -215,12 +233,18 @@ async function transitionHandoff(action, handoffId, options = {}) {
         action: `handoff.${action}`,
         updated: true,
         handoff: formatHandoffSummary(handoff),
+        cleanupGuidance: buildCleanupGuidance(handoff),
         warnings: warnings.length > 0 ? warnings : undefined,
       }, workspace));
       return;
     }
 
     printLifecycleSummary(action, handoff);
+    const cleanupGuidance = buildCleanupGuidance(handoff);
+    if (cleanupGuidance) {
+      console.log(`cleanup=${cleanupGuidance.suggestedCommand}`);
+      console.log(`when=${cleanupGuidance.when}`);
+    }
     if (warnings.length > 0) {
       warnings.forEach(warning => {
         console.warn(chalk.yellow(`\nWarning: ${warning.message}`));
@@ -326,6 +350,10 @@ export async function showHandoff(handoffId, options = {}) {
     }
     if (detail.notes?.length) {
       console.log(`notes=${detail.notes.length}`);
+    }
+    if (detail.cleanupGuidance?.suggestedCommand) {
+      console.log(`cleanup=${detail.cleanupGuidance.suggestedCommand}`);
+      console.log(`when=${detail.cleanupGuidance.when}`);
     }
     if (options.full) {
       console.log(`manifest=${detail.target.manifestPath}`);

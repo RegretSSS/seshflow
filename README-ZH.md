@@ -75,11 +75,13 @@ yarn global add @seshflow/cli
 - delegated handoff 基础能力（`v1.4.0` 开发中）：
   - parent 管理的 handoff 记录
   - delegated git worktree 创建
+  - `handoff create` 会先检查 parent workspace 是否已有初始 git commit；如果没有，会直接返回可执行提示
   - 写入 execution-surface manifest 和受控 handoff bundle，不创建第二套任务真相源
   - delegated 任务默认不会被 `next` 再次推荐，`start` 也会阻止误接管，除非显式使用 `--force`
   - `handoff submit/pause/reclaim/abandon/close` 只控制 handoff 生命周期，不自动完成 source task
   - `add/edit --expect-artifact` 可声明任务期望交付物；`done` 与 `handoff submit` 只做轻量存在性 warning，不阻塞流转
   - `handoff list/show` 用于恢复 handoff 状态，不必手动猜 worktree 路径或 branch
+  - `handoff close` 与 `handoff show` 会在适当时提供 worktree cleanup guidance，但不会自动 merge 或自动删除 worktree
 
 ## 对人类友好的输出方式
 

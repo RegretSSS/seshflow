@@ -49,6 +49,8 @@ export class HandoffService {
       throw new Error('Current workspace is not inside a git repository.');
     }
 
+    await this.ensureRepoHasInitialCommit(git);
+
     const branchName = this.resolveBranchName(task, options.branchName);
     const targetWorktreePath = this.resolveTargetWorktreePath(workspacePath, task, options.targetWorktreePath);
     this.assertTaskCanBeDelegated(task.id);
@@ -148,6 +150,20 @@ export class HandoffService {
     const localBranches = await git.branchLocal();
     if (localBranches.all.includes(branchName)) {
       throw new Error(`Target branch already exists: ${branchName}`);
+    }
+  }
+
+  async ensureRepoHasInitialCommit(git) {
+    try {
+      const head = (await git.raw(['rev-parse', '--verify', 'HEAD'])).trim();
+      if (!head) {
+        throw new Error('HEAD is empty');
+      }
+    } catch {
+      throw new Error(
+        'Delegated handoff requires a git repository with an initial commit. ' +
+        'Create one first, for example: git add . && git commit -m "initial workspace".'
+      );
     }
   }
 

@@ -101,4 +101,17 @@ describe('handoff inspection surfaces', () => {
     expect(fullPayload.bundle.handoffId).toBe(handoffId);
     expect(fullPayload.target.bundlePath).toBe(bundlePath);
   });
+
+  test('handoff show exposes cleanup guidance after a handoff is closed', async () => {
+    const { workspacePath, handoffId } = await createInspectionWorkspace();
+
+    expect(runCLI(workspacePath, ['handoff', 'submit', handoffId]).status).toBe(0);
+    expect(runCLI(workspacePath, ['handoff', 'close', handoffId]).status).toBe(0);
+
+    const summary = runCLI(workspacePath, ['handoff', 'show', handoffId]);
+    expect(summary.status).toBe(0);
+    const payload = JSON.parse(summary.stdout);
+    expect(payload.cleanupGuidance.suggestedCommand).toMatch(/git worktree remove/i);
+    expect(payload.cleanupGuidance.when).toMatch(/reviewing|merging|discarding/i);
+  });
 });
