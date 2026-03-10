@@ -34,6 +34,7 @@ Use these boundaries as hard constraints, not inspiration.
 - No automatic bidirectional Markdown/JSON sync in `v1.2.0`.
 - No free-form Markdown patch reconciliation engine in `v1.2.0` or `v1.3.0`.
 - No model routing, prompt orchestration, autonomous agent loop management, or cross-tool conversation control inside Seshflow.
+- No delegated worktree handoff support before `v1.4.0`.
 
 ## 4. Planning Source-of-Truth Boundary
 
@@ -121,6 +122,31 @@ Use these boundaries as hard constraints, not inspiration.
 - After that point, Seshflow work should bias toward optimization, hardening, compatibility, and carefully bounded extension points.
 - The future Agent project should consume Seshflow through RPC/API/hooks rather than forcing conversation policy or autonomous loop logic into the Seshflow core.
 - Package-consumption and boundary best practices are documented in `docs/best-practices.md` and `docs/best-practices.zh-CN.md`.
+
+## 10b. Delegated Handoff Boundary (`v1.4.0`)
+
+- `v1.4.0` exists to support delegated git worktree handoff, not to turn Seshflow into a realtime dashboard or agent runtime.
+- Primary completion action:
+  - delegate a task into a git worktree handoff that can be consumed by an external coding agent or a human executor
+- Hard boundary statements:
+  - `Seshflow manages handoff truth and binding, not autonomous agent execution.`
+  - `A handoff worktree is an execution surface, not a new source of task truth.`
+- Canonical truth rules:
+  - task truth remains in the parent workspace `.seshflow`
+  - contract truth remains in the parent workspace `.seshflow`
+  - a handoff worktree may contain manifests, snapshots, and execution artifacts, but it must not become a second task database
+- Lifecycle rules:
+  - handoff lifecycle is separate from task lifecycle
+  - closing or submitting a handoff must not automatically mark the source task `done`
+  - `v1.4.0` must allow delegation, inspection, reclaim, and closure without collapsing those actions into one status
+- Bundle rules:
+  - handoff bundles must provide a bounded local closure around the delegated task
+  - include: task snapshot, relevant contract closure, dependency summary, runtime summary, and explicit execution boundaries
+  - exclude: full `tasks.json`, full contract registry mirror, noisy runtime history, and model-specific prompt policy
+- Supporting items are secondary:
+  - minimal workspace overview is allowed only insofar as it serves delegated handoff visibility
+  - minimal lookup/search is allowed only insofar as it helps find delegated tasks or contracts
+  - WebSocket realtime, rich dependency graphs, and dashboard-style observability are not part of the `v1.4.0` mainline
 
 ## 11. Testing and Release Boundary
 
