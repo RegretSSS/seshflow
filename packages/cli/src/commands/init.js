@@ -354,6 +354,7 @@ export async function init(modeOrOptions = {}, maybeOptions = {}) {
     await manager.init();
 
     await configureMode(storage, mode);
+    await storage.rememberIssueTarget('init');
 
     spinner && (spinner.text = 'Copying template files...');
     await copyTemplateFiles(storage.getSeshflowDir(), mode);
@@ -398,6 +399,8 @@ export async function init(modeOrOptions = {}, maybeOptions = {}) {
       console.log(chalk.gray('  seshflow show <taskId>'));
       console.log(chalk.gray('  seshflow record --note "implementation progress"'));
       console.log(chalk.gray('  seshflow done <taskId>'));
+      console.log(chalk.gray('  # Feedback back to this workspace from any directory'));
+      console.log(chalk.gray('  seshflow issue "<title>" --trigger "..." --actual "..." --expected "..." --impact "..."'));
     } else {
       console.log(chalk.gray('  seshflow ncfr'));
       console.log(chalk.gray('  seshflow add "My first task"'));
@@ -410,6 +413,8 @@ export async function init(modeOrOptions = {}, maybeOptions = {}) {
       console.log(chalk.gray('  # Later: edit the same file, then'));
       console.log(chalk.gray('  seshflow import my-tasks.md --update'));
       console.log(chalk.gray('  seshflow next'));
+      console.log(chalk.gray('  # Feedback back to this workspace from any directory'));
+      console.log(chalk.gray('  seshflow issue "<title>" --trigger "..." --actual "..." --expected "..." --impact "..."'));
     }
 
     console.log(chalk.blue('\nReference:'));
