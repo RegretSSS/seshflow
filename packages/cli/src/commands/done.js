@@ -164,11 +164,20 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
     const allTasksAfter = manager.getTasks();
     const progressAfter = getProgress(allTasksAfter);
     const unlockedTasks = getUnlockedTasks(allTasksAfter, targetTask.id);
-    const nextTask = manager.getNextTask();
+    let nextTask = manager.getNextTask();
+    let nextStartResult = null;
     const warnings = await checkExpectedArtifacts(
       manager.storage.getWorkspacePath(),
       targetTask.expectedArtifacts || []
     );
+
+    if (options.startNext && nextTask) {
+      nextStartResult = await transitions.startTask(nextTask.id, {
+        source: 'cli.done.start-next',
+      });
+      await manager.saveData();
+      nextTask = manager.getTask(nextTask.id);
+    }
 
     if (isJSONMode(options)) {
       const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length, { compact: true });
@@ -179,7 +188,7 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
         runtimeSummary: formatRuntimeSummaryJSON(manager.getRuntimeSummary(targetTask)),
         announcementResults: result.announcementResults?.length ? result.announcementResults : undefined,
         transitionEvent: result.transitionEvent,
-        hasActiveSession: false,
+        hasActiveSession: nextStartResult?.changed ? true : false,
         hours: hours ? Number.parseFloat(hours) : null,
         note: note || undefined,
         progress: {
@@ -189,6 +198,9 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
         warnings: warnings.length > 0 ? warnings : undefined,
         unlockedTasks: unlockedTasks.length > 0 ? unlockedTasks.map(task => formatTaskActionJSON(task)) : undefined,
         nextTask: nextTask ? formatTaskActionJSON(nextTask) : undefined,
+        startedNext: nextStartResult?.changed ? true : undefined,
+        nextTransitionEvent: nextStartResult?.transitionEvent,
+        nextAnnouncementResults: nextStartResult?.announcementResults?.length ? nextStartResult.announcementResults : undefined,
       }), workspaceJSON));
       return;
     }
@@ -201,7 +213,8 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
         console.log(`UNLOCKED | ${unlockedTasks.map(task => task.id).join(',')}`);
       }
       if (nextTask) {
-        console.log(`NEXT | ${nextTask.id} | ${nextTask.status} | ${nextTask.priority} | ${nextTask.title}`);
+        const nextPrefix = nextStartResult?.changed ? 'NEXT_STARTED' : 'NEXT';
+        console.log(`${nextPrefix} | ${nextTask.id} | ${nextTask.status} | ${nextTask.priority} | ${nextTask.title}`);
       }
       return;
     }
@@ -233,8 +246,14 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
     }
 
     if (nextTask) {
-      console.log(chalk.blue('\nNext task:'), chalk.gray(`${nextTask.title} [${nextTask.priority}]`));
-      console.log(chalk.gray('  Start with: seshflow next'));
+      if (nextStartResult?.changed) {
+        console.log(chalk.blue('\nNext task started:'), chalk.gray(`${nextTask.title} [${nextTask.priority}]`));
+        console.log(chalk.gray(`  Session active on: ${nextTask.id}`));
+      } else {
+        console.log(chalk.blue('\nNext task:'), chalk.gray(`${nextTask.title} [${nextTask.priority}]`));
+        console.log(chalk.gray('  Start with: seshflow next'));
+        console.log(chalk.gray('  Shortcut: seshflow done --start-next'));
+      }
     } else {
       console.log(chalk.green('\nAll tasks completed.'));
     }

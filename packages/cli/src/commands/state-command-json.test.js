@@ -131,4 +131,32 @@ describe('state command JSON output', () => {
       ])
     );
   });
+
+  test('done --start-next --json completes the current task and starts the next one', async () => {
+    const { workspacePath, manager } = await createWorkspace();
+    const taskA = manager.createTask({ title: 'Current Task', priority: 'P0' });
+    const taskB = manager.createTask({ title: 'Follow-up Task', priority: 'P1', dependencies: [taskA.id] });
+    manager.startSession(taskA.id);
+    await manager.saveData();
+
+    const result = runCLI(workspacePath, ['done', '--json', '--start-next']);
+    expect(result.status).toBe(0);
+
+    const payload = JSON.parse(result.stdout);
+    expect(payload.action).toBe('done');
+    expect(payload.changed).toBe(true);
+    expect(payload.startedNext).toBe(true);
+    expect(payload.hasActiveSession).toBe(true);
+    expect(payload.nextTask.id).toBe(taskB.id);
+    expect(payload.nextTask.status).toBe('in-progress');
+    expect(payload.nextTransitionEvent.type).toBe('task.start');
+    expect(payload.nextAnnouncementResults).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          kind: 'task_start',
+          ok: true,
+        }),
+      ])
+    );
+  });
 });
