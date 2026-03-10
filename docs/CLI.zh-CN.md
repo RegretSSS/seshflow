@@ -123,6 +123,20 @@
 - `reclaim` 表示 parent 重新接管，任务会重新回到可推荐状态
 - `close` 只关闭 handoff 记录，不等于任务完成
 
+### `seshflow handoff list` / `seshflow handoff show <handoffId>`
+
+用来恢复 delegated 状态，而不是重新猜 worktree 或 branch。
+
+它们会返回：
+
+- handoff 当前 lifecycle 状态
+- source task / contract 绑定摘要
+- target worktree 路径与 branch
+- manifest / bundle 路径
+- 最新 resultRef 和 note 摘要
+
+`handoff show --full` 会进一步展开 manifest 和 bundle 文件内容，适合调试和恢复，但上下文成本明显更高。
+
 ## 契约先行的关联链路
 
 Seshflow 不会靠任意代码扫描去猜 contract 关联。

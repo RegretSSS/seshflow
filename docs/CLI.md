@@ -123,6 +123,20 @@ Key boundaries:
 - `reclaim` returns control to the parent workspace so the task can be resumed locally
 - `close` closes the handoff record only
 
+### `seshflow handoff list` / `seshflow handoff show <handoffId>`
+
+Use these commands to recover delegated state without guessing worktree paths or branch names.
+
+They return:
+
+- current lifecycle state
+- source task / contract binding summary
+- target worktree path and branch
+- manifest / bundle paths
+- latest `resultRef` and note summary
+
+`handoff show --full` additionally expands manifest and bundle file content for debugging and recovery, so it should be treated as higher-context inspection output.
+
 ## Contract-first linkage
 
 Seshflow does not guess contract linkage from arbitrary code scans.

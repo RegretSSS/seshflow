@@ -316,6 +316,22 @@ workspacesCommand
   .action(lazyAction(() => import('../src/commands/workspaces.js'), 'showCurrentWorkspace'));
 
 handoffCommand
+  .command('list')
+  .description('List delegated handoffs in the parent workspace')
+  .option('-l, --limit <number>', 'Limit the number of handoffs returned')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'listHandoffs'));
+
+handoffCommand
+  .command('show <handoffId>')
+  .description('Inspect a delegated handoff record')
+  .option('--full', 'Include manifest and bundle content')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'showHandoff'));
+
+handoffCommand
   .command('create <taskId>')
   .description('Create a delegated handoff and materialize a git worktree for a task')
   .option('--path <path>', 'Target worktree path (defaults to a sibling handoff directory)')
