@@ -93,6 +93,10 @@ describe('output layering', () => {
     expect(payload.processSummary).toBeUndefined();
     expect(payload.contextPriority).toBeUndefined();
     expect(payload.workspace.sourcePath).toBeUndefined();
+    expect(payload.contractStatus).toEqual({
+      state: 'unbound',
+      hint: 'No contract bound to this task yet.',
+    });
   });
 
   test('show json is summary by default and exposes recent runtime events only with --full', async () => {
@@ -153,6 +157,28 @@ describe('output layering', () => {
     expect(payload.recentProcesses).toBeUndefined();
     expect(payload.runtimeEventSummary).toBeUndefined();
     expect(payload.workspace.sourcePath).toBeUndefined();
+    expect(payload.inspectionHint).toEqual({
+      fullCommand: `seshflow show ${task.id} --full`,
+      warning: 'high-context-output',
+    });
+  });
+
+  test('root help hides advanced commands unless --advanced is requested', async () => {
+    const workspacePath = await fs.mkdtemp(path.join(os.tmpdir(), 'seshflow-help-layering-'));
+
+    const defaultHelp = runCLI(workspacePath, ['--help']);
+    expect(defaultHelp.status).toBe(0);
+    expect(defaultHelp.stdout).not.toMatch(/^\s+rpc\b/m);
+    expect(defaultHelp.stdout).not.toMatch(/^\s+workspaces\|workspace\b/m);
+    expect(defaultHelp.stdout).not.toMatch(/^\s+magic\b/m);
+    expect(defaultHelp.stdout).toContain('Advanced integration commands are hidden by default');
+
+    const advancedHelp = runCLI(workspacePath, ['--help', '--advanced']);
+    expect(advancedHelp.status).toBe(0);
+    expect(advancedHelp.stdout).toContain('Advanced Commands:');
+    expect(advancedHelp.stdout).toMatch(/^\s+rpc\b/m);
+    expect(advancedHelp.stdout).toMatch(/^\s+workspaces\b/m);
+    expect(advancedHelp.stdout).toMatch(/^\s+magic\b/m);
   });
 
   test('storage throttles repeated workspace hints within the cooldown window', async () => {

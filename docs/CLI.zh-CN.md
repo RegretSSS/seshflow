@@ -116,6 +116,10 @@ seshflow show <taskId> --pretty
 SESHFLOW_OUTPUT=pretty
 ```
 
+`--full` 这类检查命令要谨慎使用。它们本来就是高上下文输出，只适合在需要深度检查时显式调用。
+
+`rpc shell`、workspace index、`magic` 这类高级集成面默认不会出现在根 help 里。只有明确需要这些接缝时，再使用 `seshflow --help --advanced`。
+
 ## 稳定别名
 
 推荐使用的契约先行模式名：

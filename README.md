@@ -85,6 +85,10 @@ SESHFLOW_OUTPUT=pretty
 
 Default JSON remains the correct mode for AI, automation, and tool integrations.
 
+Use `--full` cautiously on inspection commands. It is intentionally high-context output and should be reserved for focused deep inspection.
+
+Integration-facing commands such as `rpc shell`, workspace index inspection, and `magic` are hidden from the default help surface. Use `seshflow --help --advanced` when you explicitly need those seams.
+
 ## Human-friendly starting flow
 
 ```bash

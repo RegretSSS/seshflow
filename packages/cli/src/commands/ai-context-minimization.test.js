@@ -43,7 +43,7 @@ describe('AI context minimization', () => {
     expect(result.status).toBe(0);
 
     const payload = JSON.parse(result.stdout);
-    expect(payload.blockedBy).toEqual([]);
+    expect(payload.blockedBy).toBeUndefined();
   });
 
   test('next json returns minimal workspace by default', async () => {

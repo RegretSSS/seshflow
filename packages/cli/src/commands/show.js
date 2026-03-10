@@ -190,6 +190,10 @@ export async function show(taskId, options = {}) {
         detailLevel: includeFullJSON ? 'full' : 'summary',
         task: includeFullJSON ? formatTaskJSON(task) : formatTaskActionJSON(task),
         ...(apiFirstContext ? formatApiFirstContextJSON(apiFirstContext) : {}),
+        inspectionHint: includeFullJSON ? undefined : {
+          fullCommand: `seshflow show ${task.id} --full`,
+          warning: 'high-context-output',
+        },
         relatedContractTasks: apiFirstContext?.relatedTasks?.length ? apiFirstContext.relatedTasks : undefined,
         subtasks: task.subtasks?.length ? task.subtasks : undefined,
         dependencies: task.dependencies?.length ? task.dependencies : undefined,

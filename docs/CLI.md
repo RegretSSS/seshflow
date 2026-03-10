@@ -116,6 +116,10 @@ Global override:
 SESHFLOW_OUTPUT=pretty
 ```
 
+Use `--full` cautiously on inspection commands. It is intentionally high-context output and should be reserved for focused deep inspection.
+
+Advanced integration surfaces such as `rpc shell`, workspace index inspection, and `magic` are hidden from the default root help. Use `seshflow --help --advanced` when you explicitly need them.
+
 ## Stable aliases
 
 Preferred contract-first mode names:

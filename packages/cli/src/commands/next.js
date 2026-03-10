@@ -162,6 +162,9 @@ export async function next(options = {}) {
           mode: modeInfo.mode,
           task: formatTaskActionJSON(currentTask),
           ...formatApiFirstContextJSON(apiFirstContext),
+          contractStatus: modeInfo.mode === 'apifirst' && !apiFirstContext?.currentContract
+            ? { state: 'unbound', hint: 'No contract bound to this task yet.' }
+            : undefined,
           runtimeSummary: formatRuntimeSummaryJSON(manager.getRuntimeSummary(currentTask)),
           processSummary: formatProcessSummaryJSON(manager.getProcessSummary(currentTask)),
           hasActiveSession: true,
@@ -194,6 +197,9 @@ export async function next(options = {}) {
         mode: modeInfo.mode,
         task: formatTaskActionJSON(nextTask),
         ...formatApiFirstContextJSON(apiFirstContext),
+        contractStatus: modeInfo.mode === 'apifirst' && !apiFirstContext?.currentContract
+          ? { state: 'unbound', hint: 'No contract bound to this task yet.' }
+          : undefined,
         unmetDependencies: unmetDeps.map(d => ({
           id: d.id,
           title: d.title,

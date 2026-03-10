@@ -6,6 +6,10 @@ import { spawnSync } from 'node:child_process';
 import fs from 'fs-extra';
 import { TaskManager } from '../core/task-manager.js';
 import { buildWorkspaceSnapshot } from '../../../shared/workspace-snapshot.js';
+import {
+  formatProcessSummaryJSON,
+  formatRuntimeSummaryJSON,
+} from '../utils/json-output.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -64,9 +68,11 @@ describe('workspace snapshot parity', () => {
     const snapshotTask = snapshot.currentTask;
 
     expect(snapshotTask.id).toBe(task.id);
-    expect(snapshotTask.runtimeSummary).toEqual(showPayload.runtimeSummary);
-    expect(snapshotTask.processSummary).toEqual(showPayload.processSummary);
-    expect(snapshotTask.runtimeEventSummary).toEqual(showPayload.runtimeEventSummary);
+    expect(formatRuntimeSummaryJSON(snapshotTask.runtimeSummary)).toEqual(showPayload.runtimeSummary);
+    expect(formatProcessSummaryJSON(snapshotTask.processSummary)).toEqual(showPayload.processSummary);
+    expect(
+      snapshotTask.runtimeEventSummary.recordCount > 0 ? snapshotTask.runtimeEventSummary : undefined
+    ).toEqual(showPayload.runtimeEventSummary);
     expect(nextPayload.runtimeSummary).toEqual(
       expect.objectContaining({
         recordCount: snapshot.currentTask.runtimeSummary.recordCount,

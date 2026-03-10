@@ -89,6 +89,10 @@ SESHFLOW_OUTPUT=pretty
 
 默认 JSON 仍然是给 AI、自动化和工具接入时最合适的模式。
 
+`--full` 这类检查型命令要谨慎使用。它们本来就是高上下文输出，只应在需要深度检查时显式调用。
+
+像 `rpc shell`、workspace index、`magic` 这类集成向命令默认不会出现在根 help 里。只有在明确需要这些接缝时，再使用 `seshflow --help --advanced`。
+
 ## 对人友好的起步流程
 
 ```bash
