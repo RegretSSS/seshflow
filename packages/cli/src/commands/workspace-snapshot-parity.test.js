@@ -67,7 +67,16 @@ describe('workspace snapshot parity', () => {
     expect(snapshotTask.runtimeSummary).toEqual(showPayload.runtimeSummary);
     expect(snapshotTask.processSummary).toEqual(showPayload.processSummary);
     expect(snapshotTask.runtimeEventSummary).toEqual(showPayload.runtimeEventSummary);
-    expect(snapshot.currentTask.runtimeSummary).toEqual(nextPayload.runtimeSummary);
-    expect(snapshot.currentTask.processSummary).toEqual(nextPayload.processSummary);
+    expect(nextPayload.runtimeSummary).toEqual(
+      expect.objectContaining({
+        recordCount: snapshot.currentTask.runtimeSummary.recordCount,
+        lastRecordedAt: snapshot.currentTask.runtimeSummary.lastRecordedAt,
+        lastCommand: snapshot.currentTask.runtimeSummary.lastCommand,
+        lastOutputRoot: snapshot.currentTask.runtimeSummary.lastOutputRoot,
+        lastArtifacts: snapshot.currentTask.runtimeSummary.lastArtifacts,
+      })
+    );
+    expect(nextPayload.runtimeSummary.lastLogFile).toBeUndefined();
+    expect(nextPayload.processSummary).toEqual(snapshot.currentTask.processSummary);
   }, 15000);
 });

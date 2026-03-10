@@ -62,10 +62,37 @@ describe('output layering', () => {
     expect(result.status).toBe(0);
     const payload = JSON.parse(result.stdout);
 
-    expect(payload.currentTask).toBeNull();
+    expect(payload.currentTask).toBeUndefined();
     expect(payload.nextReadyTask.id).toBeTruthy();
     expect(payload.focus).toBe('next-ready-task');
     expect(payload.project).toBeUndefined();
+  });
+
+  test('next omits empty contract and runtime sections by default in contract-first mode', async () => {
+    const { workspacePath, manager } = await createWorkspace();
+    const config = await manager.storage.readConfigFile();
+    await manager.storage.writeConfigFile({
+      ...config,
+      mode: 'apifirst',
+    });
+    manager.createTask({ title: 'Contractless ready task', priority: 'P0', status: 'todo' });
+    await manager.saveData();
+
+    const result = runCLI(workspacePath, ['next', '--json']);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+
+    expect(payload.mode).toBe('apifirst');
+    expect(payload.task.id).toBeTruthy();
+    expect(payload.currentContract).toBeUndefined();
+    expect(payload.relatedContracts).toBeUndefined();
+    expect(payload.openContractQuestions).toBeUndefined();
+    expect(payload.contractReminders).toBeUndefined();
+    expect(payload.contractReminderSummary).toBeUndefined();
+    expect(payload.runtimeSummary).toBeUndefined();
+    expect(payload.processSummary).toBeUndefined();
+    expect(payload.contextPriority).toBeUndefined();
+    expect(payload.workspace.sourcePath).toBeUndefined();
   });
 
   test('show json is summary by default and exposes recent runtime events only with --full', async () => {

@@ -1,3 +1,6 @@
+import { omitEmptyFields } from './helpers.js';
+import { resolveWorkspaceMode } from '../core/workspace-mode.js';
+
 /**
  * JSON output utility for Seshflow commands
  * Provides structured output for AI consumption
@@ -46,6 +49,91 @@ export function formatTaskSummaryJSON(task) {
   };
 }
 
+export function formatTaskActionJSON(task) {
+  return omitEmptyFields({
+    id: task.id,
+    title: task.title,
+    status: task.status,
+    priority: task.priority,
+    contractIds: task.contractIds || [],
+    contractRole: task.contractRole || null,
+    boundFiles: task.boundFiles || [],
+  });
+}
+
+export function formatRuntimeSummaryJSON(summary) {
+  if (!summary || summary.recordCount <= 0) {
+    return undefined;
+  }
+
+  return omitEmptyFields({
+    recordCount: summary.recordCount,
+    lastRecordedAt: summary.lastRecordedAt || null,
+    lastCommand: summary.lastCommand || null,
+    lastOutputRoot: summary.lastOutputRoot || null,
+    lastArtifacts: summary.lastArtifacts || [],
+    lastLogFile: summary.lastLogFile || null,
+  });
+}
+
+export function formatProcessSummaryJSON(summary) {
+  if (!summary || summary.recordCount <= 0) {
+    return undefined;
+  }
+
+  return omitEmptyFields({
+    recordCount: summary.recordCount,
+    runningCount: summary.runningCount || 0,
+    missingCount: summary.missingCount || 0,
+    exitedCount: summary.exitedCount || 0,
+    lastPid: summary.lastPid || null,
+    lastCommand: summary.lastCommand || null,
+    lastOutputRoot: summary.lastOutputRoot || null,
+    lastCheckedAt: summary.lastCheckedAt || null,
+  });
+}
+
+export function formatContextPriorityJSON(contextPriority) {
+  if (!contextPriority || !Array.isArray(contextPriority.activeSections) || contextPriority.activeSections.length === 0) {
+    return undefined;
+  }
+
+  return omitEmptyFields({
+    strategy: contextPriority.strategy,
+    primarySection: contextPriority.primarySection,
+    activeSections: contextPriority.activeSections,
+  });
+}
+
+export function formatContractReminderSummaryJSON(summary) {
+  if (!summary || summary.total <= 0) {
+    return undefined;
+  }
+
+  return omitEmptyFields({
+    total: summary.total,
+    errors: summary.errors,
+    warnings: summary.warnings,
+    aggregatedWarnings: summary.aggregatedWarnings || [],
+  });
+}
+
+export function formatApiFirstContextJSON(context) {
+  if (!context) {
+    return {};
+  }
+
+  return omitEmptyFields({
+    contextPriority: formatContextPriorityJSON(context.contextPriority),
+    currentContract: context.currentContract || undefined,
+    relatedContracts: context.relatedContracts || [],
+    openContractQuestions: context.openContractQuestions || [],
+    relatedTasks: context.relatedTasks || [],
+    contractReminders: context.contractReminders || [],
+    contractReminderSummary: formatContractReminderSummaryJSON(context.contractReminderSummary),
+  });
+}
+
 function pickWorkspaceFields(info, fields) {
   return fields.reduce((result, field) => {
     if (info[field] !== undefined) {
@@ -78,6 +166,21 @@ export async function formatWorkspaceJSON(storage, taskCount = 0, options = {}) 
       ...pickWorkspaceFields(info, [...baseFields, ...fullFields]),
       ...modeFields,
     };
+  }
+
+  if (options.compact) {
+    return omitEmptyFields({
+      path: info.path,
+      name: info.name,
+      gitBranch: info.gitBranch || undefined,
+      totalTasks: info.totalTasks,
+      source: info.source,
+      sourcePath: info.source !== 'workspace-file' ? info.sourcePath : undefined,
+      mode: modeInfo.mode,
+      requestedMode: modeInfo.requestedMode !== modeInfo.mode ? modeInfo.requestedMode : undefined,
+      fallbackMode: modeInfo.fallbackMode,
+      fallbackReason: modeInfo.fallbackReason,
+    });
   }
 
   return {
@@ -150,4 +253,3 @@ export function isJSONMode(options = {}, defaultMode = true) {
 
   return defaultMode;
 }
-import { resolveWorkspaceMode } from '../core/workspace-mode.js';

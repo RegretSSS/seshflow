@@ -44,6 +44,7 @@
 - `contractReminderSummary`
 - `contextPriority`
 - 这些 contract 字段默认只返回非空值
+- 高频命令默认只保留非空上下文区块
 
 ### `seshflow next`
 
@@ -57,6 +58,12 @@
 - 相关的 blocker / unmet dependency 信息
 
 在 `contractfirst` 模式下，它还会把该任务的主契约一起带出来。
+
+`next`、`start`、`done` 的默认 JSON 有意保持为摘要层：
+
+- 空的 contract/runtime/process 区块不会默认返回
+- `task` 默认返回动作摘要，而不是完整任务文档
+- 如果要看更大的检查 payload，请转用 `show --full`
 
 ## 契约先行的关联链路
 

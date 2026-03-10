@@ -44,6 +44,7 @@ In `contractfirst`, it additionally returns:
 - `contractReminderSummary`
 - `contextPriority`
 - those contract fields omit empty values by default
+- high-frequency commands keep only non-empty context sections by default
 
 ### `seshflow next`
 
@@ -57,6 +58,12 @@ What it returns:
 - blocker/unmet-dependency information when relevant
 
 In `contractfirst`, it additionally carries the primary contract context for that task.
+
+Default JSON for `next`, `start`, and `done` is intentionally summary-oriented:
+
+- empty contract/runtime/process sections are omitted
+- task payloads are returned as action summaries, not full task documents
+- use `show --full` when you want larger inspection output
 
 ## Contract-first linkage
 

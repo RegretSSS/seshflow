@@ -3,8 +3,17 @@ import ora from 'ora';
 import inquirer from 'inquirer';
 import { TaskManager } from '../core/task-manager.js';
 import { TaskTransitionService } from '../core/task-transition-service.js';
-import { formatErrorResponse, formatSuccessResponse, formatTaskJSON, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
+import {
+  formatErrorResponse,
+  formatRuntimeSummaryJSON,
+  formatSuccessResponse,
+  formatTaskActionJSON,
+  formatWorkspaceJSON,
+  isJSONMode,
+  outputJSON
+} from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
+import { omitEmptyFields } from '../utils/helpers.js';
 
 function getProgress(tasks) {
   const total = tasks.length;
@@ -90,15 +99,15 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
     if (!targetTask) {
       spinner?.stop();
       if (isJSONMode(options)) {
-        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
+        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length, { compact: true });
         const nextTask = manager.getNextTask();
-        outputJSON(formatSuccessResponse({
+        outputJSON(formatSuccessResponse(omitEmptyFields({
           action: 'done',
           changed: false,
           task: null,
           hasActiveSession: false,
-          nextTask: nextTask ? formatTaskJSON(nextTask) : null,
-        }, workspaceJSON));
+          nextTask: nextTask ? formatTaskActionJSON(nextTask) : undefined,
+        }), workspaceJSON));
         return;
       }
       if (compactMode) {
@@ -152,24 +161,24 @@ export async function done(taskIdOrOptions = {}, maybeOptions = {}) {
     const nextTask = manager.getNextTask();
 
     if (isJSONMode(options)) {
-      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
-      outputJSON(formatSuccessResponse({
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length, { compact: true });
+      outputJSON(formatSuccessResponse(omitEmptyFields({
         action: 'done',
         changed: true,
-        task: formatTaskJSON(targetTask),
-        runtimeSummary: manager.getRuntimeSummary(targetTask),
-        announcementResults: result.announcementResults || [],
+        task: formatTaskActionJSON(targetTask),
+        runtimeSummary: formatRuntimeSummaryJSON(manager.getRuntimeSummary(targetTask)),
+        announcementResults: result.announcementResults?.length ? result.announcementResults : undefined,
         transitionEvent: result.transitionEvent,
         hasActiveSession: false,
         hours: hours ? Number.parseFloat(hours) : null,
-        note: note || '',
+        note: note || undefined,
         progress: {
           before: progressBefore,
           after: progressAfter,
         },
-        unlockedTasks: unlockedTasks.map(task => formatTaskJSON(task)),
-        nextTask: nextTask ? formatTaskJSON(nextTask) : null,
-      }, workspaceJSON));
+        unlockedTasks: unlockedTasks.length > 0 ? unlockedTasks.map(task => formatTaskActionJSON(task)) : undefined,
+        nextTask: nextTask ? formatTaskActionJSON(nextTask) : undefined,
+      }), workspaceJSON));
       return;
     }
 

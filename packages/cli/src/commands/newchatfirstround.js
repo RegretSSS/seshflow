@@ -1,9 +1,19 @@
 import { TaskManager } from '../core/task-manager.js';
 import { existsSync } from 'fs';
 import path from 'path';
-import { formatTaskJSON, formatTaskSummaryJSON, formatWorkspaceJSON, formatSuccessResponse, formatErrorResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
+import {
+  formatApiFirstContextJSON,
+  formatTaskJSON,
+  formatTaskActionJSON,
+  formatTaskSummaryJSON,
+  formatWorkspaceJSON,
+  formatSuccessResponse,
+  formatErrorResponse,
+  outputJSON,
+  isJSONMode,
+} from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
-import { truncate } from '../utils/helpers.js';
+import { omitEmptyFields, truncate } from '../utils/helpers.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 import { loadTextUI } from '../utils/text-ui.js';
 import { resolveWorkspaceMode } from '../core/workspace-mode.js';
@@ -247,29 +257,20 @@ export async function newchatfirstround(options = {}) {
 
     if (jsonMode) {
       spinner?.stop();
-      const responseData = {
+      const responseData = omitEmptyFields({
         statistics: stats,
         mode: modeInfo.mode,
-        currentTask: currentTask ? formatTaskJSON(currentTask) : null,
-        dependencies: dependencies.map(t => ({
+        currentTask: currentTask ? formatTaskActionJSON(currentTask) : undefined,
+        dependencies: dependencies.length > 0 ? dependencies.map(t => ({
           id: t.id,
           title: t.title,
           status: t.status,
           priority: t.priority,
-        })),
-        nextReadyTask: nextTask ? formatTaskSummaryJSON(nextTask) : null,
+        })) : undefined,
+        nextReadyTask: nextTask ? formatTaskSummaryJSON(nextTask) : undefined,
         focus: apiFirstContext?.currentContract ? 'contract-first' : (currentTask ? 'current-task' : (nextTask ? 'next-ready-task' : 'none')),
-      };
-
-      if (apiFirstContext) {
-        responseData.contextPriority = apiFirstContext.contextPriority;
-        responseData.currentContract = apiFirstContext.currentContract;
-        responseData.relatedContracts = apiFirstContext.relatedContracts;
-        responseData.openContractQuestions = apiFirstContext.openContractQuestions;
-        responseData.relatedTasks = apiFirstContext.relatedTasks;
-        responseData.contractReminders = apiFirstContext.contractReminders;
-        responseData.contractReminderSummary = apiFirstContext.contractReminderSummary;
-      }
+        ...(apiFirstContext ? formatApiFirstContextJSON(apiFirstContext) : {}),
+      });
 
       if (fullMode) {
         responseData.dependents = dependents.map(t => ({
@@ -296,7 +297,11 @@ export async function newchatfirstround(options = {}) {
         responseData.keyFiles = keyFiles;
       }
 
-      const workspaceJSON = await formatWorkspaceJSON(manager.storage, allTasks.length, { full: fullMode });
+      const workspaceJSON = await formatWorkspaceJSON(
+        manager.storage,
+        allTasks.length,
+        fullMode ? { full: true } : { compact: true }
+      );
       outputJSON(formatSuccessResponse(responseData, workspaceJSON));
       return;
     }

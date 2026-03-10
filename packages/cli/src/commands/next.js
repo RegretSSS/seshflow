@@ -1,7 +1,17 @@
-import { formatTaskJSON, formatWorkspaceJSON, formatSuccessResponse, formatErrorResponse, outputJSON, isJSONMode } from '../utils/json-output.js';
+import {
+  formatApiFirstContextJSON,
+  formatProcessSummaryJSON,
+  formatRuntimeSummaryJSON,
+  formatTaskActionJSON,
+  formatWorkspaceJSON,
+  formatSuccessResponse,
+  formatErrorResponse,
+  outputJSON,
+  isJSONMode,
+} from '../utils/json-output.js';
 import { TaskManager } from '../core/task-manager.js';
 import { TaskTransitionService } from '../core/task-transition-service.js';
-import { truncate } from '../utils/helpers.js';
+import { omitEmptyFields, truncate } from '../utils/helpers.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 import { loadTextUI } from '../utils/text-ui.js';
@@ -147,20 +157,15 @@ export async function next(options = {}) {
       if (currentTask) {
         spinner?.stop();
         const apiFirstContext = await buildApiFirstContext(manager, modeInfo, currentTask);
-        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
-        outputJSON(formatSuccessResponse({
+        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length, { compact: true });
+        outputJSON(formatSuccessResponse(omitEmptyFields({
           mode: modeInfo.mode,
-          task: formatTaskJSON(currentTask),
-          contextPriority: apiFirstContext?.contextPriority || null,
-          currentContract: apiFirstContext?.currentContract || null,
-          relatedContracts: apiFirstContext?.relatedContracts || [],
-          openContractQuestions: apiFirstContext?.openContractQuestions || [],
-          contractReminders: apiFirstContext?.contractReminders || [],
-          contractReminderSummary: apiFirstContext?.contractReminderSummary || { total: 0, errors: 0, warnings: 0 },
-          runtimeSummary: manager.getRuntimeSummary(currentTask),
-          processSummary: manager.getProcessSummary(currentTask),
+          task: formatTaskActionJSON(currentTask),
+          ...formatApiFirstContextJSON(apiFirstContext),
+          runtimeSummary: formatRuntimeSummaryJSON(manager.getRuntimeSummary(currentTask)),
+          processSummary: formatProcessSummaryJSON(manager.getProcessSummary(currentTask)),
           hasActiveSession: true,
-        }, workspaceJSON));
+        }), workspaceJSON));
         return;
       }
 
@@ -173,7 +178,7 @@ export async function next(options = {}) {
       spinner?.stop();
 
       if (!nextTask) {
-        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
+        const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length, { compact: true });
         outputJSON(formatSuccessResponse({
           mode: modeInfo.mode,
           task: null,
@@ -184,25 +189,20 @@ export async function next(options = {}) {
 
       const unmetDeps = manager.getUnmetDependencies(nextTask);
       const apiFirstContext = await buildApiFirstContext(manager, modeInfo, nextTask);
-      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
-      outputJSON(formatSuccessResponse({
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length, { compact: true });
+      outputJSON(formatSuccessResponse(omitEmptyFields({
         mode: modeInfo.mode,
-        task: formatTaskJSON(nextTask),
-        contextPriority: apiFirstContext?.contextPriority || null,
-        currentContract: apiFirstContext?.currentContract || null,
-        relatedContracts: apiFirstContext?.relatedContracts || [],
-        openContractQuestions: apiFirstContext?.openContractQuestions || [],
-        contractReminders: apiFirstContext?.contractReminders || [],
-        contractReminderSummary: apiFirstContext?.contractReminderSummary || { total: 0, errors: 0, warnings: 0 },
+        task: formatTaskActionJSON(nextTask),
+        ...formatApiFirstContextJSON(apiFirstContext),
         unmetDependencies: unmetDeps.map(d => ({
           id: d.id,
           title: d.title,
           status: d.status,
         })),
-        runtimeSummary: manager.getRuntimeSummary(nextTask),
-        processSummary: manager.getProcessSummary(nextTask),
+        runtimeSummary: formatRuntimeSummaryJSON(manager.getRuntimeSummary(nextTask)),
+        processSummary: formatProcessSummaryJSON(manager.getProcessSummary(nextTask)),
         hasActiveSession: false,
-      }, workspaceJSON));
+      }), workspaceJSON));
       return;
     }
 

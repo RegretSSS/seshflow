@@ -117,6 +117,7 @@ What the three core commands return:
   - returns the next actionable task, or the currently active task if one is already running
   - includes blocker information and workspace mode metadata
   - in `contractfirst`, it also carries the primary contract context for that task
+  - high-frequency commands like `ncfr`, `next`, `start`, and `done` omit empty sections by default and keep `--full` for larger inspection payloads
 
 ## Contract-first mode (`v1.3.0`, current command aliases: `contractfirst`, `apifirst`)
 

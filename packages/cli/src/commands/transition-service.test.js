@@ -79,7 +79,7 @@ describe('task transition service', () => {
     expect(result.status).toBe(0);
     const payload = JSON.parse(result.stdout);
     expect(payload.changed).toBe(false);
-    expect(payload.transitionEvent).toBeNull();
+    expect(payload.transitionEvent).toBeUndefined();
 
     const reloaded = new TaskManager(workspacePath);
     await reloaded.init();

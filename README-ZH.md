@@ -121,6 +121,7 @@ seshflow next
   - 返回下一个可执行任务；如果已经有活动任务，则优先返回当前活动任务
   - 同时给出 blocker 信息和 workspace mode 元数据
   - 在 `contractfirst` 模式下，还会把该任务的主契约一起带出来
+  - `ncfr`、`next`、`start`、`done` 这类高频命令默认会省略空区块；需要更大 payload 时再用 `--full`
 
 ## 契约先行模式（`v1.3.0`，命令名：`contractfirst`）
 
