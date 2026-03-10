@@ -38,6 +38,11 @@ export class TaskTransitionService {
       throw new Error('Task is already done. Use --force to reopen and start.');
     }
 
+    const activeHandoff = this.manager.getActiveHandoffForTask(task.id);
+    if (activeHandoff && !options.force) {
+      throw new Error(`Task is currently delegated via handoff ${activeHandoff.handoffId}. Use --force to reclaim locally.`);
+    }
+
     if (currentTask && currentTask.id !== task.id) {
       if (!options.force && !options.switch) {
         throw new Error(`Session conflict: active task exists (${currentTask.id} | ${currentTask.title})`);

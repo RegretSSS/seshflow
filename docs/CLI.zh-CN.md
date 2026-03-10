@@ -96,6 +96,12 @@
 - bundle 路径
 - 当前 lifecycle 状态
 
+被 delegated 的任务仍由 parent 管理：
+
+- `next` 默认不会再推荐存在 active handoff 的任务
+- `show <taskId>` 会暴露当前 delegation 摘要
+- `start <taskId>` 默认阻止误接管，除非显式传入 `--force`
+
 ## 契约先行的关联链路
 
 Seshflow 不会靠任意代码扫描去猜 contract 关联。

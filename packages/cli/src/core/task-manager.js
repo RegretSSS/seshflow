@@ -93,6 +93,42 @@ export class TaskManager {
     return this.getHandoffs().filter(handoff => handoff.sourceTaskId === taskId);
   }
 
+  getActiveHandoffForTask(taskId) {
+    return this.getTaskHandoffs(taskId).find(handoff =>
+      ACTIVE_HANDOFF_STATUSES.includes(handoff.status)
+    ) || null;
+  }
+
+  getDelegationSummary(taskOrTaskId) {
+    const taskId = typeof taskOrTaskId === 'string' ? taskOrTaskId : taskOrTaskId?.id;
+    if (!taskId) {
+      return null;
+    }
+
+    const handoff = this.getActiveHandoffForTask(taskId);
+    if (!handoff) {
+      return null;
+    }
+
+    return {
+      handoffId: handoff.handoffId,
+      status: handoff.status,
+      executorKind: handoff.executorKind,
+      owner: handoff.owner || null,
+      targetWorktreePath: handoff.targetWorktreePath,
+      targetBranchName: handoff.targetBranchName,
+      manifestPath: handoff.manifestPath || null,
+      bundlePath: handoff.bundle?.bundlePath || null,
+    };
+  }
+
+  getActiveHandoffs(limit = null) {
+    const items = this.getHandoffs()
+      .filter(handoff => ACTIVE_HANDOFF_STATUSES.includes(handoff.status))
+      .sort((left, right) => new Date(right.activatedAt || right.createdAt) - new Date(left.activatedAt || left.createdAt));
+    return limit ? items.slice(0, limit) : items;
+  }
+
   getTaskRuntimeEvents(taskId, limit = null) {
     const events = this.getRuntimeEvents().filter(event => event.taskId === taskId);
     if (!limit) {
@@ -367,6 +403,9 @@ export class TaskManager {
 
     // Filter out tasks with unmet dependencies
     candidates = candidates.filter(t => {
+      if (this.getActiveHandoffForTask(t.id)) {
+        return false;
+      }
       const unmetDeps = this.getUnmetDependencies(t);
       return unmetDeps.length === 0;
     });

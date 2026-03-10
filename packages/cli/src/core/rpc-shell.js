@@ -20,6 +20,13 @@ function formatTask(task) {
   };
 }
 
+function formatDelegation(manager, task) {
+  if (!task) {
+    return null;
+  }
+  return manager.getDelegationSummary(task);
+}
+
 export async function buildRpcShellPayload(manager, surface, targetId = null) {
   const modeInfo = await resolveWorkspaceMode(manager.storage);
   const workspace = await manager.storage.getWorkspaceInfo(manager.getTasks().length);
@@ -53,7 +60,16 @@ export async function buildRpcShellPayload(manager, surface, targetId = null) {
       ...base,
       contextPriority: apiFirstContext?.contextPriority || null,
       currentTask: formatTask(currentTask),
+      currentTaskDelegation: formatDelegation(manager, currentTask),
       nextTask: formatTask(nextTask),
+      nextTaskDelegation: formatDelegation(manager, nextTask),
+      delegatedTasks: manager.getActiveHandoffs(5).map(handoff => ({
+        handoffId: handoff.handoffId,
+        taskId: handoff.sourceTaskId,
+        status: handoff.status,
+        targetBranchName: handoff.targetBranchName,
+        targetWorktreePath: handoff.targetWorktreePath,
+      })),
       currentContract: apiFirstContext?.currentContract || null,
       relatedContracts: apiFirstContext?.relatedContracts || [],
     };
@@ -68,6 +84,7 @@ export async function buildRpcShellPayload(manager, surface, targetId = null) {
     return {
       ...base,
       task: formatTask(task),
+      delegation: formatDelegation(manager, task),
       contextPriority: apiFirstContext?.contextPriority || null,
       currentContract: apiFirstContext?.currentContract || null,
       relatedContracts: apiFirstContext?.relatedContracts || [],

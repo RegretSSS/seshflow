@@ -260,12 +260,30 @@ export async function newchatfirstround(options = {}) {
       showCommandHints: await shouldShowWorkspaceHint(manager.storage, 'ncfr:pretty-hints'),
     };
 
+    const delegatedTasks = manager.getActiveHandoffs(5)
+      .map(handoff => {
+        const task = manager.getTask(handoff.sourceTaskId);
+        if (!task) {
+          return null;
+        }
+
+        return {
+          id: task.id,
+          title: task.title,
+          status: task.status,
+          priority: task.priority,
+          delegation: manager.getDelegationSummary(task),
+        };
+      })
+      .filter(Boolean);
+
     if (jsonMode) {
       spinner?.stop();
       const responseData = omitEmptyFields({
         statistics: stats,
         mode: modeInfo.mode,
         currentTask: currentTask ? formatTaskActionJSON(currentTask) : undefined,
+        currentTaskDelegation: currentTask ? (manager.getDelegationSummary(currentTask) || undefined) : undefined,
         dependencies: dependencies.length > 0 ? dependencies.map(t => ({
           id: t.id,
           title: t.title,
@@ -273,6 +291,8 @@ export async function newchatfirstround(options = {}) {
           priority: t.priority,
         })) : undefined,
         nextReadyTask: nextTask ? formatTaskSummaryJSON(nextTask) : undefined,
+        nextTaskDelegation: nextTask ? (manager.getDelegationSummary(nextTask) || undefined) : undefined,
+        delegatedTasks: delegatedTasks.length > 0 ? delegatedTasks : undefined,
         focus: apiFirstContext?.currentContract ? 'contract-first' : (currentTask ? 'current-task' : (nextTask ? 'next-ready-task' : 'none')),
         ...(apiFirstContext ? formatApiFirstContextJSON(apiFirstContext) : {}),
       });

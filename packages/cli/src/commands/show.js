@@ -194,6 +194,7 @@ export async function show(taskId, options = {}) {
         mode: modeInfo.mode,
         detailLevel: includeFullJSON ? 'full' : 'summary',
         task: includeFullJSON ? formatTaskJSON(task) : formatTaskActionJSON(task),
+        delegation: manager.getDelegationSummary(task) || undefined,
         ...(apiFirstContext ? formatApiFirstContextJSON(apiFirstContext) : {}),
         inspectionHint: includeFullJSON ? undefined : {
           fullCommand: `seshflow show ${task.id} --full`,
@@ -215,10 +216,21 @@ export async function show(taskId, options = {}) {
 
     if (compactMode) {
       displayCompact(task, blockers);
+      const delegation = manager.getDelegationSummary(task);
+      if (delegation) {
+        console.log(`delegated=${delegation.handoffId} | branch=${delegation.targetBranchName}`);
+      }
       return;
     }
 
     displayPretty(task, chalk, blockers, runtimeEntries, processEntries);
+    const delegation = manager.getDelegationSummary(task);
+    if (delegation) {
+      console.log(chalk.yellow('\n  Delegation:'));
+      console.log(chalk.yellow(`    handoff=${delegation.handoffId}`));
+      console.log(chalk.yellow(`    branch=${delegation.targetBranchName}`));
+      console.log(chalk.yellow(`    worktree=${delegation.targetWorktreePath}`));
+    }
 
     if (await shouldShowWorkspaceHint(manager.storage, 'show:pretty-hint')) {
       console.log(chalk.blue('\nCommands:'));

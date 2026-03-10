@@ -70,6 +70,7 @@ The executable remains `seshflow`.
   - parent-managed handoff records
   - delegated git worktree creation
   - execution-surface manifests and bounded handoff bundles without creating a second task truth
+  - delegated tasks are skipped by `next` and guarded by `start` unless explicitly reclaimed with `--force`
 
 ## Typical human-readable usage
 

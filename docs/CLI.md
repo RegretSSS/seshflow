@@ -96,6 +96,12 @@ What it returns:
 - bundle path
 - lifecycle status
 
+Delegated tasks remain parent-managed:
+
+- `next` skips tasks that already have an active handoff
+- `show <taskId>` surfaces the active delegation summary
+- `start <taskId>` blocks delegated tasks unless you explicitly pass `--force`
+
 ## Contract-first linkage
 
 Seshflow does not guess contract linkage from arbitrary code scans.
