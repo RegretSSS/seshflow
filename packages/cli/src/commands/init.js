@@ -380,7 +380,10 @@ export async function init(modeOrOptions = {}, maybeOptions = {}) {
     console.log(chalk.blue('\nQuick start:'));
     if (mode === 'apifirst') {
       console.log(chalk.gray('  # Contract and planning phase'));
+      console.log(chalk.gray('  # Batch contract bootstrap (.json array or .jsonl)'));
       console.log(chalk.gray('  seshflow contracts import .seshflow/contracts/contracts.bundle.json'));
+      console.log(chalk.gray('  # or'));
+      console.log(chalk.gray('  seshflow contracts import .seshflow/contracts/contracts.bundle.jsonl'));
       console.log(chalk.gray('  seshflow contracts add .seshflow/contracts/contract.user-service.create-user.json'));
       console.log(chalk.gray('  seshflow validate .seshflow/plans/api-planning.md'));
       console.log(chalk.gray('  seshflow import .seshflow/plans/api-planning.md --update'));
