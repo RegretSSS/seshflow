@@ -187,6 +187,10 @@ export class Storage {
     return path.join(this.getGlobalHomeDir(), 'workspaces.json');
   }
 
+  getIssueTargetFilePath() {
+    return path.join(this.getGlobalHomeDir(), 'issue-target.json');
+  }
+
   /**
    * Initialize seshflow directory structure
    */
@@ -492,6 +496,55 @@ export class Storage {
     };
     await fs.writeFile(indexFile, JSON.stringify(normalized, null, 2), 'utf-8');
     return normalized;
+  }
+
+  async readIssueTarget() {
+    const targetFile = this.getIssueTargetFilePath();
+    if (!(await this.exists(targetFile))) {
+      return null;
+    }
+
+    const content = await fs.readFile(targetFile, 'utf-8');
+    const parsed = JSON.parse(content);
+    if (!parsed?.path) {
+      return null;
+    }
+
+    return {
+      path: parsed.path,
+      name: parsed.name || path.basename(parsed.path) || '',
+      mode: parsed.mode || 'default',
+      source: parsed.source || 'workspace',
+      sourceCommand: parsed.sourceCommand || null,
+      updatedAt: parsed.updatedAt || null,
+    };
+  }
+
+  async writeIssueTarget(record = {}) {
+    const targetFile = this.getIssueTargetFilePath();
+    await fs.ensureDir(path.dirname(targetFile));
+    const normalized = {
+      path: record.path,
+      name: record.name || path.basename(record.path || '') || '',
+      mode: record.mode || 'default',
+      source: record.source || 'workspace',
+      sourceCommand: record.sourceCommand || null,
+      updatedAt: new Date().toISOString(),
+    };
+    await fs.writeFile(targetFile, JSON.stringify(normalized, null, 2), 'utf-8');
+    return normalized;
+  }
+
+  async rememberIssueTarget(sourceCommand = null) {
+    const info = await this.getWorkspaceInfo();
+    const config = await this.readConfigFile();
+    return this.writeIssueTarget({
+      path: info.path,
+      name: info.name,
+      mode: config.mode || 'default',
+      source: 'workspace',
+      sourceCommand,
+    });
   }
 
   async registerWorkspace() {
