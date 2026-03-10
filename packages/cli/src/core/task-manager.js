@@ -7,12 +7,19 @@ import {
   generateProcessRecordId,
   generateTransitionEventId,
   generateRuntimeEventId,
+  generateHandoffId,
   toISOString,
   isValidPriority,
   isValidTaskId,
   sanitizeBranchName
 } from '../utils/helpers.js';
 import { CONTRACT_ROLES } from '../../../shared/constants/contracts.js';
+import {
+  ACTIVE_HANDOFF_STATUSES,
+  HANDOFF_EXECUTOR_KINDS,
+  HANDOFF_SCHEMA_VERSION,
+  HANDOFF_STATUSES,
+} from '../../../shared/constants/handoffs.js';
 
 /**
  * TaskManager - Core task management logic
@@ -72,6 +79,18 @@ export class TaskManager {
       return events;
     }
     return events.slice(-limit);
+  }
+
+  getHandoffs() {
+    return this.data?.handoffs || [];
+  }
+
+  getHandoff(handoffId) {
+    return this.getHandoffs().find(handoff => handoff.handoffId === handoffId) || null;
+  }
+
+  getTaskHandoffs(taskId) {
+    return this.getHandoffs().filter(handoff => handoff.sourceTaskId === taskId);
   }
 
   getTaskRuntimeEvents(taskId, limit = null) {
@@ -233,6 +252,50 @@ export class TaskManager {
     this.refreshDerivedState();
     this.updateWorkspaceInfo();
     return true;
+  }
+
+  createHandoff(options = {}) {
+    const task = this.getTask(options.sourceTaskId);
+    if (!task) {
+      throw new Error(`Task not found: ${options.sourceTaskId}`);
+    }
+
+    const existingActiveHandoff = this.getTaskHandoffs(task.id).find(handoff =>
+      ACTIVE_HANDOFF_STATUSES.includes(handoff.status)
+    );
+
+    if (existingActiveHandoff) {
+      throw new Error(`Task already has an active handoff: ${existingActiveHandoff.handoffId}`);
+    }
+
+    const now = toISOString();
+    const handoff = this.normalizeHandoff({
+      handoffId: options.handoffId || generateHandoffId(),
+      sourceWorkspacePath: this.storage.getWorkspacePath(),
+      sourceTaskId: task.id,
+      sourceContractIds: Array.isArray(options.sourceContractIds) && options.sourceContractIds.length > 0
+        ? options.sourceContractIds
+        : [...(task.contractIds || [])],
+      targetWorktreePath: options.targetWorktreePath || '',
+      targetBranchName: options.targetBranchName || '',
+      status: options.status || HANDOFF_STATUSES.CREATED,
+      executorKind: options.executorKind || HANDOFF_EXECUTOR_KINDS.UNKNOWN,
+      owner: options.owner || null,
+      createdAt: options.createdAt || now,
+      activatedAt: options.activatedAt || null,
+      submittedAt: options.submittedAt || null,
+      closedAt: options.closedAt || null,
+      resultRef: options.resultRef || null,
+      bundle: options.bundle || {},
+      manifestPath: options.manifestPath || null,
+      notes: Array.isArray(options.notes) ? options.notes : [],
+    });
+
+    this.data.handoffs = Array.isArray(this.data.handoffs) ? this.data.handoffs : [];
+    this.data.handoffs.push(handoff);
+    this.data.metadata.updatedAt = now;
+    this.updateWorkspaceInfo();
+    return handoff;
   }
 
   /**
@@ -777,6 +840,9 @@ export class TaskManager {
     this.data.runtimeEvents = Array.isArray(this.data.runtimeEvents)
       ? this.data.runtimeEvents.map(event => this.normalizeRuntimeEvent(event))
       : [];
+    this.data.handoffs = Array.isArray(this.data.handoffs)
+      ? this.data.handoffs.map(handoff => this.normalizeHandoff(handoff))
+      : [];
 
     this.data.tasks.forEach(task => {
       this.normalizeTask(task);
@@ -894,6 +960,48 @@ export class TaskManager {
       state: entry.state || this.detectProcessState(entry.pid),
       launchedAt: entry.launchedAt || toISOString(),
       lastCheckedAt: entry.lastCheckedAt || null,
+    };
+  }
+
+  normalizeHandoff(handoff = {}) {
+    const normalizedStatus = Object.values(HANDOFF_STATUSES).includes(handoff.status)
+      ? handoff.status
+      : HANDOFF_STATUSES.CREATED;
+    const normalizedExecutorKind = Object.values(HANDOFF_EXECUTOR_KINDS).includes(handoff.executorKind)
+      ? handoff.executorKind
+      : HANDOFF_EXECUTOR_KINDS.UNKNOWN;
+
+    return {
+      handoffId: handoff.handoffId || generateHandoffId(),
+      schemaVersion: Number.isInteger(handoff.schemaVersion) ? handoff.schemaVersion : HANDOFF_SCHEMA_VERSION,
+      sourceWorkspacePath: handoff.sourceWorkspacePath || this.storage.getWorkspacePath(),
+      sourceTaskId: handoff.sourceTaskId || null,
+      sourceContractIds: Array.isArray(handoff.sourceContractIds) ? [...new Set(handoff.sourceContractIds)] : [],
+      targetWorktreePath: handoff.targetWorktreePath || '',
+      targetBranchName: handoff.targetBranchName || '',
+      status: normalizedStatus,
+      executorKind: normalizedExecutorKind,
+      owner: handoff.owner && typeof handoff.owner === 'object'
+        ? {
+            id: handoff.owner.id || null,
+            label: handoff.owner.label || null,
+          }
+        : null,
+      createdAt: handoff.createdAt || toISOString(),
+      activatedAt: handoff.activatedAt || null,
+      submittedAt: handoff.submittedAt || null,
+      closedAt: handoff.closedAt || null,
+      resultRef: handoff.resultRef && typeof handoff.resultRef === 'object'
+        ? {
+            type: handoff.resultRef.type || null,
+            value: handoff.resultRef.value || null,
+          }
+        : null,
+      manifestPath: handoff.manifestPath || null,
+      bundle: handoff.bundle && typeof handoff.bundle === 'object' && !Array.isArray(handoff.bundle)
+        ? handoff.bundle
+        : {},
+      notes: Array.isArray(handoff.notes) ? handoff.notes : [],
     };
   }
 

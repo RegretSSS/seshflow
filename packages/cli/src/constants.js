@@ -71,6 +71,7 @@ export const DEFAULT_TASK_FILE = {
   tasks: [],
   transitions: [],
   runtimeEvents: [],
+  handoffs: [],
   currentSession: null,
   statistics: {
     totalTasks: 0,

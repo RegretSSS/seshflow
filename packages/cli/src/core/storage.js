@@ -627,6 +627,7 @@ export class Storage {
     normalized.tasks = Array.isArray(data.tasks) ? data.tasks : [];
     normalized.transitions = Array.isArray(data.transitions) ? data.transitions : [];
     normalized.runtimeEvents = Array.isArray(data.runtimeEvents) ? data.runtimeEvents : [];
+    normalized.handoffs = Array.isArray(data.handoffs) ? data.handoffs : [];
     normalized.currentSession = data.currentSession || null;
 
     return normalized;

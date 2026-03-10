@@ -10,6 +10,7 @@
     "./constants/hooks.js": "./constants/hooks.js",
     "./constants/announcements.js": "./constants/announcements.js",
     "./constants/contracts.js": "./constants/contracts.js",
+    "./constants/handoffs.js": "./constants/handoffs.js",
     "./constants/modes.js": "./constants/modes.js",
     "./constants/integration.js": "./constants/integration.js",
     "./constants/context-priority.js": "./constants/context-priority.js",
