@@ -14,6 +14,39 @@ function matchesTag(taskTag, inputTag) {
   return taskValue === inputValue || taskValue.includes(inputValue) || inputValue.includes(taskValue);
 }
 
+function includesText(value, query) {
+  const normalizedValue = String(value || '').toLowerCase();
+  const normalizedQuery = String(query || '').toLowerCase();
+  if (!normalizedValue || !normalizedQuery) {
+    return false;
+  }
+  return normalizedValue.includes(normalizedQuery);
+}
+
+function matchesText(task, input) {
+  if (!input) {
+    return true;
+  }
+
+  return [
+    task.id,
+    task.title,
+    task.description,
+    ...(task.contractIds || []),
+    ...(task.tags || []),
+    ...(task.boundFiles || []),
+  ].some(value => includesText(value, input));
+}
+
+function matchesContract(task, input) {
+  const normalized = String(input || '').trim().toLowerCase();
+  if (!normalized) {
+    return true;
+  }
+
+  return (task.contractIds || []).some(contractId => includesText(contractId, normalized));
+}
+
 function displayCompactTask(task) {
   const subtaskInfo = task.subtasks?.length
     ? ` [${task.subtasks.filter(st => st.completed).length}/${task.subtasks.length}]`
@@ -84,6 +117,14 @@ export async function query(options = {}) {
       filteredTasks = filteredTasks.filter(t => t.assignee && t.assignee.includes(options.assignee));
     }
 
+    if (options.text) {
+      filteredTasks = filteredTasks.filter(task => matchesText(task, options.text));
+    }
+
+    if (options.contract) {
+      filteredTasks = filteredTasks.filter(task => matchesContract(task, options.contract));
+    }
+
     if (options.limit !== undefined) {
       const limit = Number.parseInt(options.limit, 10);
       if (Number.isNaN(limit) || limit <= 0) {
@@ -104,6 +145,8 @@ export async function query(options = {}) {
           status: options.status || null,
           tags: tagFilter || null,
           assignee: options.assignee || null,
+          text: options.text || null,
+          contract: options.contract || null,
           limit: options.limit ? Number.parseInt(options.limit, 10) : null,
         },
       }));
@@ -131,6 +174,8 @@ export async function query(options = {}) {
     if (options.status) activeFilters.push(`status: ${options.status}`);
     if (tagFilter) activeFilters.push(`tags: ${tagFilter}`);
     if (options.assignee) activeFilters.push(`assignee: ${options.assignee}`);
+    if (options.text) activeFilters.push(`text: ${options.text}`);
+    if (options.contract) activeFilters.push(`contract: ${options.contract}`);
     if (options.limit) activeFilters.push(`limit: ${options.limit}`);
 
     if (activeFilters.length > 0) {

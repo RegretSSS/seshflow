@@ -71,6 +71,99 @@
 - `task` 默认返回动作摘要，而不是完整任务文档
 - 如果要看更大的检查 payload，请转用 `show --full`
 
+如果任务显式声明了 `expectedArtifacts`：
+
+- `done` 会轻量检查这些路径是否存在
+- 缺失时只返回 warning，不自动阻塞完成
+- delegated 场景下，`handoff submit` 也会在 worktree 内做同样的轻量检查
+
+### `seshflow query --text ... --contract ...`
+
+当你需要在中型 workspace 里快速找到要 delegated 或恢复检查的对象时，优先用 `query` 的轻量搜索过滤，而不是引入新的搜索系统。
+
+当前支持：
+
+- `--text`：匹配 task id、title、description、contract id、tag、bound file
+- `--contract`：按绑定的 contract id 过滤
+
+这是轻量查找面，不是搜索引擎，也不承诺 BM25 或复杂排序。
+
+### `seshflow handoff create <taskId>`
+
+当你要把一个任务委派到隔离的 git worktree，交给外部 coding agent 或人工执行者时，使用这个命令。
+
+它会做什么：
+
+- 在 parent workspace 中创建 handoff 记录
+- 在独立分支上物化一个 git worktree
+- 在 delegated worktree 里写入 handoff manifest 和受控闭包 bundle
+- 在真正创建 worktree 前检查 parent workspace 是否已有初始 git commit
+
+它不会做什么：
+
+- 不会创建第二套任务真相源
+- 不会自动把任务标记为 `done`
+- 不会在 Seshflow 内部启动 agent loop
+
+它会返回什么：
+
+- `handoffId`
+- `sourceTaskId`
+- 目标 branch/path
+- manifest 路径
+- bundle 路径
+- 当前 lifecycle 状态
+- 如果仓库还没有初始 commit，则返回可执行提示，而不是透传底层 `HEAD` 错误
+
+被 delegated 的任务仍由 parent 管理：
+
+- `next` 默认不会再推荐存在 active handoff 的任务
+- `show <taskId>` 会暴露当前 delegation 摘要
+- `start <taskId>` 默认阻止误接管，除非显式传入 `--force`
+
+### `seshflow handoff submit|pause|reclaim|abandon|close <handoffId>`
+
+当 delegated worktree 已经开始执行后，使用这些命令管理 handoff 自己的生命周期。
+
+它们会做什么：
+
+- 只修改 handoff lifecycle
+- 同步更新 parent workspace 记录、manifest 和 bundle
+- 允许记录 lifecycle note，以及在 `submit` 时写入 `resultRef`
+
+它们不会做什么：
+
+- 不会自动把 source task 标记为 `done`
+- 不会把 delegated worktree 变成新的任务真相源
+
+关键边界：
+
+- `submit` 表示“已提交结果给 parent 审查”，不是任务已完成
+- `reclaim` 表示 parent 重新接管，任务会重新回到可推荐状态
+- `close` 只关闭 handoff 记录，不等于任务完成
+- 如果 source task 声明了 `expectedArtifacts`，`submit` 只对缺失交付物给出 warning，不会替 parent 做验收判断
+
+### `seshflow handoff list` / `seshflow handoff show <handoffId>`
+
+用来恢复 delegated 状态，而不是重新猜 worktree 或 branch。
+
+它们会返回：
+
+- handoff 当前 lifecycle 状态
+- source task / contract 绑定摘要
+- target worktree 路径与 branch
+- manifest / bundle 路径
+- 最新 resultRef 和 note 摘要
+
+`handoff show --full` 会进一步展开 manifest 和 bundle 文件内容，适合调试和恢复，但上下文成本明显更高。
+
+当 handoff 已进入 `closed`、`reclaimed` 或 `abandoned` 这类收尾状态时：
+
+- `handoff show`
+- `handoff close`
+
+会额外返回一条轻量 cleanup guidance，告诉你何时可以手动执行 `git worktree remove "<path>"`。它只提示，不会替你自动 merge 或自动删除 worktree。
+
 ## 契约先行的关联链路
 
 Seshflow 不会靠任意代码扫描去猜 contract 关联。

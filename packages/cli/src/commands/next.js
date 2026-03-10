@@ -77,6 +77,10 @@ function formatTaskRef(task) {
   return `${task.id}:${truncate(task.title || task.id, 50).replace(/\|/g, '/')}`;
 }
 
+function formatDelegationSummary(manager, task) {
+  return manager.getDelegationSummary(task);
+}
+
 function findTopBlockedTask(manager, filters = {}) {
   let candidates = manager.getTasks().filter(t => t.status === 'todo' || t.status === 'backlog');
 
@@ -166,6 +170,7 @@ export async function next(options = {}) {
         outputJSON(formatSuccessResponse(omitEmptyFields({
           mode: modeInfo.mode,
           task: formatTaskActionJSON(currentTask),
+          delegation: formatDelegationSummary(manager, currentTask) || undefined,
           ...formatApiFirstContextJSON(apiFirstContext),
           contractStatus: modeInfo.mode === 'apifirst' && !apiFirstContext?.currentContract
             ? { state: 'unbound', hint: 'No contract bound to this task yet.' }
@@ -201,6 +206,7 @@ export async function next(options = {}) {
       outputJSON(formatSuccessResponse(omitEmptyFields({
         mode: modeInfo.mode,
         task: formatTaskActionJSON(nextTask),
+        delegation: formatDelegationSummary(manager, nextTask) || undefined,
         ...formatApiFirstContextJSON(apiFirstContext),
         contractStatus: modeInfo.mode === 'apifirst' && !apiFirstContext?.currentContract
           ? { state: 'unbound', hint: 'No contract bound to this task yet.' }
@@ -222,10 +228,20 @@ export async function next(options = {}) {
       spinner?.stop();
       if (compactMode) {
         console.log(`ACTIVE | ${toCompactLine(currentTask)}`);
+        const delegation = formatDelegationSummary(manager, currentTask);
+        if (delegation) {
+          console.log(`delegated=${delegation.handoffId} | branch=${delegation.targetBranchName}`);
+        }
         compactTaskContext(currentTask, manager);
       } else {
         console.log(chalk.yellow('\nYou have an active session:'));
         displayTask(currentTask, chalk, true);
+        const delegation = formatDelegationSummary(manager, currentTask);
+        if (delegation) {
+          console.log(chalk.yellow(`\nDelegated via handoff: ${delegation.handoffId}`));
+          console.log(chalk.gray(`  Branch: ${delegation.targetBranchName}`));
+          console.log(chalk.gray(`  Worktree: ${delegation.targetWorktreePath}`));
+        }
         console.log(
           chalk.blue('\nCommands:'),
           chalk.gray('seshflow done'),

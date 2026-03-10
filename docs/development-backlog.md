@@ -150,19 +150,57 @@
 - Scope: codify what belongs in Seshflow, how Agent-side code should consume its seams, and which feature classes must stay outside the package core.
 - Done: package consumers and future maintainers can evaluate scope changes against an explicit best-practices guide instead of ad hoc discussion.
 
-## v1.4.0 - Realtime + Visualization
+## v1.4.0 - Delegated Git Worktree Handoff
 
-### 1.4.0-01 WebSocket Realtime Sync
+- v1.4.0 has one primary completion action: delegate a task into a git worktree handoff that an external coding agent or human can execute without turning Seshflow into the agent runtime.
+
+### 1.4.0-00 Handoff Model
+
+- Priority: P0
+- Scope: define a first-class handoff lifecycle object with stable ids, source workspace/task/contract binding, target worktree/branch binding, lifecycle timestamps, and optional executor/result references.
+- Done: handoff state is modeled explicitly instead of being inferred from branch names or filesystem paths.
+
+### 1.4.0-01 Create Handoff and Materialize Worktree
+
+- Priority: P0
+- Scope: create a parent-managed handoff record, validate delegation rules, then materialize a git worktree and branch for the delegated task.
+- Done: parent workspace can safely delegate a task into an execution worktree without creating a second source of task truth.
+
+### 1.4.0-02 Agent-consumable Handoff Bundle
+
+- Priority: P0
+- Scope: generate a bounded handoff bundle containing the delegated task snapshot, contract closure, dependency summary, runtime summary, and explicit execution boundaries.
+- Done: handoff payloads form a local closure for the delegated task without mirroring the full workspace or embedding agent-runtime policy.
+
+### 1.4.0-03 Parent Delegation Registry
+
+- Priority: P0
+- Scope: keep canonical handoff truth in the parent workspace, expose delegated state in `show`/`next`/`ncfr`, prevent accidental double-dispatch, and preserve reclaim capability.
+- Done: delegated tasks remain visible and controllable from the parent workspace without turning the worktree into an independent task database.
+
+### 1.4.0-04 Handoff Lifecycle Control
 
 - Priority: P1
-- Scope: realtime events with reconnect and ordering policy.
-- Target: multi-tab propagation and reconnect behavior are reliable.
+- Scope: support inspection-safe lifecycle actions such as activate, pause, submit, abandon, reclaim, and close without conflating handoff closure with task completion.
+- Done: handoff lifecycle can evolve independently of task lifecycle, and closing a handoff does not automatically mark the task `done`.
 
-### 1.4.0-02 Dependency Graph and Advanced Observability
+### 1.4.0-05 Handoff Inspection
+
+- Priority: P1
+- Scope: inspect handoff manifests, parent bindings, worktree paths, lifecycle status, and latest result references for debugging and recovery.
+- Done: handoff state is observable and recoverable without reading raw files directly.
+
+### 1.4.0-06 Minimal Workspace Overview for Handoffs
 
 - Priority: P2
-- Scope: dependency graph and richer analytics views based on real runtime events.
-- Target: rendering remains responsive for medium datasets.
+- Scope: provide a minimal overview of workspaces/worktrees with active handoffs and delegated tasks, using manual refresh or lightweight polling only if needed.
+- Done: operators can see where active handoffs live without introducing a general workspace dashboard.
+
+### 1.4.0-07 Minimal Handoff Search
+
+- Priority: P2
+- Scope: add lightweight lookup over task id, title, contract id, and basic text so users can find what to delegate or inspect.
+- Done: handoff-related discovery works for medium workspaces without introducing a search-engine narrative or BM25-specific commitments.
 
 ## Candidate Polish (Not Scheduled Yet)
 
@@ -196,3 +234,5 @@
 - Reverse-sync of runtime/session/process/artifact data back into free-form Markdown files.
 - Dependency graph visualization before dependency-management contracts are stable.
 - Agent-side model routing, prompt policy, autonomous loop logic, and general conversation orchestration inside Seshflow.
+- Full WebSocket realtime sync unless minimal polling/refresh proves insufficient for handoff inspection.
+- Rich dependency-graph visualization, dashboard-style workspace overview, and search-engine/BM25 positioning before delegated handoff support is complete.

@@ -25,7 +25,7 @@ async function createWorkspace() {
 }
 
 describe('contract binding flows', () => {
-  test('add supports inline contract metadata and bound files', async () => {
+  test('add supports inline contract metadata, bound files, and expected artifacts', async () => {
     const { workspacePath } = await createWorkspace();
 
     const result = runCLI(workspacePath, [
@@ -33,6 +33,8 @@ describe('contract binding flows', () => {
       'Implement API handler [contracts:contract.user-service.create-user] [files:src/api/users.ts]',
       '--contract-role',
       'producer',
+      '--expect-artifact',
+      'dist/openapi.json,coverage/report.xml',
     ]);
 
     expect(result.status).toBe(0);
@@ -40,6 +42,7 @@ describe('contract binding flows', () => {
     expect(payload.task.contractIds).toEqual(['contract.user-service.create-user']);
     expect(payload.task.contractRole).toBe('producer');
     expect(payload.task.boundFiles).toEqual(['src/api/users.ts']);
+    expect(payload.task.expectedArtifacts).toEqual(['dist/openapi.json', 'coverage/report.xml']);
     expect(payload.warnings).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ code: 'BOUND_FILE_MISSING', filePath: 'src/api/users.ts' }),
@@ -47,7 +50,7 @@ describe('contract binding flows', () => {
     );
   });
 
-  test('edit can bind contracts and files to existing tasks', async () => {
+  test('edit can bind contracts, files, and expected artifacts to existing tasks', async () => {
     const { workspacePath, manager } = await createWorkspace();
     const task = manager.createTask({ title: 'Wire consumer task' });
     await manager.saveData();
@@ -60,7 +63,9 @@ describe('contract binding flows', () => {
       '--contract-role',
       'consumer',
       '--bind-file',
-      'src/client/user.ts'
+      'src/client/user.ts',
+      '--expect-artifact',
+      'dist/client-user.json'
     ]);
 
     expect(result.status).toBe(0);
@@ -71,6 +76,7 @@ describe('contract binding flows', () => {
     expect(updated.contractIds).toEqual(['contract.user-service.create-user']);
     expect(updated.contractRole).toBe('consumer');
     expect(updated.boundFiles).toEqual(['src/client/user.ts']);
+    expect(updated.expectedArtifacts).toEqual(['dist/client-user.json']);
 
     const payload = JSON.parse(result.stdout);
     expect(payload.warnings).toEqual(

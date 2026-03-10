@@ -2,6 +2,23 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.4.0] - 2026-03-11
+
+### Added
+
+- Delegated git worktree handoff model with explicit lifecycle objects, stable handoff ids, executor metadata, and bounded parent-managed truth.
+- `seshflow handoff create/list/show` plus lifecycle actions `activate`, `pause`, `submit`, `abandon`, `reclaim`, and `close`.
+- Agent-consumable handoff manifest and bounded bundle generation for delegated worktrees.
+- Parent delegation registry surfaced through `ncfr`, `next`, `show`, `rpc shell`, workspace overview, and lightweight search.
+- Lightweight expected-artifact warnings on `done` and `handoff submit`.
+
+### Changed
+
+- Reframed `v1.4.0` around delegated handoff instead of realtime dashboards or visualization-heavy follow-ups.
+- Added actionable git preflight guidance for `handoff create` when the repository has no initial commit.
+- Added cleanup guidance to `handoff close` and `handoff show` without taking over merge or deletion semantics.
+- Updated README, CLI docs, release notes, and skills to reflect the delegated handoff boundary.
+
 ## [1.3.1] - 2026-03-10
 
 ### Changed

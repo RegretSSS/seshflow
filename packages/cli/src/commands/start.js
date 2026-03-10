@@ -104,6 +104,8 @@ export async function start(taskId, options = {}) {
         ? 'SESSION_CONFLICT'
         : error.message.includes('unmet dependencies')
           ? 'UNMET_DEPENDENCIES'
+          : error.message.includes('delegated via handoff')
+            ? 'TASK_DELEGATED'
           : error.message.includes('already done')
             ? 'TASK_ALREADY_DONE'
             : 'START_FAILED';

@@ -106,4 +106,29 @@ describe('state command JSON output', () => {
     expect(completePayload.action).toBe('done');
     expect(completePayload.task.id).toBe(taskB.id);
   });
+
+  test('done --json warns when expected artifacts are missing', async () => {
+    const { workspacePath, manager } = await createWorkspace();
+    const task = manager.createTask({
+      title: 'Artifact gated task',
+      priority: 'P0',
+      expectedArtifacts: ['dist/app.tar.gz'],
+    });
+    manager.startSession(task.id);
+    await manager.saveData();
+
+    const result = runCLI(workspacePath, ['done', '--json']);
+    expect(result.status).toBe(0);
+
+    const payload = JSON.parse(result.stdout);
+    expect(payload.action).toBe('done');
+    expect(payload.warnings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          code: 'EXPECTED_ARTIFACT_MISSING',
+          artifactPath: 'dist/app.tar.gz',
+        }),
+      ])
+    );
+  });
 });

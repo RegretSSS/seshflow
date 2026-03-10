@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import { spawnSync } from 'node:child_process';
 
-const VERSION = '1.3.0';
+const VERSION = '1.4.0';
 const program = new Command();
 const ADVANCED_HELP_TARGETS = [
   { name: 'rpc', description: 'Inspect stable RPC/API integration shell payloads' },
@@ -68,6 +68,7 @@ program
   .option('--contracts <contractIds>', 'Comma-separated contract IDs')
   .option('--contract-role <producer|consumer|reviewer>', 'Contract role for this task')
   .option('--bind-file <paths>', 'Comma-separated implementation file paths')
+  .option('--expect-artifact <paths>', 'Comma-separated expected artifact paths')
   .option('--json', 'Output as JSON')
   .option('--no-json', 'Disable JSON output')
   .action(lazyAction(() => import('../src/commands/add.js'), 'add'));
@@ -194,6 +195,10 @@ const workspacesCommand = program
   .alias('workspace')
   .description('Inspect the global workspace index');
 
+const handoffCommand = program
+  .command('handoff')
+  .description('Delegate a task into a git worktree handoff');
+
 announceCommand
   .command('progress [taskId]')
   .description('Emit a progress announcement for a task or the current active task')
@@ -311,6 +316,85 @@ workspacesCommand
   .description('Show the current workspace record')
   .action(lazyAction(() => import('../src/commands/workspaces.js'), 'showCurrentWorkspace'));
 
+handoffCommand
+  .command('list')
+  .description('List delegated handoffs in the parent workspace')
+  .option('-l, --limit <number>', 'Limit the number of handoffs returned')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'listHandoffs'));
+
+handoffCommand
+  .command('show <handoffId>')
+  .description('Inspect a delegated handoff record')
+  .option('--full', 'Include manifest and bundle content')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'showHandoff'));
+
+handoffCommand
+  .command('create <taskId>')
+  .description('Create a delegated handoff and materialize a git worktree for a task')
+  .option('--path <path>', 'Target worktree path (defaults to a sibling handoff directory)')
+  .option('--branch <name>', 'Target branch name (defaults to handoff/<taskId>-<title>)')
+  .option('--executor-kind <human|agent|external|unknown>', 'Who will execute this handoff')
+  .option('--executor <human|agent|external|unknown>', 'Alias for --executor-kind')
+  .option('--owner <id>', 'Owner or executor identifier')
+  .option('--owner-label <label>', 'Display label for the owner')
+  .option('-n, --note <text>', 'Delegation note')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'createHandoff'));
+
+handoffCommand
+  .command('activate <handoffId>')
+  .description('Activate a delegated handoff')
+  .option('-n, --note <text>', 'Lifecycle note')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'activateHandoff'));
+
+handoffCommand
+  .command('pause <handoffId>')
+  .description('Pause a delegated handoff')
+  .option('-n, --note <text>', 'Lifecycle note')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'pauseHandoff'));
+
+handoffCommand
+  .command('submit <handoffId>')
+  .description('Mark a delegated handoff as submitted without completing the source task')
+  .option('-n, --note <text>', 'Lifecycle note')
+  .option('--result-ref <value>', 'Result reference, commit, artifact, or summary pointer')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'submitHandoff'));
+
+handoffCommand
+  .command('abandon <handoffId>')
+  .description('Abandon a delegated handoff without completing the source task')
+  .option('-n, --note <text>', 'Lifecycle note')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'abandonHandoff'));
+
+handoffCommand
+  .command('reclaim <handoffId>')
+  .description('Reclaim a delegated handoff so the parent workspace can resume the task')
+  .option('-n, --note <text>', 'Lifecycle note')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'reclaimHandoff'));
+
+handoffCommand
+  .command('close <handoffId>')
+  .description('Close a finished handoff lifecycle record without completing the source task')
+  .option('-n, --note <text>', 'Lifecycle note')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'closeHandoff'));
+
 program
   .command('add-dep <taskId> <dependsOnTaskId>')
   .alias('add-dependency')
@@ -369,6 +453,8 @@ program
   .option('-t, --tags <tags>', 'Filter by tags (comma-separated)')
   .option('--tag <tags>', 'Alias for --tags')
   .option('-a, --assignee <name>', 'Filter by assignee')
+  .option('--text <text>', 'Filter by task id, title, description, contract id, tag, or bound file text')
+  .option('--contract <contractId>', 'Filter by bound contract id')
   .option('-l, --limit <number>', 'Limit number of tasks displayed')
   .option('--full', 'Include full task payloads in JSON output')
   .option('--compact', 'Compact output (AI-friendly)')
@@ -443,6 +529,7 @@ program
   .option('--contract-role <producer|consumer|reviewer>', 'Set contract role')
   .option('--bind-file <paths>', 'Comma-separated implementation file paths to add')
   .option('--unbind-file <paths>', 'Comma-separated implementation file paths to remove')
+  .option('--expect-artifact <paths>', 'Replace expected artifact paths with a comma-separated list')
   .option('--hours <hours>', 'Advanced: alias for --estimate')
   .option('-e, --estimate <hours>', 'Advanced: new estimated hours')
   .option('-a, --assignee <name>', 'New assignee')

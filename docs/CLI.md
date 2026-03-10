@@ -71,6 +71,94 @@ Default JSON for `next`, `start`, and `done` is intentionally summary-oriented:
 - task payloads are returned as action summaries, not full task documents
 - use `show --full` when you want larger inspection output
 
+If a task explicitly declares `expectedArtifacts`:
+
+- `done` performs a lightweight existence check on those paths
+- missing artifacts return warnings only, they do not block completion
+- in delegated flows, `handoff submit` performs the same lightweight check inside the worktree
+
+### `seshflow query --text ... --contract ...`
+
+Use `query` as the lightweight lookup surface when you need to find a delegation candidate or recover an existing handoff in a medium-sized workspace.
+
+It currently supports:
+
+- `--text`: matches task id, title, description, contract id, tag, and bound file text
+- `--contract`: filters by bound contract id
+
+This is a lightweight lookup surface, not a search-engine layer. It does not imply BM25 or complex ranking commitments.
+
+### `seshflow handoff create <taskId>`
+
+Use this when a task should be delegated into an isolated git worktree for an external coding agent or a human executor.
+
+What it does:
+
+- creates a parent-managed handoff record in the source workspace
+- materializes a git worktree on a dedicated branch
+- writes a handoff manifest and a bounded handoff bundle into the delegated worktree
+- checks that the parent workspace already has an initial git commit before creating the worktree
+
+What it does not do:
+
+- it does not create a second source of task truth
+- it does not mark the task `done`
+- it does not run an agent loop
+
+What it returns:
+
+- `handoffId`
+- `sourceTaskId`
+- target branch/path
+- manifest path
+- bundle path
+- lifecycle status
+- an actionable setup hint instead of a raw `HEAD` error if the repository still has no initial commit
+
+Delegated tasks remain parent-managed:
+
+- `next` skips tasks that already have an active handoff
+- `show <taskId>` surfaces the active delegation summary
+- `start <taskId>` blocks delegated tasks unless you explicitly pass `--force`
+
+### `seshflow handoff submit|pause|reclaim|abandon|close <handoffId>`
+
+Use these commands to control the handoff lifecycle after a delegated worktree exists.
+
+What they do:
+
+- update only the handoff lifecycle
+- sync the parent record, manifest, and bundle
+- optionally attach a lifecycle note and a `resultRef` on `submit`
+
+What they do not do:
+
+- they do not mark the source task as `done`
+- they do not turn the delegated worktree into a new source of task truth
+
+Key boundaries:
+
+- `submit` means "result submitted back to the parent workspace", not "task completed"
+- `reclaim` returns control to the parent workspace so the task can be resumed locally
+- `close` closes the handoff record only
+- when a source task declares `expectedArtifacts`, missing outputs surface as warnings only and do not replace parent acceptance
+
+### `seshflow handoff list` / `seshflow handoff show <handoffId>`
+
+Use these commands to recover delegated state without guessing worktree paths or branch names.
+
+They return:
+
+- current lifecycle state
+- source task / contract binding summary
+- target worktree path and branch
+- manifest / bundle paths
+- latest `resultRef` and note summary
+
+`handoff show --full` additionally expands manifest and bundle file content for debugging and recovery, so it should be treated as higher-context inspection output.
+
+When a handoff reaches a terminal state such as `closed`, `reclaimed`, or `abandoned`, both `handoff show` and `handoff close` surface a lightweight cleanup hint with the appropriate `git worktree remove "<path>"` command. This remains guidance only; Seshflow does not take over merge or deletion semantics.
+
 ## Contract-first linkage
 
 Seshflow does not guess contract linkage from arbitrary code scans.

@@ -131,6 +131,14 @@ When switching away from an active task, prefer explicit intent:
 - normal pause: `seshflow suspend`
 - direct task handoff: `seshflow start <taskId> --switch`
 
+Delegated-handoff verification rule:
+
+- for contract-bound implementation tasks, do not treat "build passes" as completion
+- before `seshflow done` or `seshflow handoff submit`, run at least one real verification step that exercises the implemented surface
+- persist that verification with `seshflow record`
+- treat `seshflow handoff submit` as "ready for parent review", not as "task complete"
+- if verification has not happened yet, prefer `seshflow handoff submit` or keep the task in progress; do not mark the task done just because code compiles
+
 Structured JSON is already the default for AI-facing machine steps. Use plain commands first and only add `--pretty`/`--compact` when needed.
 
 When an executed command, log file, output directory, or produced artifact matters for resuming work, persist it explicitly:

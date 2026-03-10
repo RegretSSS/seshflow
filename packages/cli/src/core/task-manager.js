@@ -7,12 +7,19 @@ import {
   generateProcessRecordId,
   generateTransitionEventId,
   generateRuntimeEventId,
+  generateHandoffId,
   toISOString,
   isValidPriority,
   isValidTaskId,
   sanitizeBranchName
 } from '../utils/helpers.js';
 import { CONTRACT_ROLES } from '../../../shared/constants/contracts.js';
+import {
+  ACTIVE_HANDOFF_STATUSES,
+  HANDOFF_EXECUTOR_KINDS,
+  HANDOFF_SCHEMA_VERSION,
+  HANDOFF_STATUSES,
+} from '../../../shared/constants/handoffs.js';
 
 /**
  * TaskManager - Core task management logic
@@ -74,6 +81,54 @@ export class TaskManager {
     return events.slice(-limit);
   }
 
+  getHandoffs() {
+    return this.data?.handoffs || [];
+  }
+
+  getHandoff(handoffId) {
+    return this.getHandoffs().find(handoff => handoff.handoffId === handoffId) || null;
+  }
+
+  getTaskHandoffs(taskId) {
+    return this.getHandoffs().filter(handoff => handoff.sourceTaskId === taskId);
+  }
+
+  getActiveHandoffForTask(taskId) {
+    return this.getTaskHandoffs(taskId).find(handoff =>
+      ACTIVE_HANDOFF_STATUSES.includes(handoff.status)
+    ) || null;
+  }
+
+  getDelegationSummary(taskOrTaskId) {
+    const taskId = typeof taskOrTaskId === 'string' ? taskOrTaskId : taskOrTaskId?.id;
+    if (!taskId) {
+      return null;
+    }
+
+    const handoff = this.getActiveHandoffForTask(taskId);
+    if (!handoff) {
+      return null;
+    }
+
+    return {
+      handoffId: handoff.handoffId,
+      status: handoff.status,
+      executorKind: handoff.executorKind,
+      owner: handoff.owner || null,
+      targetWorktreePath: handoff.targetWorktreePath,
+      targetBranchName: handoff.targetBranchName,
+      manifestPath: handoff.manifestPath || null,
+      bundlePath: handoff.bundle?.bundlePath || null,
+    };
+  }
+
+  getActiveHandoffs(limit = null) {
+    const items = this.getHandoffs()
+      .filter(handoff => ACTIVE_HANDOFF_STATUSES.includes(handoff.status))
+      .sort((left, right) => new Date(right.activatedAt || right.createdAt) - new Date(left.activatedAt || left.createdAt));
+    return limit ? items.slice(0, limit) : items;
+  }
+
   getTaskRuntimeEvents(taskId, limit = null) {
     const events = this.getRuntimeEvents().filter(event => event.taskId === taskId);
     if (!limit) {
@@ -124,6 +179,7 @@ export class TaskManager {
       contractIds: options.contractIds || [],
       contractRole: options.contractRole || null,
       boundFiles: options.boundFiles || [],
+      expectedArtifacts: options.expectedArtifacts || [],
       gitBranch: options.branch || sanitizeBranchName(options.title),
       gitCommits: [],
       sessions: [],
@@ -235,6 +291,87 @@ export class TaskManager {
     return true;
   }
 
+  createHandoff(options = {}) {
+    const task = this.getTask(options.sourceTaskId);
+    if (!task) {
+      throw new Error(`Task not found: ${options.sourceTaskId}`);
+    }
+
+    const existingActiveHandoff = this.getTaskHandoffs(task.id).find(handoff =>
+      ACTIVE_HANDOFF_STATUSES.includes(handoff.status)
+    );
+
+    if (existingActiveHandoff) {
+      throw new Error(`Task already has an active handoff: ${existingActiveHandoff.handoffId}`);
+    }
+
+    const now = toISOString();
+    const handoff = this.normalizeHandoff({
+      handoffId: options.handoffId || generateHandoffId(),
+      sourceWorkspacePath: this.storage.getWorkspacePath(),
+      sourceTaskId: task.id,
+      sourceContractIds: Array.isArray(options.sourceContractIds) && options.sourceContractIds.length > 0
+        ? options.sourceContractIds
+        : [...(task.contractIds || [])],
+      targetWorktreePath: options.targetWorktreePath || '',
+      targetBranchName: options.targetBranchName || '',
+      status: options.status || HANDOFF_STATUSES.CREATED,
+      executorKind: options.executorKind || HANDOFF_EXECUTOR_KINDS.UNKNOWN,
+      owner: options.owner || null,
+      createdAt: options.createdAt || now,
+      activatedAt: options.activatedAt || null,
+      submittedAt: options.submittedAt || null,
+      closedAt: options.closedAt || null,
+      resultRef: options.resultRef || null,
+      bundle: options.bundle || {},
+      manifestPath: options.manifestPath || null,
+      notes: Array.isArray(options.notes) ? options.notes : [],
+    });
+
+    this.data.handoffs = Array.isArray(this.data.handoffs) ? this.data.handoffs : [];
+    this.data.handoffs.push(handoff);
+    this.data.metadata.updatedAt = now;
+    this.updateWorkspaceInfo();
+    return handoff;
+  }
+
+  updateHandoff(handoffId, updates = {}) {
+    const index = this.getHandoffs().findIndex(handoff => handoff.handoffId === handoffId);
+    if (index === -1) {
+      throw new Error(`Handoff not found: ${handoffId}`);
+    }
+
+    const current = this.data.handoffs[index];
+    const nextStatus = updates.status || current.status;
+    const now = toISOString();
+
+    const merged = this.normalizeHandoff({
+      ...current,
+      ...updates,
+      handoffId: current.handoffId,
+      createdAt: current.createdAt,
+      activatedAt: updates.activatedAt !== undefined
+        ? updates.activatedAt
+        : (nextStatus === HANDOFF_STATUSES.ACTIVE && !current.activatedAt ? now : current.activatedAt),
+      submittedAt: updates.submittedAt !== undefined
+        ? updates.submittedAt
+        : (nextStatus === HANDOFF_STATUSES.SUBMITTED && !current.submittedAt ? now : current.submittedAt),
+      closedAt: updates.closedAt !== undefined
+        ? updates.closedAt
+        : (
+            [HANDOFF_STATUSES.CLOSED, HANDOFF_STATUSES.ABANDONED, HANDOFF_STATUSES.RECLAIMED].includes(nextStatus)
+            && !current.closedAt
+              ? now
+              : current.closedAt
+          ),
+    });
+
+    this.data.handoffs[index] = merged;
+    this.data.metadata.updatedAt = now;
+    this.updateWorkspaceInfo();
+    return merged;
+  }
+
   /**
    * Get the next task to work on
    */
@@ -267,6 +404,9 @@ export class TaskManager {
 
     // Filter out tasks with unmet dependencies
     candidates = candidates.filter(t => {
+      if (this.getActiveHandoffForTask(t.id)) {
+        return false;
+      }
       const unmetDeps = this.getUnmetDependencies(t);
       return unmetDeps.length === 0;
     });
@@ -777,6 +917,9 @@ export class TaskManager {
     this.data.runtimeEvents = Array.isArray(this.data.runtimeEvents)
       ? this.data.runtimeEvents.map(event => this.normalizeRuntimeEvent(event))
       : [];
+    this.data.handoffs = Array.isArray(this.data.handoffs)
+      ? this.data.handoffs.map(handoff => this.normalizeHandoff(handoff))
+      : [];
 
     this.data.tasks.forEach(task => {
       this.normalizeTask(task);
@@ -791,6 +934,7 @@ export class TaskManager {
     task.contractIds = Array.isArray(task.contractIds) ? [...new Set(task.contractIds)] : [];
     task.contractRole = Object.values(CONTRACT_ROLES).includes(task.contractRole) ? task.contractRole : null;
     task.boundFiles = Array.isArray(task.boundFiles) ? [...new Set(task.boundFiles)] : [];
+    task.expectedArtifacts = Array.isArray(task.expectedArtifacts) ? [...new Set(task.expectedArtifacts)] : [];
     task.sessions = Array.isArray(task.sessions) ? task.sessions : [];
     task.context = {
       relatedFiles: Array.isArray(task.context?.relatedFiles) ? task.context.relatedFiles : [],
@@ -894,6 +1038,50 @@ export class TaskManager {
       state: entry.state || this.detectProcessState(entry.pid),
       launchedAt: entry.launchedAt || toISOString(),
       lastCheckedAt: entry.lastCheckedAt || null,
+    };
+  }
+
+  normalizeHandoff(handoff = {}) {
+    const normalizedStatus = Object.values(HANDOFF_STATUSES).includes(handoff.status)
+      ? handoff.status
+      : HANDOFF_STATUSES.CREATED;
+    const normalizedExecutorKind = Object.values(HANDOFF_EXECUTOR_KINDS).includes(handoff.executorKind)
+      ? handoff.executorKind
+      : HANDOFF_EXECUTOR_KINDS.UNKNOWN;
+
+    return {
+      handoffId: handoff.handoffId || generateHandoffId(),
+      schemaVersion: Number.isInteger(handoff.schemaVersion) ? handoff.schemaVersion : HANDOFF_SCHEMA_VERSION,
+      sourceWorkspacePath: handoff.sourceWorkspacePath || this.storage.getWorkspacePath(),
+      sourceTaskId: handoff.sourceTaskId || null,
+      sourceContractIds: Array.isArray(handoff.sourceContractIds) ? [...new Set(handoff.sourceContractIds)] : [],
+      targetWorktreePath: handoff.targetWorktreePath || '',
+      targetBranchName: handoff.targetBranchName || '',
+      status: normalizedStatus,
+      executorKind: normalizedExecutorKind,
+      owner: handoff.owner && typeof handoff.owner === 'object'
+        ? {
+            id: handoff.owner.id || null,
+            label: handoff.owner.label || null,
+          }
+        : null,
+      createdAt: handoff.createdAt || toISOString(),
+      activatedAt: handoff.activatedAt || null,
+      submittedAt: handoff.submittedAt || null,
+      closedAt: handoff.closedAt || null,
+      resultRef: typeof handoff.resultRef === 'string'
+        ? handoff.resultRef
+        : (handoff.resultRef && typeof handoff.resultRef === 'object'
+            ? {
+                type: handoff.resultRef.type || null,
+                value: handoff.resultRef.value || null,
+              }
+            : null),
+      manifestPath: handoff.manifestPath || null,
+      bundle: handoff.bundle && typeof handoff.bundle === 'object' && !Array.isArray(handoff.bundle)
+        ? handoff.bundle
+        : {},
+      notes: Array.isArray(handoff.notes) ? handoff.notes : [],
     };
   }
 

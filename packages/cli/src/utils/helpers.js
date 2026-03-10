@@ -88,6 +88,16 @@ export function generateRuntimeEventId() {
 }
 
 /**
+ * Generate a unique handoff ID
+ * @returns {string} Handoff ID
+ */
+export function generateHandoffId() {
+  const timestamp = Date.now();
+  const random = Math.random().toString(36).substring(2, 6);
+  return `handoff_${timestamp}_${random}`;
+}
+
+/**
  * Format date to ISO string
  * @param {Date} date - Date object
  * @returns {string} ISO 8601 timestamp
