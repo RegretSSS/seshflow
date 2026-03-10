@@ -164,6 +164,32 @@
 - Scope: dependency graph and richer analytics views based on real runtime events.
 - Target: rendering remains responsive for medium datasets.
 
+## Candidate Polish (Not Scheduled Yet)
+
+### Resume-workspace UX polish from external tests
+
+- Priority: P2
+- Scope:
+  - clarify `contracts import` path errors with `cwd` and resolved-path hints
+  - add `contracts list` summary/full layering before considering any larger search surface
+  - keep `show` lightweight by default while restoring a few high-value fields such as description, `contractIds`, and compact `currentContract` context when present
+- Why deferred:
+  - these are worthwhile ergonomics improvements, but they are not blocking `v1.3.0` release quality or the current boundary-hardening goals
+
+### Pre-init command guardrails and staged help disclosure
+
+- Priority: P2
+- Scope:
+  - make empty-workspace behavior more elegant when AI runs `ncfr` or other workflow commands before `init`
+  - decide whether root help should stay task-oriented while advanced/integration help remains behind `--advanced`
+  - evaluate lightweight one-line recovery hints instead of heavy pre-init payloads
+- Why deferred:
+  - this is mostly about agent behavior on blank workspaces and command sequencing, not a gap in the current contract-first execution core
+- Design constraint:
+  - do not auto-run `init`
+  - do not turn pre-init responses into noisy tutorials
+  - preserve AI-first low-token defaults while still preventing pointless guesswork
+
 ## Deferred / Not This Stage
 
 - Full bidirectional Markdown/JSON sync across arbitrary user edits.
