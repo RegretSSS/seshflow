@@ -182,7 +182,7 @@ seshflow mode set contractfirst
   - `payload`
   - `metadata`
   - `extensions`
-- `protocol` 在 `v1.3.0` 中是描述性字段；像 `event-stream` 这样的自定义值会原样保存
+- `kind` 和 `protocol` 在 `v1.3.x` 中都是描述性字段；像 `event-stream` 这样的自定义值会原样保存
 - `currentContract` 和 `contracts show` 默认只返回非空字段
 
 契约关联到底由什么决定：

@@ -3,7 +3,6 @@ import path from 'path';
 import {
   CONTRACT_CHECK_CODES,
   CONTRACT_COMPATIBILITY,
-  CONTRACT_KINDS,
   CONTRACT_LIFECYCLE_STATUSES,
   CONTRACT_PROTOCOLS,
   CONTRACT_ROLES,
@@ -11,7 +10,6 @@ import {
 } from '../../../shared/constants/contracts.js';
 import { isValidContractId, omitEmptyFields } from '../utils/helpers.js';
 
-const VALID_KINDS = new Set(Object.values(CONTRACT_KINDS));
 const VALID_ROLES = new Set(Object.values(CONTRACT_ROLES));
 const KNOWN_CONTRACT_FIELDS = new Set([
   'schemaVersion',
@@ -221,7 +219,7 @@ export class ContractRegistry {
   getProtocolGuidance() {
     return {
       examples: Object.values(CONTRACT_PROTOCOLS),
-      note: 'protocol is descriptive in v1.3.0; Seshflow stores and binds any non-empty protocol string without inferring transport semantics from code.',
+      note: 'kind and protocol are descriptive in v1.3.x; Seshflow stores and binds any non-empty strings without inferring transport semantics from code.',
     };
   }
 
@@ -236,7 +234,7 @@ export class ContractRegistry {
       schemaVersion: Number.parseInt(raw.schemaVersion, 10) || CONTRACT_SCHEMA_VERSION,
       id: String(raw.id || '').trim(),
       version: String(raw.version || '').trim(),
-      kind: String(raw.kind || '').trim() || CONTRACT_KINDS.API,
+      kind: String(raw.kind || '').trim(),
       protocol: String(raw.protocol || '').trim() || CONTRACT_PROTOCOLS.HTTP_JSON,
       name: String(raw.name || '').trim(),
       owner: {
@@ -298,11 +296,12 @@ export class ContractRegistry {
       }
     }
 
-    if (!VALID_KINDS.has(contract.kind)) {
+    if (!String(contract.kind || '').trim()) {
       issues.push({
-        code: CONTRACT_CHECK_CODES.INVALID_KIND,
-        message: `Unsupported contract kind: ${contract.kind}`,
+        code: CONTRACT_CHECK_CODES.MISSING_REQUIRED_FIELD,
+        message: 'Missing required field: kind',
         contractId: contract.id || null,
+        field: 'kind',
       });
     }
 

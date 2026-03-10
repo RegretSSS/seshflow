@@ -178,7 +178,7 @@ Contract authoring rules today:
   - `payload`
   - `metadata`
   - `extensions`
-- `protocol` is descriptive in `v1.3.0`; custom values such as `event-stream` are stored as-is
+- `kind` and `protocol` are descriptive in `v1.3.x`; custom values such as `event-stream` are stored as-is
 - `currentContract` and `contracts show` omit empty fields by default
 
 Where contract linkage comes from:

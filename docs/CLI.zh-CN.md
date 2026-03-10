@@ -92,7 +92,7 @@ Seshflow 不会靠任意代码扫描去猜 contract 关联。
 - Seshflow 不靠源码扫描猜 contract
 - `currentContract` 的返回只依赖显式绑定
 - contract 文件里更宽泛的协议内容可以放进 `payload`、`metadata`、`extensions`
-- `protocol` 是描述性元数据；像 `event-stream` 这样的自定义字符串是允许的
+- `kind` 和 `protocol` 都是描述性元数据；像 `event-stream` 这样的自定义字符串是允许的
 - `seshflow contracts import <file>` 支持：
   - `.json`：单个 contract object
   - `.json`：contract 数组
