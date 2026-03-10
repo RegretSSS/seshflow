@@ -22,7 +22,7 @@ Seshflow is 100% AI-oriented, but the documentation and command flow should stil
 
 ## Status
 
-- `v1.3.0` is the current release line.
+- `v1.3.1` is the current release line.
 - `v1.3.0` scope: contract-first `apifirst` mode, explicit AI context priority, hook/RPC seams, workspace index, and boundary best practices on top of the `v1.2.0` execution core.
 - `v1.3.0` design target is documented in `docs/apifirst-mode.md`.
 - `v1.4.0` remains planned and has not started.
