@@ -66,6 +66,7 @@ The executable remains `seshflow`.
   - hook taxonomy and result kinds
   - RPC shell payloads
   - workspace index and mode capabilities
+  - `workspaces list/current` can surface active handoff and delegated-task summaries
 - delegated handoff foundation (`v1.4.0` in progress):
   - parent-managed handoff records
   - delegated git worktree creation

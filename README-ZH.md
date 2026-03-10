@@ -70,6 +70,7 @@ yarn global add @seshflow/cli
   - hook 分类与结果类型
   - RPC shell payload
   - workspace index 与 mode capability
+  - `workspaces list/current` 可显示 active handoff / delegated task 摘要
 - delegated handoff 基础能力（`v1.4.0` 开发中）：
   - parent 管理的 handoff 记录
   - delegated git worktree 创建

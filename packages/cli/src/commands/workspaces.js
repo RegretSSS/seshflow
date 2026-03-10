@@ -1,5 +1,7 @@
+import fs from 'fs-extra';
 import chalk from 'chalk';
 import { Storage } from '../core/storage.js';
+import { ACTIVE_HANDOFF_STATUSES } from '../../../shared/constants/handoffs.js';
 import { formatErrorResponse, formatSuccessResponse, outputJSON } from '../utils/json-output.js';
 
 function normalizeRecentOption(value, fallback = 20) {
@@ -21,6 +23,36 @@ function summarizeWorkspace(workspace, currentPath) {
   };
 }
 
+async function readDelegationSummary(workspace) {
+  if (!workspace?.tasksFile || !(await fs.pathExists(workspace.tasksFile))) {
+    return null;
+  }
+
+  try {
+    const raw = await fs.readJson(workspace.tasksFile);
+    const handoffs = Array.isArray(raw?.handoffs) ? raw.handoffs : [];
+    const activeHandoffs = handoffs
+      .filter(handoff => ACTIVE_HANDOFF_STATUSES.includes(handoff.status))
+      .sort((left, right) => new Date(right.activatedAt || right.createdAt || 0) - new Date(left.activatedAt || left.createdAt || 0));
+
+    return {
+      activeHandoffCount: activeHandoffs.length,
+      delegatedTaskCount: new Set(activeHandoffs.map(handoff => handoff.sourceTaskId).filter(Boolean)).size,
+      latestHandoff: activeHandoffs[0]
+        ? {
+            handoffId: activeHandoffs[0].handoffId,
+            sourceTaskId: activeHandoffs[0].sourceTaskId,
+            status: activeHandoffs[0].status,
+            targetBranchName: activeHandoffs[0].targetBranchName || '',
+            activatedAt: activeHandoffs[0].activatedAt || activeHandoffs[0].createdAt || null,
+          }
+        : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function listWorkspaces(options = {}) {
   try {
     const storage = new Storage();
@@ -32,14 +64,22 @@ export async function listWorkspaces(options = {}) {
       new Date(right.lastSeenAt || 0) - new Date(left.lastSeenAt || 0)
     );
     const limited = options.full ? sorted : sorted.slice(0, recent);
-    const workspaces = limited.map(workspace =>
-      options.full
-        ? {
-            ...workspace,
-            current: workspace.path === currentPath,
-          }
-        : summarizeWorkspace(workspace, currentPath)
-    );
+    const workspaces = [];
+    for (const workspace of limited) {
+      const delegation = await readDelegationSummary(workspace);
+      workspaces.push(
+        options.full
+          ? {
+              ...workspace,
+              current: workspace.path === currentPath,
+              delegation: delegation || undefined,
+            }
+          : {
+              ...summarizeWorkspace(workspace, currentPath),
+              delegation: delegation || undefined,
+            }
+      );
+    }
     const byMode = index.workspaces.reduce((result, workspace) => {
       const mode = workspace.mode || 'default';
       result[mode] = (result[mode] || 0) + 1;
@@ -74,12 +114,16 @@ export async function showCurrentWorkspace() {
     await storage.init();
     const info = await storage.getWorkspaceInfo();
     const config = await storage.readConfigFile();
+    const delegation = await readDelegationSummary({
+      tasksFile: storage.tasksFile,
+    });
     outputJSON(formatSuccessResponse({
       action: 'workspaces.current',
       workspace: {
         ...info,
         mode: config.mode || 'default',
         indexPath: storage.getWorkspaceIndexFilePath(),
+        delegation: delegation || undefined,
       },
     }));
   } catch (error) {
