@@ -194,6 +194,10 @@ const workspacesCommand = program
   .alias('workspace')
   .description('Inspect the global workspace index');
 
+const handoffCommand = program
+  .command('handoff')
+  .description('Delegate a task into a git worktree handoff');
+
 announceCommand
   .command('progress [taskId]')
   .description('Emit a progress announcement for a task or the current active task')
@@ -310,6 +314,20 @@ workspacesCommand
   .command('current')
   .description('Show the current workspace record')
   .action(lazyAction(() => import('../src/commands/workspaces.js'), 'showCurrentWorkspace'));
+
+handoffCommand
+  .command('create <taskId>')
+  .description('Create a delegated handoff and materialize a git worktree for a task')
+  .option('--path <path>', 'Target worktree path (defaults to a sibling handoff directory)')
+  .option('--branch <name>', 'Target branch name (defaults to handoff/<taskId>-<title>)')
+  .option('--executor-kind <human|agent|external|unknown>', 'Who will execute this handoff')
+  .option('--executor <human|agent|external|unknown>', 'Alias for --executor-kind')
+  .option('--owner <id>', 'Owner or executor identifier')
+  .option('--owner-label <label>', 'Display label for the owner')
+  .option('-n, --note <text>', 'Delegation note')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/handoff.js'), 'createHandoff'));
 
 program
   .command('add-dep <taskId> <dependsOnTaskId>')

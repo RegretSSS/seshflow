@@ -71,6 +71,30 @@
 - `task` 默认返回动作摘要，而不是完整任务文档
 - 如果要看更大的检查 payload，请转用 `show --full`
 
+### `seshflow handoff create <taskId>`
+
+当你要把一个任务委派到隔离的 git worktree，交给外部 coding agent 或人工执行者时，使用这个命令。
+
+它会做什么：
+
+- 在 parent workspace 中创建 handoff 记录
+- 在独立分支上物化一个 git worktree
+- 在 delegated worktree 里写入最小 handoff manifest
+
+它不会做什么：
+
+- 不会创建第二套任务真相源
+- 不会自动把任务标记为 `done`
+- 不会在 Seshflow 内部启动 agent loop
+
+它会返回什么：
+
+- `handoffId`
+- `sourceTaskId`
+- 目标 branch/path
+- manifest 路径
+- 当前 lifecycle 状态
+
 ## 契约先行的关联链路
 
 Seshflow 不会靠任意代码扫描去猜 contract 关联。

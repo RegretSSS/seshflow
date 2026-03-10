@@ -71,6 +71,30 @@ Default JSON for `next`, `start`, and `done` is intentionally summary-oriented:
 - task payloads are returned as action summaries, not full task documents
 - use `show --full` when you want larger inspection output
 
+### `seshflow handoff create <taskId>`
+
+Use this when a task should be delegated into an isolated git worktree for an external coding agent or a human executor.
+
+What it does:
+
+- creates a parent-managed handoff record in the source workspace
+- materializes a git worktree on a dedicated branch
+- writes a minimal handoff manifest into the delegated worktree
+
+What it does not do:
+
+- it does not create a second source of task truth
+- it does not mark the task `done`
+- it does not run an agent loop
+
+What it returns:
+
+- `handoffId`
+- `sourceTaskId`
+- target branch/path
+- manifest path
+- lifecycle status
+
 ## Contract-first linkage
 
 Seshflow does not guess contract linkage from arbitrary code scans.

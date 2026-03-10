@@ -25,7 +25,7 @@ Seshflow is 100% AI-oriented, but the documentation and command flow should stil
 - `v1.3.1` is the current release line.
 - `v1.3.0` scope: contract-first `apifirst` mode, explicit AI context priority, hook/RPC seams, workspace index, and boundary best practices on top of the `v1.2.0` execution core.
 - `v1.3.0` design target is documented in `docs/apifirst-mode.md`.
-- `v1.4.0` remains planned and has not started.
+- `v1.4.0` is now in development on `development` and is focused on delegated git worktree handoff.
 
 ## Install
 
@@ -66,6 +66,10 @@ The executable remains `seshflow`.
   - hook taxonomy and result kinds
   - RPC shell payloads
   - workspace index and mode capabilities
+- delegated handoff foundation (`v1.4.0` in progress):
+  - parent-managed handoff records
+  - delegated git worktree creation
+  - execution-surface manifests without creating a second task truth
 
 ## Typical human-readable usage
 

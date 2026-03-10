@@ -1,0 +1,199 @@
+import path from 'node:path';
+import fs from 'fs-extra';
+import { PATHS } from '../constants.js';
+import { sanitizeBranchName, toISOString } from '../utils/helpers.js';
+import { ACTIVE_HANDOFF_STATUSES, HANDOFF_EXECUTOR_KINDS, HANDOFF_STATUSES } from '../../../shared/constants/handoffs.js';
+
+function buildOwner(ownerId = null, ownerLabel = null) {
+  if (!ownerId && !ownerLabel) {
+    return null;
+  }
+
+  return {
+    id: ownerId || null,
+    label: ownerLabel || ownerId || null,
+  };
+}
+
+function summarizeTask(task) {
+  return {
+    id: task.id,
+    title: task.title,
+    status: task.status,
+    priority: task.priority,
+    contractIds: task.contractIds || [],
+    boundFiles: task.boundFiles || [],
+  };
+}
+
+export class HandoffService {
+  constructor(manager) {
+    this.manager = manager;
+  }
+
+  async createAndMaterialize(options = {}) {
+    const task = this.manager.getTask(options.sourceTaskId);
+    if (!task) {
+      throw new Error(`Task not found: ${options.sourceTaskId}`);
+    }
+
+    const { default: simpleGit } = await import('simple-git');
+    const workspacePath = this.manager.storage.getWorkspacePath();
+    const git = simpleGit({ baseDir: workspacePath });
+    const repoRoot = (await git.raw(['rev-parse', '--show-toplevel'])).trim();
+
+    if (!repoRoot) {
+      throw new Error('Current workspace is not inside a git repository.');
+    }
+
+    const branchName = this.resolveBranchName(task, options.branchName);
+    const targetWorktreePath = this.resolveTargetWorktreePath(workspacePath, task, options.targetWorktreePath);
+    this.assertTaskCanBeDelegated(task.id);
+    await this.validateMaterializationTarget(git, workspacePath, targetWorktreePath, branchName);
+
+    const handoff = this.manager.createHandoff({
+      sourceTaskId: task.id,
+      sourceContractIds: options.sourceContractIds,
+      targetWorktreePath,
+      targetBranchName: branchName,
+      status: HANDOFF_STATUSES.CREATED,
+      executorKind: options.executorKind || HANDOFF_EXECUTOR_KINDS.UNKNOWN,
+      owner: buildOwner(options.ownerId, options.ownerLabel),
+      notes: Array.isArray(options.notes) ? options.notes : [],
+      bundle: this.buildBundleStub(task),
+    });
+
+    const manifestPath = path.join(targetWorktreePath, '.seshflow', 'handoffs', `${handoff.handoffId}.json`);
+
+    try {
+      await fs.ensureDir(path.dirname(targetWorktreePath));
+      await git.raw(['worktree', 'add', '-b', branchName, targetWorktreePath]);
+
+      const activatedAt = toISOString();
+      const manifest = this.buildManifest({
+        handoff,
+        task,
+        repoRoot,
+        targetWorktreePath,
+        manifestPath,
+        activatedAt,
+      });
+
+      await fs.ensureDir(path.dirname(manifestPath));
+      await fs.writeJson(manifestPath, manifest, { spaces: 2 });
+
+      const updatedHandoff = this.manager.updateHandoff(handoff.handoffId, {
+        status: HANDOFF_STATUSES.ACTIVE,
+        activatedAt,
+        manifestPath,
+        bundle: manifest.bundle,
+      });
+
+      await this.manager.saveData();
+      return {
+        handoff: updatedHandoff,
+        manifestPath,
+        targetWorktreePath,
+        branchName,
+        manifest,
+      };
+    } catch (error) {
+      await this.cleanupFailedMaterialization(git, targetWorktreePath);
+      throw new Error(`Failed to materialize handoff worktree: ${error.message}`);
+    }
+  }
+
+  resolveBranchName(task, explicitBranchName = '') {
+    if (explicitBranchName) {
+      return explicitBranchName.trim();
+    }
+
+    const titlePart = sanitizeBranchName(task.title || task.id).slice(0, 32);
+    return `handoff/${task.id}-${titlePart || task.id}`;
+  }
+
+  resolveTargetWorktreePath(workspacePath, task, explicitPath = '') {
+    if (explicitPath) {
+      return path.resolve(workspacePath, explicitPath);
+    }
+
+    const workspaceName = path.basename(workspacePath);
+    return path.resolve(path.dirname(workspacePath), `${workspaceName}-handoffs`, task.id);
+  }
+
+  async validateMaterializationTarget(git, workspacePath, targetWorktreePath, branchName) {
+    if (targetWorktreePath === workspacePath || targetWorktreePath.startsWith(`${workspacePath}${path.sep}`)) {
+      throw new Error('Target worktree path must live outside the parent workspace.');
+    }
+
+    if (await fs.pathExists(targetWorktreePath)) {
+      throw new Error(`Target worktree path already exists: ${targetWorktreePath}`);
+    }
+
+    const localBranches = await git.branchLocal();
+    if (localBranches.all.includes(branchName)) {
+      throw new Error(`Target branch already exists: ${branchName}`);
+    }
+  }
+
+  assertTaskCanBeDelegated(taskId) {
+    const existingActiveHandoff = this.manager.getTaskHandoffs(taskId).find(handoff =>
+      ACTIVE_HANDOFF_STATUSES.includes(handoff.status)
+    );
+
+    if (existingActiveHandoff) {
+      throw new Error(`Task already has an active handoff: ${existingActiveHandoff.handoffId}`);
+    }
+  }
+
+  buildBundleStub(task) {
+    return {
+      scope: 'delegated-local-closure',
+      task: summarizeTask(task),
+      executionBoundary: {
+        sourceOfTruth: 'parent-workspace',
+        allowTaskMutationInWorktree: false,
+      },
+    };
+  }
+
+  buildManifest({ handoff, task, repoRoot, targetWorktreePath, manifestPath, activatedAt }) {
+    return {
+      schemaVersion: 1,
+      handoffId: handoff.handoffId,
+      createdAt: handoff.createdAt,
+      activatedAt,
+      sourceOfTruth: {
+        workspacePath: this.manager.storage.getWorkspacePath(),
+        tasksFile: path.join(this.manager.storage.getWorkspacePath(), PATHS.TASKS_FILE),
+        repoRoot,
+      },
+      target: {
+        worktreePath: targetWorktreePath,
+        branchName: handoff.targetBranchName,
+        manifestPath,
+      },
+      task: summarizeTask(task),
+      contractIds: handoff.sourceContractIds,
+      executionBoundary: {
+        kind: 'delegated-worktree-handoff',
+        sourceOfTruth: 'parent-workspace',
+        warning: 'This worktree is an execution surface, not a new source of task truth.',
+      },
+      bundle: {
+        ...handoff.bundle,
+        activatedAt,
+      },
+    };
+  }
+
+  async cleanupFailedMaterialization(git, targetWorktreePath) {
+    try {
+      if (await fs.pathExists(targetWorktreePath)) {
+        await git.raw(['worktree', 'remove', '--force', targetWorktreePath]);
+      }
+    } catch {
+      await fs.remove(targetWorktreePath);
+    }
+  }
+}

@@ -298,6 +298,43 @@ export class TaskManager {
     return handoff;
   }
 
+  updateHandoff(handoffId, updates = {}) {
+    const index = this.getHandoffs().findIndex(handoff => handoff.handoffId === handoffId);
+    if (index === -1) {
+      throw new Error(`Handoff not found: ${handoffId}`);
+    }
+
+    const current = this.data.handoffs[index];
+    const nextStatus = updates.status || current.status;
+    const now = toISOString();
+
+    const merged = this.normalizeHandoff({
+      ...current,
+      ...updates,
+      handoffId: current.handoffId,
+      createdAt: current.createdAt,
+      activatedAt: updates.activatedAt !== undefined
+        ? updates.activatedAt
+        : (nextStatus === HANDOFF_STATUSES.ACTIVE && !current.activatedAt ? now : current.activatedAt),
+      submittedAt: updates.submittedAt !== undefined
+        ? updates.submittedAt
+        : (nextStatus === HANDOFF_STATUSES.SUBMITTED && !current.submittedAt ? now : current.submittedAt),
+      closedAt: updates.closedAt !== undefined
+        ? updates.closedAt
+        : (
+            [HANDOFF_STATUSES.CLOSED, HANDOFF_STATUSES.ABANDONED, HANDOFF_STATUSES.RECLAIMED].includes(nextStatus)
+            && !current.closedAt
+              ? now
+              : current.closedAt
+          ),
+    });
+
+    this.data.handoffs[index] = merged;
+    this.data.metadata.updatedAt = now;
+    this.updateWorkspaceInfo();
+    return merged;
+  }
+
   /**
    * Get the next task to work on
    */

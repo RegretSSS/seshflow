@@ -28,7 +28,7 @@ Seshflow 虽然 100% 面向 AI，但它依然支持人类使用。
 - 当前发版主线：`v1.3.1`
 - `v1.3.0` 在 `v1.2.0` 执行内核的基础上，新增了契约先行模式（`contractfirst`）、显式 AI 上下文优先级、hook/RPC 接缝、多工作区索引和边界最佳实践
 - `v1.3.0` 的具体设计目标见 `docs/apifirst-mode.md` 与 `docs/apifirst-mode.zh-CN.md`
-- `v1.4.0` 仍在规划阶段，尚未开始实现
+- `v1.4.0` 已在 `development` 上开始开发，当前主轴是 delegated git worktree handoff
 
 ## 安装
 
@@ -70,6 +70,10 @@ yarn global add @seshflow/cli
   - hook 分类与结果类型
   - RPC shell payload
   - workspace index 与 mode capability
+- delegated handoff 基础能力（`v1.4.0` 开发中）：
+  - parent 管理的 handoff 记录
+  - delegated git worktree 创建
+  - 只写 execution-surface manifest，不创建第二套任务真相源
 
 ## 对人类友好的输出方式
 
