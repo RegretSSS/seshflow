@@ -76,6 +76,7 @@ If a task explicitly declares `expectedArtifacts`:
 - `done` performs a lightweight existence check on those paths
 - missing artifacts return warnings only, they do not block completion
 - in delegated flows, `handoff submit` performs the same lightweight check inside the worktree
+- `done --start-next` completes the current task and immediately starts the next ready task when you want fewer round trips
 
 ### `seshflow query --text ... --contract ...`
 

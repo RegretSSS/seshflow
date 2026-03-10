@@ -234,6 +234,7 @@ seshflow start <taskId>
 seshflow record --command "pnpm test" --cwd packages/cli
 seshflow process add --pid 12345 --command "vite dev"
 seshflow done <taskId>
+seshflow done --start-next
 ```
 
 Key AI-facing commands:
@@ -246,6 +247,7 @@ Key AI-facing commands:
 - `seshflow start <taskId>`
 - `seshflow suspend`
 - `seshflow done <taskId>`
+- `seshflow done --start-next`
 - `seshflow add-dep <taskId> <dependsOnTaskId>`
 - `seshflow remove-dep <taskId> <dependsOnTaskId>`
 - `seshflow contracts list`

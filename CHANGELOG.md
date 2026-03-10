@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.4.1] - 2026-03-11
+
+### Added
+
+- `seshflow done --start-next` to complete the current task and immediately start the next ready task without changing the default `next` / `start` command boundaries.
+
+### Changed
+
+- Refined the task-flow UX so the recommended “complete then continue” path can use one explicit shortcut instead of repeating `done -> next -> start`.
+- Updated README and CLI docs to describe the new shortcut and keep the `next` / `start` boundary clear.
+
 ## [1.4.0] - 2026-03-11
 
 ### Added

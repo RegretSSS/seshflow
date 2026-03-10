@@ -76,6 +76,7 @@
 - `done` 会轻量检查这些路径是否存在
 - 缺失时只返回 warning，不自动阻塞完成
 - delegated 场景下，`handoff submit` 也会在 worktree 内做同样的轻量检查
+- `done --start-next` 会在完成当前任务后直接启动下一项 ready task，适合熟练后减少交互轮次
 
 ### `seshflow query --text ... --contract ...`
 

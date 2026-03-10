@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import { spawnSync } from 'node:child_process';
 
-const VERSION = '1.4.0';
+const VERSION = '1.4.1';
 const program = new Command();
 const ADVANCED_HELP_TARGETS = [
   { name: 'rpc', description: 'Inspect stable RPC/API integration shell payloads' },
@@ -91,6 +91,7 @@ program
   .description('Complete current task or a specific task by ID')
   .option('-h, --hours <number>', 'Advanced: hours spent')
   .option('-n, --note <text>', 'Completion notes')
+  .option('--start-next', 'Immediately start the next ready task after completion')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
@@ -108,6 +109,7 @@ program
   .description('Alias of done <taskId>')
   .option('-h, --hours <number>', 'Advanced: hours spent')
   .option('-n, --note <text>', 'Completion notes')
+  .option('--start-next', 'Immediately start the next ready task after completion')
   .option('--compact', 'Compact output (AI-friendly)')
   .option('--pretty', 'Pretty output (human-friendly)')
   .option('--json', 'Output as JSON')
