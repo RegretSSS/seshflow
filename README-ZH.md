@@ -60,6 +60,7 @@ yarn global add @seshflow/cli
   - 显式添加或删除依赖
   - 自动推导 blocker
   - 依赖视图与链路检查
+  - `query --text/--contract` 提供最小 handoff 候选查找，不引入搜索引擎叙事
 - 契约先行模式：
   - contract registry
   - 单文件或批量 contract 导入

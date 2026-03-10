@@ -56,6 +56,7 @@ The executable remains `seshflow`.
 - dependency control:
   - explicit dependency mutation
   - blocker derivation and dependency views
+  - `query --text/--contract` for lightweight handoff candidate lookup without a search-engine layer
 - contract-first mode:
   - contract registry
   - single-file or batch contract import

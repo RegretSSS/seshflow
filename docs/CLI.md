@@ -71,6 +71,17 @@ Default JSON for `next`, `start`, and `done` is intentionally summary-oriented:
 - task payloads are returned as action summaries, not full task documents
 - use `show --full` when you want larger inspection output
 
+### `seshflow query --text ... --contract ...`
+
+Use `query` as the lightweight lookup surface when you need to find a delegation candidate or recover an existing handoff in a medium-sized workspace.
+
+It currently supports:
+
+- `--text`: matches task id, title, description, contract id, tag, and bound file text
+- `--contract`: filters by bound contract id
+
+This is a lightweight lookup surface, not a search-engine layer. It does not imply BM25 or complex ranking commitments.
+
 ### `seshflow handoff create <taskId>`
 
 Use this when a task should be delegated into an isolated git worktree for an external coding agent or a human executor.

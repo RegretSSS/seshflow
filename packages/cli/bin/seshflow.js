@@ -452,6 +452,8 @@ program
   .option('-t, --tags <tags>', 'Filter by tags (comma-separated)')
   .option('--tag <tags>', 'Alias for --tags')
   .option('-a, --assignee <name>', 'Filter by assignee')
+  .option('--text <text>', 'Filter by task id, title, description, contract id, tag, or bound file text')
+  .option('--contract <contractId>', 'Filter by bound contract id')
   .option('-l, --limit <number>', 'Limit number of tasks displayed')
   .option('--full', 'Include full task payloads in JSON output')
   .option('--compact', 'Compact output (AI-friendly)')

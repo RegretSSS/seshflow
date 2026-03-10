@@ -71,6 +71,17 @@
 - `task` 默认返回动作摘要，而不是完整任务文档
 - 如果要看更大的检查 payload，请转用 `show --full`
 
+### `seshflow query --text ... --contract ...`
+
+当你需要在中型 workspace 里快速找到要 delegated 或恢复检查的对象时，优先用 `query` 的轻量搜索过滤，而不是引入新的搜索系统。
+
+当前支持：
+
+- `--text`：匹配 task id、title、description、contract id、tag、bound file
+- `--contract`：按绑定的 contract id 过滤
+
+这是轻量查找面，不是搜索引擎，也不承诺 BM25 或复杂排序。
+
 ### `seshflow handoff create <taskId>`
 
 当你要把一个任务委派到隔离的 git worktree，交给外部 coding agent 或人工执行者时，使用这个命令。
