@@ -272,6 +272,9 @@ describe('contracts commands', () => {
       ])
     );
     expect(payload.error.examples.rpc).toBe('.seshflow/contracts/contract.board-service.move-card.json');
+    expect(payload.error.protocolGuidance.examples).toEqual(
+      expect.arrayContaining(['http-json', 'rpc-json'])
+    );
   });
 
   test('contracts check surfaces workspace-level contract reminders', async () => {
@@ -414,5 +417,31 @@ describe('contracts commands', () => {
     expect(showPayload.contract.rpc).toBeUndefined();
     expect(showPayload.contract.owner).toBeUndefined();
     expect(showPayload.contract.notes).toEqual(['Used as a planning contract before wire format is finalized']);
+  });
+
+  test('contracts add accepts non-standard protocol strings as descriptive metadata', async () => {
+    const { workspacePath } = await createWorkspace();
+    const sourceFile = path.join(workspacePath, 'presence.contract.json');
+
+    await fs.writeJson(sourceFile, {
+      id: 'contract.presence-service.broadcast',
+      version: '1.0.0',
+      kind: 'rpc',
+      protocol: 'event-stream',
+      name: 'Broadcast Presence',
+      payload: {
+        transport: 'websocket',
+      }
+    }, { spaces: 2 });
+
+    const result = runCLI(workspacePath, ['contracts', 'add', sourceFile]);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.contract.protocol).toBe('event-stream');
+
+    const showResult = runCLI(workspacePath, ['contracts', 'show', 'contract.presence-service.broadcast']);
+    expect(showResult.status).toBe(0);
+    const showPayload = JSON.parse(showResult.stdout);
+    expect(showPayload.contract.protocol).toBe('event-stream');
   });
 });

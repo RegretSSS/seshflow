@@ -117,6 +117,7 @@ function formatContractValidationError(error, registry) {
   base.error.issues = error.issues;
   base.error.issueCount = error.issues.length;
   base.error.examples = registry.getStarterExamplePaths();
+  base.error.protocolGuidance = registry.getProtocolGuidance();
   base.error.hints = error.issues.map(issue => issue.message);
   return base;
 }

@@ -115,6 +115,8 @@ Store one JSON contract per file in this directory.
 - Keep the version inside the JSON payload, not in the filename
 - Start from \`contract.user-service.create-user.json\`
 - Start from \`contract.board-service.move-card.json\` for RPC-style contracts
+- For batch bootstrap, use \`contracts.bundle.json\` (JSON array) or \`contracts.bundle.jsonl\` (one contract per line)
+- \`protocol\` is descriptive metadata in v1.3.0; Seshflow stores custom values like \`event-stream\` without inferring transport semantics from code
 - Validate contract-linked planning through \`seshflow validate\` and \`seshflow import --update\`
 `;
 }

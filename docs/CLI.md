@@ -86,6 +86,7 @@ Notes:
 - Seshflow does not infer contracts from source-code scans
 - `currentContract` depends only on explicit bindings
 - broader protocol content inside a contract file can live in `payload`, `metadata`, and `extensions`
+- `protocol` is descriptive metadata; custom strings like `event-stream` are allowed
 - `seshflow contracts import <file>` accepts:
   - `.json` containing one contract object
   - `.json` containing a contract array

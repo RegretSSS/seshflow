@@ -161,6 +161,9 @@ Contract authoring rules today:
   - JSON object
   - JSON array
   - JSONL
+- batch import examples:
+  - `seshflow contracts import .seshflow/contracts/contracts.bundle.json`
+  - `seshflow contracts import .seshflow/contracts/contracts.bundle.jsonl`
 - Seshflow only depends on a small set of core fields for binding, reminders, and context recovery:
   - `id`
   - `version`
@@ -171,6 +174,7 @@ Contract authoring rules today:
   - `payload`
   - `metadata`
   - `extensions`
+- `protocol` is descriptive in `v1.3.0`; custom values such as `event-stream` are stored as-is
 - `currentContract` and `contracts show` omit empty fields by default
 
 Where contract linkage comes from:

@@ -12,7 +12,6 @@ import {
 import { isValidContractId, omitEmptyFields } from '../utils/helpers.js';
 
 const VALID_KINDS = new Set(Object.values(CONTRACT_KINDS));
-const VALID_PROTOCOLS = new Set(Object.values(CONTRACT_PROTOCOLS));
 const VALID_ROLES = new Set(Object.values(CONTRACT_ROLES));
 const KNOWN_CONTRACT_FIELDS = new Set([
   'schemaVersion',
@@ -219,6 +218,13 @@ export class ContractRegistry {
     };
   }
 
+  getProtocolGuidance() {
+    return {
+      examples: Object.values(CONTRACT_PROTOCOLS),
+      note: 'protocol is descriptive in v1.3.0; Seshflow stores and binds any non-empty protocol string without inferring transport semantics from code.',
+    };
+  }
+
   normalizeContract(raw = {}) {
     const payloadFields = Object.fromEntries(
       Object.entries(raw).filter(([key]) => !KNOWN_CONTRACT_FIELDS.has(key))
@@ -300,11 +306,12 @@ export class ContractRegistry {
       });
     }
 
-    if (!VALID_PROTOCOLS.has(contract.protocol)) {
+    if (!String(contract.protocol || '').trim()) {
       issues.push({
-        code: CONTRACT_CHECK_CODES.INVALID_PROTOCOL,
-        message: `Unsupported contract protocol: ${contract.protocol}`,
+        code: CONTRACT_CHECK_CODES.MISSING_REQUIRED_FIELD,
+        message: 'Missing required field: protocol',
         contractId: contract.id || null,
+        field: 'protocol',
       });
     }
 

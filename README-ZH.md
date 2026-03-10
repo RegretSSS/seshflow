@@ -165,6 +165,9 @@ seshflow mode set contractfirst
   - JSON object
   - JSON array
   - JSONL
+- 批量导入示例：
+  - `seshflow contracts import .seshflow/contracts/contracts.bundle.json`
+  - `seshflow contracts import .seshflow/contracts/contracts.bundle.jsonl`
 - Seshflow 只依赖少量核心字段做绑定、提醒和上下文恢复：
   - `id`
   - `version`
@@ -175,6 +178,7 @@ seshflow mode set contractfirst
   - `payload`
   - `metadata`
   - `extensions`
+- `protocol` 在 `v1.3.0` 中是描述性字段；像 `event-stream` 这样的自定义值会原样保存
 - `currentContract` 和 `contracts show` 默认只返回非空字段
 
 契约关联到底由什么决定：

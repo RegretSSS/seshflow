@@ -123,6 +123,8 @@ describe('output layering', () => {
     expect(summaryPayload.detailLevel).toBe('summary');
     expect(summaryPayload.runtimeEventSummary.recordCount).toBeGreaterThan(0);
     expect(summaryPayload.recentRuntimeEvents).toBeUndefined();
+    expect(summaryPayload.contractReminders).toBeUndefined();
+    expect(summaryPayload.processSummary).toBeUndefined();
 
     const fullResult = runCLI(workspacePath, ['show', task.id, '--json', '--full']);
     expect(fullResult.status).toBe(0);
@@ -130,6 +132,27 @@ describe('output layering', () => {
 
     expect(fullPayload.detailLevel).toBe('full');
     expect(fullPayload.recentRuntimeEvents).toHaveLength(1);
+  });
+
+  test('show omits empty execution sections by default', async () => {
+    const { workspacePath, manager } = await createWorkspace();
+    const task = manager.createTask({
+      title: 'Lean show target',
+      priority: 'P0',
+      status: 'todo',
+    });
+    await manager.saveData();
+
+    const result = runCLI(workspacePath, ['show', task.id, '--json']);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+
+    expect(payload.runtimeSummary).toBeUndefined();
+    expect(payload.recentRuntime).toBeUndefined();
+    expect(payload.processSummary).toBeUndefined();
+    expect(payload.recentProcesses).toBeUndefined();
+    expect(payload.runtimeEventSummary).toBeUndefined();
+    expect(payload.workspace.sourcePath).toBeUndefined();
   });
 
   test('storage throttles repeated workspace hints within the cooldown window', async () => {
