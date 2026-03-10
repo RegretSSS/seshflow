@@ -57,7 +57,7 @@ export function getDefaultTaskTemplate() {
 - [ ] Build board UI [id:task_ui] [P1] [frontend] [8h] [dependency:task_api]
 \`\`\`
 
-Template version: 1.3.0
+Template version: 1.3.1
 Last updated: ${now}
 `;
 }
@@ -115,6 +115,8 @@ Store one JSON contract per file in this directory.
 - Keep the version inside the JSON payload, not in the filename
 - Start from \`contract.user-service.create-user.json\`
 - Start from \`contract.board-service.move-card.json\` for RPC-style contracts
+- For batch bootstrap, use \`contracts.bundle.json\` (JSON array) or \`contracts.bundle.jsonl\` (one contract per line)
+- \`kind\` and \`protocol\` are descriptive metadata in v1.3.x; Seshflow stores custom values like \`event-stream\` without inferring transport semantics from code
 - Validate contract-linked planning through \`seshflow validate\` and \`seshflow import --update\`
 `;
 }
@@ -380,7 +382,10 @@ export async function init(modeOrOptions = {}, maybeOptions = {}) {
     console.log(chalk.blue('\nQuick start:'));
     if (mode === 'apifirst') {
       console.log(chalk.gray('  # Contract and planning phase'));
+      console.log(chalk.gray('  # Batch contract bootstrap (.json array or .jsonl)'));
       console.log(chalk.gray('  seshflow contracts import .seshflow/contracts/contracts.bundle.json'));
+      console.log(chalk.gray('  # or'));
+      console.log(chalk.gray('  seshflow contracts import .seshflow/contracts/contracts.bundle.jsonl'));
       console.log(chalk.gray('  seshflow contracts add .seshflow/contracts/contract.user-service.create-user.json'));
       console.log(chalk.gray('  seshflow validate .seshflow/plans/api-planning.md'));
       console.log(chalk.gray('  seshflow import .seshflow/plans/api-planning.md --update'));

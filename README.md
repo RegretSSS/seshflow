@@ -22,7 +22,7 @@ Seshflow is 100% AI-oriented, but the documentation and command flow should stil
 
 ## Status
 
-- `v1.3.0` is the current release line.
+- `v1.3.1` is the current release line.
 - `v1.3.0` scope: contract-first `apifirst` mode, explicit AI context priority, hook/RPC seams, workspace index, and boundary best practices on top of the `v1.2.0` execution core.
 - `v1.3.0` design target is documented in `docs/apifirst-mode.md`.
 - `v1.4.0` remains planned and has not started.
@@ -85,6 +85,10 @@ SESHFLOW_OUTPUT=pretty
 
 Default JSON remains the correct mode for AI, automation, and tool integrations.
 
+Use `--full` cautiously on inspection commands. It is intentionally high-context output and should be reserved for focused deep inspection.
+
+Integration-facing commands such as `rpc shell`, workspace index inspection, and `magic` are hidden from the default help surface. Use `seshflow --help --advanced` when you explicitly need those seams.
+
 ## Human-friendly starting flow
 
 ```bash
@@ -117,12 +121,14 @@ What the three core commands return:
   - returns the next actionable task, or the currently active task if one is already running
   - includes blocker information and workspace mode metadata
   - in `contractfirst`, it also carries the primary contract context for that task
+  - high-frequency commands like `ncfr`, `next`, `start`, and `done` omit empty sections by default and keep `--full` for larger inspection payloads
 
 ## Contract-first mode (`v1.3.0`, current command aliases: `contractfirst`, `apifirst`)
 
 ```bash
 seshflow init contractfirst
 seshflow contracts import .seshflow/contracts/contracts.bundle.json
+seshflow contracts import .seshflow/contracts/contracts.bundle.jsonl
 seshflow contracts add .seshflow/contracts/contract.user-service.create-user.json
 seshflow contracts add .seshflow/contracts/contract.board-service.move-card.json
 seshflow validate .seshflow/plans/api-planning.md
@@ -152,10 +158,16 @@ Contract authoring rules today:
 
 - one contract per JSON file still works well for small workspaces
 - batch contract bootstrap is supported through `seshflow contracts import <file>`
+- recommended batch formats:
+  - `.json` with a JSON array of contracts
+  - `.jsonl` with one contract per line
 - supported import bundle formats:
   - JSON object
   - JSON array
   - JSONL
+- batch import examples:
+  - `seshflow contracts import .seshflow/contracts/contracts.bundle.json`
+  - `seshflow contracts import .seshflow/contracts/contracts.bundle.jsonl`
 - Seshflow only depends on a small set of core fields for binding, reminders, and context recovery:
   - `id`
   - `version`
@@ -166,6 +178,7 @@ Contract authoring rules today:
   - `payload`
   - `metadata`
   - `extensions`
+- `kind` and `protocol` are descriptive in `v1.3.x`; custom values such as `event-stream` are stored as-is
 - `currentContract` and `contracts show` omit empty fields by default
 
 Where contract linkage comes from:

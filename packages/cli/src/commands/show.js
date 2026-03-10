@@ -1,11 +1,23 @@
 import { TaskManager } from '../core/task-manager.js';
-import { truncate } from '../utils/helpers.js';
-import { isJSONMode, formatErrorResponse, formatSuccessResponse, formatWorkspaceJSON, outputJSON, formatTaskJSON } from '../utils/json-output.js';
+import { omitEmptyFields, truncate } from '../utils/helpers.js';
+import {
+  isJSONMode,
+  formatApiFirstContextJSON,
+  formatErrorResponse,
+  formatProcessSummaryJSON,
+  formatRuntimeSummaryJSON,
+  formatSuccessResponse,
+  formatTaskActionJSON,
+  formatTaskJSON,
+  formatWorkspaceJSON,
+  outputJSON,
+} from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
 import { loadTextUI } from '../utils/text-ui.js';
 import { resolveWorkspaceMode } from '../core/workspace-mode.js';
 import { buildApiFirstContext } from '../core/apifirst-context.js';
+import { handlePreInitGuard } from '../utils/workspace-guard.js';
 
 function subtaskProgress(task) {
   const total = task.subtasks?.length || 0;
@@ -130,6 +142,10 @@ function displayPretty(task, chalk, blockers = [], runtimeEntries = [], processE
 }
 
 export async function show(taskId, options = {}) {
+  if (handlePreInitGuard('show', options)) {
+    process.exit(1);
+  }
+
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const jsonMode = isJSONMode(options);
@@ -169,28 +185,31 @@ export async function show(taskId, options = {}) {
     spinner?.stop();
 
     if (jsonMode) {
-      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
-      outputJSON(formatSuccessResponse({
+      const workspaceJSON = await formatWorkspaceJSON(
+        manager.storage,
+        manager.getTasks().length,
+        includeFullJSON ? { full: true } : { compact: true }
+      );
+      outputJSON(formatSuccessResponse(omitEmptyFields({
         mode: modeInfo.mode,
         detailLevel: includeFullJSON ? 'full' : 'summary',
-        task: formatTaskJSON(task),
-        contextPriority: apiFirstContext?.contextPriority || null,
-        currentContract: apiFirstContext?.currentContract || null,
-        relatedContracts: apiFirstContext?.relatedContracts || [],
-        openContractQuestions: apiFirstContext?.openContractQuestions || [],
-        relatedContractTasks: apiFirstContext?.relatedTasks || [],
-        contractReminders: apiFirstContext?.contractReminders || [],
-        contractReminderSummary: apiFirstContext?.contractReminderSummary || { total: 0, errors: 0, warnings: 0 },
-        subtasks: task.subtasks || [],
-        dependencies: task.dependencies || [],
-        blockedBy: blockers.map(t => ({ id: t.id, title: t.title, status: t.status })),
-        runtimeSummary,
-        recentRuntime: runtimeEntries,
-        processSummary,
-        recentProcesses: processEntries,
-        runtimeEventSummary,
+        task: includeFullJSON ? formatTaskJSON(task) : formatTaskActionJSON(task),
+        ...(apiFirstContext ? formatApiFirstContextJSON(apiFirstContext) : {}),
+        inspectionHint: includeFullJSON ? undefined : {
+          fullCommand: `seshflow show ${task.id} --full`,
+          warning: 'high-context-output',
+        },
+        relatedContractTasks: apiFirstContext?.relatedTasks?.length ? apiFirstContext.relatedTasks : undefined,
+        subtasks: task.subtasks?.length ? task.subtasks : undefined,
+        dependencies: task.dependencies?.length ? task.dependencies : undefined,
+        blockedBy: blockers.length ? blockers.map(t => ({ id: t.id, title: t.title, status: t.status })) : undefined,
+        runtimeSummary: formatRuntimeSummaryJSON(runtimeSummary),
+        recentRuntime: runtimeEntries.length ? runtimeEntries : undefined,
+        processSummary: formatProcessSummaryJSON(processSummary),
+        recentProcesses: processEntries.length ? processEntries : undefined,
+        runtimeEventSummary: runtimeEventSummary.recordCount > 0 ? runtimeEventSummary : undefined,
         ...(includeFullJSON ? { recentRuntimeEvents: runtimeEvents } : {}),
-      }, workspaceJSON));
+      }), workspaceJSON));
       return;
     }
 

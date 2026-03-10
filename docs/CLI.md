@@ -35,6 +35,12 @@ What it returns:
 - next ready task if no active session exists
 - focus information that tells AI what to inspect next
 
+If the current directory has not been initialized yet:
+
+- `ncfr` returns a lightweight bootstrap hint only
+- it does not create `.seshflow/` as a side effect
+- it does not guess whether you meant `init` or `init contractfirst`
+
 In `contractfirst`, it additionally returns:
 
 - `currentContract`
@@ -44,6 +50,7 @@ In `contractfirst`, it additionally returns:
 - `contractReminderSummary`
 - `contextPriority`
 - those contract fields omit empty values by default
+- high-frequency commands keep only non-empty context sections by default
 
 ### `seshflow next`
 
@@ -57,6 +64,12 @@ What it returns:
 - blocker/unmet-dependency information when relevant
 
 In `contractfirst`, it additionally carries the primary contract context for that task.
+
+Default JSON for `next`, `start`, and `done` is intentionally summary-oriented:
+
+- empty contract/runtime/process sections are omitted
+- task payloads are returned as action summaries, not full task documents
+- use `show --full` when you want larger inspection output
 
 ## Contract-first linkage
 
@@ -79,6 +92,11 @@ Notes:
 - Seshflow does not infer contracts from source-code scans
 - `currentContract` depends only on explicit bindings
 - broader protocol content inside a contract file can live in `payload`, `metadata`, and `extensions`
+- `kind` and `protocol` are descriptive metadata; custom strings like `event-stream` are allowed
+- `seshflow contracts import <file>` accepts:
+  - `.json` containing one contract object
+  - `.json` containing a contract array
+  - `.jsonl` containing one contract per line
 
 ## Human-readable output
 
@@ -103,6 +121,10 @@ Global override:
 ```bash
 SESHFLOW_OUTPUT=pretty
 ```
+
+Use `--full` cautiously on inspection commands. It is intentionally high-context output and should be reserved for focused deep inspection.
+
+Advanced integration surfaces such as `rpc shell`, workspace index inspection, and `magic` are hidden from the default root help. Use `seshflow --help --advanced` when you explicitly need them.
 
 ## Stable aliases
 

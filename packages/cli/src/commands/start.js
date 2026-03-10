@@ -2,10 +2,24 @@
 import ora from 'ora';
 import { TaskManager } from '../core/task-manager.js';
 import { TaskTransitionService } from '../core/task-transition-service.js';
-import { formatErrorResponse, formatSuccessResponse, formatTaskJSON, formatWorkspaceJSON, isJSONMode, outputJSON } from '../utils/json-output.js';
+import {
+  formatErrorResponse,
+  formatRuntimeSummaryJSON,
+  formatSuccessResponse,
+  formatTaskActionJSON,
+  formatWorkspaceJSON,
+  isJSONMode,
+  outputJSON
+} from '../utils/json-output.js';
 import { resolveOutputMode } from '../utils/output-mode.js';
+import { omitEmptyFields } from '../utils/helpers.js';
+import { handlePreInitGuard } from '../utils/workspace-guard.js';
 
 export async function start(taskId, options = {}) {
+  if (handlePreInitGuard('start', options)) {
+    process.exit(1);
+  }
+
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const spinner = (!compactMode && process.stdout.isTTY) ? ora('Starting task').start() : null;
@@ -38,16 +52,16 @@ export async function start(taskId, options = {}) {
     const subDone = task.subtasks?.filter(st => st.completed).length || 0;
 
     if (isJSONMode(options)) {
-      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length);
-      outputJSON(formatSuccessResponse({
+      const workspaceJSON = await formatWorkspaceJSON(manager.storage, manager.getTasks().length, { compact: true });
+      outputJSON(formatSuccessResponse(omitEmptyFields({
         action: 'start',
         changed: result.changed,
-        task: formatTaskJSON(task),
-        runtimeSummary: manager.getRuntimeSummary(task),
-        announcementResults: result.announcementResults || [],
+        task: formatTaskActionJSON(task),
+        runtimeSummary: formatRuntimeSummaryJSON(manager.getRuntimeSummary(task)),
+        announcementResults: result.announcementResults?.length ? result.announcementResults : undefined,
         hasActiveSession: true,
         switched: result.switched,
-        previousTask: result.previousTask ? formatTaskJSON(result.previousTask) : null,
+        previousTask: result.previousTask ? formatTaskActionJSON(result.previousTask) : undefined,
         unmetDependencies: result.unmetDependencies.map(dep => ({
           id: dep.id,
           title: dep.title,
@@ -55,7 +69,7 @@ export async function start(taskId, options = {}) {
           priority: dep.priority,
         })),
         transitionEvent: result.transitionEvent,
-      }, workspaceJSON));
+      }), workspaceJSON));
       return;
     }
 

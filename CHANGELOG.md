@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.3.1] - 2026-03-10
+
+### Changed
+
+- Split primary CLI help from advanced integration help so `rpc shell`, workspace index inspection, and other developer surfaces no longer distract normal usage flows.
+- Clarified `contractfirst` guidance across README, CLI docs, skills, and init quick-start output.
+- Tightened high-frequency command payloads so `ncfr`, `next`, `start`, `done`, and `show` default to smaller, non-empty summaries.
+- Clarified contract bundle import guidance for JSON objects, JSON arrays, and JSONL bundles.
+
+### Fixed
+
+- Made pre-init probes such as `seshflow ncfr` side-effect free; probing an uninitialized directory no longer creates partial `.seshflow` state.
+- Relaxed contract `kind` and `protocol` handling so descriptive values like `event-stream` work consistently for both single-file and batch imports.
+- Reduced repeated empty contract/runtime/process sections in AI-facing JSON responses.
+- Added lightweight `contractStatus` and `inspectionHint` hints so high-frequency commands stay discoverable without inflating default output.
+
 ## [1.3.0] - 2026-03-09
 
 ### Added

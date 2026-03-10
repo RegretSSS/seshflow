@@ -5,6 +5,7 @@ import { formatTaskJSON, formatTaskSummaryJSON, formatSuccessResponse, formatErr
 import { resolveOutputMode } from '../utils/output-mode.js';
 import { truncate } from '../utils/helpers.js';
 import { shouldShowWorkspaceHint } from '../utils/hint-throttle.js';
+import { handlePreInitGuard } from '../utils/workspace-guard.js';
 
 function matchesTag(taskTag, inputTag) {
   const taskValue = String(taskTag || '').toLowerCase();
@@ -47,6 +48,10 @@ function displayPrettyTask(task) {
 }
 
 export async function query(options = {}) {
+  if (handlePreInitGuard('query', options)) {
+    process.exit(1);
+  }
+
   const mode = resolveOutputMode(options);
   const compactMode = mode === 'compact';
   const spinner = compactMode ? null : ora('Querying tasks').start();

@@ -25,7 +25,7 @@ Seshflow 虽然 100% 面向 AI，但它依然支持人类使用。
 
 ## 当前状态
 
-- 当前发版主线：`v1.3.0`
+- 当前发版主线：`v1.3.1`
 - `v1.3.0` 在 `v1.2.0` 执行内核的基础上，新增了契约先行模式（`contractfirst`）、显式 AI 上下文优先级、hook/RPC 接缝、多工作区索引和边界最佳实践
 - `v1.3.0` 的具体设计目标见 `docs/apifirst-mode.md` 与 `docs/apifirst-mode.zh-CN.md`
 - `v1.4.0` 仍在规划阶段，尚未开始实现
@@ -89,6 +89,10 @@ SESHFLOW_OUTPUT=pretty
 
 默认 JSON 仍然是给 AI、自动化和工具接入时最合适的模式。
 
+`--full` 这类检查型命令要谨慎使用。它们本来就是高上下文输出，只应在需要深度检查时显式调用。
+
+像 `rpc shell`、workspace index、`magic` 这类集成向命令默认不会出现在根 help 里。只有在明确需要这些接缝时，再使用 `seshflow --help --advanced`。
+
 ## 对人友好的起步流程
 
 ```bash
@@ -121,12 +125,14 @@ seshflow next
   - 返回下一个可执行任务；如果已经有活动任务，则优先返回当前活动任务
   - 同时给出 blocker 信息和 workspace mode 元数据
   - 在 `contractfirst` 模式下，还会把该任务的主契约一起带出来
+  - `ncfr`、`next`、`start`、`done` 这类高频命令默认会省略空区块；需要更大 payload 时再用 `--full`
 
 ## 契约先行模式（`v1.3.0`，命令名：`contractfirst`）
 
 ```bash
 seshflow init contractfirst
 seshflow contracts import .seshflow/contracts/contracts.bundle.json
+seshflow contracts import .seshflow/contracts/contracts.bundle.jsonl
 seshflow contracts add .seshflow/contracts/contract.user-service.create-user.json
 seshflow contracts add .seshflow/contracts/contract.board-service.move-card.json
 seshflow validate .seshflow/plans/api-planning.md
@@ -156,10 +162,16 @@ seshflow mode set contractfirst
 
 - 小型 workspace 仍然适合一份 contract 一个 JSON 文件
 - 批量初始化时可以用 `seshflow contracts import <file>`
+- 推荐的批量格式：
+  - `.json`：文件内容为 contract 数组
+  - `.jsonl`：每行一个 contract
 - 支持的导入格式：
   - JSON object
   - JSON array
   - JSONL
+- 批量导入示例：
+  - `seshflow contracts import .seshflow/contracts/contracts.bundle.json`
+  - `seshflow contracts import .seshflow/contracts/contracts.bundle.jsonl`
 - Seshflow 只依赖少量核心字段做绑定、提醒和上下文恢复：
   - `id`
   - `version`
@@ -170,6 +182,7 @@ seshflow mode set contractfirst
   - `payload`
   - `metadata`
   - `extensions`
+- `kind` 和 `protocol` 在 `v1.3.x` 中都是描述性字段；像 `event-stream` 这样的自定义值会原样保存
 - `currentContract` 和 `contracts show` 默认只返回非空字段
 
 契约关联到底由什么决定：

@@ -38,8 +38,11 @@ describe('state command JSON output', () => {
     expect(payload.action).toBe('start');
     expect(payload.changed).toBe(true);
     expect(payload.task.id).toBe(task.id);
+    expect(payload.task.description).toBeUndefined();
+    expect(payload.runtimeSummary).toBeUndefined();
     expect(payload.hasActiveSession).toBe(true);
     expect(payload.workspace.totalTasks).toBe(1);
+    expect(payload.workspace.sourcePath).toBeUndefined();
   });
 
   test('start --json surfaces session conflict as structured error', async () => {
@@ -94,6 +97,8 @@ describe('state command JSON output', () => {
     expect(donePayload.progress.before.done).toBe(0);
     expect(donePayload.progress.after.done).toBe(1);
     expect(donePayload.unlockedTasks.map(task => task.id)).toContain(taskB.id);
+    expect(donePayload.task.description).toBeUndefined();
+    expect(donePayload.workspace.sourcePath).toBeUndefined();
 
     const completeResult = runCLI(workspacePath, ['complete', taskB.id, '--json']);
     expect(completeResult.status).toBe(0);

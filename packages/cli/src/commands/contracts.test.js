@@ -204,6 +204,50 @@ describe('contracts commands', () => {
     );
   });
 
+  test('contracts import accepts broad contract kind strings in jsonl bundles', async () => {
+    const { workspacePath } = await createWorkspace();
+    const sourceFile = path.join(workspacePath, 'contracts.streams.jsonl');
+
+    await fs.writeFile(sourceFile, [
+      JSON.stringify({
+        id: 'contract.presence-service.broadcast',
+        version: '1.0.0',
+        kind: 'event-stream',
+        protocol: 'websocket',
+        name: 'Broadcast Presence',
+        payload: {
+          transport: 'fanout',
+        }
+      }),
+      JSON.stringify({
+        id: 'contract.activity-service.feed',
+        version: '1.0.0',
+        kind: 'message-bus',
+        protocol: 'internal-bus',
+        name: 'Activity Feed',
+      })
+    ].join('\n'), 'utf8');
+
+    const importResult = runCLI(workspacePath, ['contracts', 'import', sourceFile]);
+    expect(importResult.status).toBe(0);
+    const payload = JSON.parse(importResult.stdout);
+    expect(payload.importedCount).toBe(2);
+    expect(payload.contracts).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          id: 'contract.presence-service.broadcast',
+          kind: 'event-stream',
+          protocol: 'websocket',
+        }),
+        expect.objectContaining({
+          id: 'contract.activity-service.feed',
+          kind: 'message-bus',
+          protocol: 'internal-bus',
+        }),
+      ])
+    );
+  });
+
   test('contracts import rejects duplicate contract ids in the same bundle', async () => {
     const { workspacePath } = await createWorkspace();
     const sourceFile = path.join(workspacePath, 'contracts.duplicate.json');
@@ -272,6 +316,9 @@ describe('contracts commands', () => {
       ])
     );
     expect(payload.error.examples.rpc).toBe('.seshflow/contracts/contract.board-service.move-card.json');
+    expect(payload.error.protocolGuidance.examples).toEqual(
+      expect.arrayContaining(['http-json', 'rpc-json'])
+    );
   });
 
   test('contracts check surfaces workspace-level contract reminders', async () => {
@@ -414,5 +461,33 @@ describe('contracts commands', () => {
     expect(showPayload.contract.rpc).toBeUndefined();
     expect(showPayload.contract.owner).toBeUndefined();
     expect(showPayload.contract.notes).toEqual(['Used as a planning contract before wire format is finalized']);
+  });
+
+  test('contracts add accepts non-standard kind and protocol strings as descriptive metadata', async () => {
+    const { workspacePath } = await createWorkspace();
+    const sourceFile = path.join(workspacePath, 'presence.contract.json');
+
+    await fs.writeJson(sourceFile, {
+      id: 'contract.presence-service.broadcast',
+      version: '1.0.0',
+      kind: 'event-stream',
+      protocol: 'event-stream',
+      name: 'Broadcast Presence',
+      payload: {
+        transport: 'websocket',
+      }
+    }, { spaces: 2 });
+
+    const result = runCLI(workspacePath, ['contracts', 'add', sourceFile]);
+    expect(result.status).toBe(0);
+    const payload = JSON.parse(result.stdout);
+    expect(payload.contract.kind).toBe('event-stream');
+    expect(payload.contract.protocol).toBe('event-stream');
+
+    const showResult = runCLI(workspacePath, ['contracts', 'show', 'contract.presence-service.broadcast']);
+    expect(showResult.status).toBe(0);
+    const showPayload = JSON.parse(showResult.stdout);
+    expect(showPayload.contract.kind).toBe('event-stream');
+    expect(showPayload.contract.protocol).toBe('event-stream');
   });
 });

@@ -35,6 +35,12 @@
 - 如果没有活动 session，则返回 next ready task
 - 告诉 AI 下一步应该先查看什么的 focus 信息
 
+如果当前目录还没有初始化：
+
+- `ncfr` 只会返回一个轻量 bootstrap 提示
+- 不会偷偷创建 `.seshflow/`
+- 不会替你猜应该执行 `init` 还是 `init contractfirst`
+
 在 `contractfirst` 模式下，还会额外返回：
 
 - `currentContract`
@@ -44,6 +50,7 @@
 - `contractReminderSummary`
 - `contextPriority`
 - 这些 contract 字段默认只返回非空值
+- 高频命令默认只保留非空上下文区块
 
 ### `seshflow next`
 
@@ -57,6 +64,12 @@
 - 相关的 blocker / unmet dependency 信息
 
 在 `contractfirst` 模式下，它还会把该任务的主契约一起带出来。
+
+`next`、`start`、`done` 的默认 JSON 有意保持为摘要层：
+
+- 空的 contract/runtime/process 区块不会默认返回
+- `task` 默认返回动作摘要，而不是完整任务文档
+- 如果要看更大的检查 payload，请转用 `show --full`
 
 ## 契约先行的关联链路
 
@@ -79,6 +92,11 @@ Seshflow 不会靠任意代码扫描去猜 contract 关联。
 - Seshflow 不靠源码扫描猜 contract
 - `currentContract` 的返回只依赖显式绑定
 - contract 文件里更宽泛的协议内容可以放进 `payload`、`metadata`、`extensions`
+- `kind` 和 `protocol` 都是描述性元数据；像 `event-stream` 这样的自定义字符串是允许的
+- `seshflow contracts import <file>` 支持：
+  - `.json`：单个 contract object
+  - `.json`：contract 数组
+  - `.jsonl`：每行一个 contract
 
 ## 对人类友好的输出
 
@@ -103,6 +121,10 @@ seshflow show <taskId> --pretty
 ```bash
 SESHFLOW_OUTPUT=pretty
 ```
+
+`--full` 这类检查命令要谨慎使用。它们本来就是高上下文输出，只适合在需要深度检查时显式调用。
+
+`rpc shell`、workspace index、`magic` 这类高级集成面默认不会出现在根 help 里。只有明确需要这些接缝时，再使用 `seshflow --help --advanced`。
 
 ## 稳定别名
 

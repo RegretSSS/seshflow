@@ -5,6 +5,11 @@ import { spawnSync } from 'node:child_process';
 
 const VERSION = '1.3.0';
 const program = new Command();
+const ADVANCED_HELP_TARGETS = [
+  { name: 'rpc', description: 'Inspect stable RPC/API integration shell payloads' },
+  { name: 'workspaces', description: 'Inspect the global workspace index' },
+  { name: 'magic', description: 'Execute skill-driven advanced workflows' },
+];
 
 function configureWindowsUtf8() {
   if (process.platform !== 'win32') {
@@ -33,6 +38,7 @@ configureWindowsUtf8();
 program
   .name('seshflow')
   .description('Seshflow - AI development runtime control plane')
+  .option('--advanced', 'Show advanced integration and developer commands in help output')
   .version(VERSION);
 
 program
@@ -472,5 +478,38 @@ program
   .command('validate <file>')
   .description('Validate markdown task file before import')
   .action(lazyAction(() => import('../src/commands/validate.js'), 'validateMarkdown'));
+
+function isRootHelpRequest(argv = []) {
+  const args = argv.slice(2);
+  const hasHelp = args.includes('--help') || args.includes('-h');
+  if (!hasHelp) {
+    return false;
+  }
+
+  const nonOptionArgs = args.filter(arg => !arg.startsWith('-'));
+  return nonOptionArgs.length === 0;
+}
+
+function buildRootHelp(showAdvanced = false) {
+  let help = program.helpInformation();
+  if (!showAdvanced) {
+    help = help
+      .replace(/^.*\brpc\b.*$\r?\n/gm, '')
+      .replace(/^.*\bworkspaces\|workspace\b.*$\r?\n/gm, '')
+      .replace(/^.*\bmagic\b.*$\r?\n/gm, '');
+    help += '\nAdvanced integration commands are hidden by default. Use `seshflow --help --advanced` to view them.\n';
+    return help;
+  }
+
+  const lines = ADVANCED_HELP_TARGETS.map(target =>
+    `  ${target.name.padEnd(14, ' ')} ${target.description}`
+  );
+  return `${help}\nAdvanced Commands:\n${lines.join('\n')}\n`;
+}
+
+if (isRootHelpRequest(process.argv)) {
+  console.log(buildRootHelp(process.argv.includes('--advanced')));
+  process.exit(0);
+}
 
 program.parse();
