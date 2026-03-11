@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.4.2] - 2026-03-11
+
+### Fixed
+
+- Added the missing published runtime dependency from `@seshflow/cli` to `@seshflow/shared`, restoring `contracts`, `rpc shell`, handoff, and other shared-surface commands for npm-installed CLI users.
+
 ## [1.4.1] - 2026-03-11
 
 ### Added

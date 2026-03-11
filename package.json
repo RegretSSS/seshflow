@@ -1,6 +1,6 @@
 {
   "name": "seshflow-monorepo",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "private": true,
   "description": "Seshflow monorepo - AI development runtime control plane",
   "scripts": {
