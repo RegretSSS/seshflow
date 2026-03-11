@@ -3,7 +3,7 @@
 import { Command } from 'commander';
 import { spawnSync } from 'node:child_process';
 
-const VERSION = '1.4.1';
+const VERSION = '1.4.2';
 const program = new Command();
 const ADVANCED_HELP_TARGETS = [
   { name: 'rpc', description: 'Inspect stable RPC/API integration shell payloads' },
@@ -51,6 +51,20 @@ program
     const resolvedOptions = typeof mode === 'string' ? options : mode;
     return mod.init(resolvedMode, resolvedOptions);
   });
+
+program
+  .command('issue <title>')
+  .description('File lightweight workflow feedback into the remembered seshflow workspace')
+  .option('--trigger <text>', 'What action or condition exposed the issue')
+  .option('--actual <text>', 'What actually happened')
+  .option('--expected <text>', 'What should have happened instead')
+  .option('--impact <text>', 'Why this matters or what it blocked')
+  .option('-p, --priority <P0|P1|P2|P3>', 'Feedback priority')
+  .option('-t, --tags <tags>', 'Comma-separated extra tags')
+  .option('--workspace <path>', 'Explicit target workspace path')
+  .option('--json', 'Output as JSON')
+  .option('--no-json', 'Disable JSON output')
+  .action(lazyAction(() => import('../src/commands/issue.js'), 'issue'));
 
 program
   .command('add <title>')

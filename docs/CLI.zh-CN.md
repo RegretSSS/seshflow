@@ -40,6 +40,7 @@
 - `ncfr` 只会返回一个轻量 bootstrap 提示
 - 不会偷偷创建 `.seshflow/`
 - 不会替你猜应该执行 `init` 还是 `init contractfirst`
+- 初始化成功后，`ncfr` 也会把当前 workspace 记为后续 `seshflow issue` 的默认反馈目标
 
 在 `contractfirst` 模式下，还会额外返回：
 
@@ -70,6 +71,30 @@
 - 空的 contract/runtime/process 区块不会默认返回
 - `task` 默认返回动作摘要，而不是完整任务文档
 - 如果要看更大的检查 payload，请转用 `show --full`
+
+### `seshflow issue <title>`
+
+当你在别的目录里发现了 Seshflow 的问题，想一次性把反馈落回当前正在使用的 Seshflow workspace 时使用。
+
+它会做什么：
+
+- 把反馈直接写成目标 workspace 里的 issue/feedback 任务
+- 默认投递到最近一次由 `init` 或 `ncfr` 记住的 workspace
+- 自动附带来源目录、来源 workspace 状态、来源分支（如果能解析）
+
+它要求什么：
+
+- 必填字段：
+  - `--trigger`
+  - `--actual`
+  - `--expected`
+  - `--impact`
+
+示例：
+
+```bash
+seshflow issue "ncfr hint is too vague" --trigger "Running ncfr after handoff reclaim" --actual "The hint did not explain the next command" --expected "The hint should point to handoff show" --impact "The main agent wasted a recovery turn"
+```
 
 如果任务显式声明了 `expectedArtifacts`：
 
