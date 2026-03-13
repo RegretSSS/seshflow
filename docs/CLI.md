@@ -40,7 +40,6 @@ If the current directory has not been initialized yet:
 - `ncfr` returns a lightweight bootstrap hint only
 - it does not create `.seshflow/` as a side effect
 - it does not guess whether you meant `init` or `init contractfirst`
-- once a workspace is initialized, `ncfr` also remembers it as the default `seshflow issue` target
 
 In `contractfirst`, it additionally returns:
 
@@ -78,29 +77,6 @@ If a task explicitly declares `expectedArtifacts`:
 - missing artifacts return warnings only, they do not block completion
 - in delegated flows, `handoff submit` performs the same lightweight check inside the worktree
 - `done --start-next` completes the current task and immediately starts the next ready task when you want fewer round trips
-
-### `seshflow issue <title>`
-
-Use this when you discover a Seshflow problem from another directory and want to file it back into the active Seshflow workspace in one step.
-
-What it does:
-
-- creates an issue/feedback task directly in the target workspace
-- defaults to the workspace most recently remembered by `init` or `ncfr`
-- automatically captures source cwd, source workspace state, and source branch when available
-
-What it requires:
-
-- `--trigger`
-- `--actual`
-- `--expected`
-- `--impact`
-
-Example:
-
-```bash
-seshflow issue "ncfr hint is too vague" --trigger "Running ncfr after handoff reclaim" --actual "The hint did not explain the next command" --expected "The hint should point to handoff show" --impact "The main agent wasted a recovery turn"
-```
 
 ### `seshflow query --text ... --contract ...`
 

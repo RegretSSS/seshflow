@@ -47,13 +47,6 @@ function taskRef(task, withStatus = true) {
   return `${head}:${truncate(task.title || task.id, 44).replace(/\|/g, '/')}`;
 }
 
-function buildIssueHint() {
-  return {
-    command: 'seshflow issue "<title>" --trigger "..." --actual "..." --expected "..." --impact "..."',
-    scope: 'feedback-back-to-this-workspace',
-  };
-}
-
 function printCompactContext(data) {
   const {
     project,
@@ -201,7 +194,6 @@ export async function newchatfirstround(options = {}) {
   try {
     const manager = new TaskManager();
     await manager.init();
-    await manager.storage.rememberIssueTarget('ncfr');
 
     const workspaceInfo = await manager.storage.getWorkspaceInfo();
     const modeInfo = await resolveWorkspaceMode(manager.storage);
@@ -267,7 +259,6 @@ export async function newchatfirstround(options = {}) {
       fullMode,
       showCommandHints: await shouldShowWorkspaceHint(manager.storage, 'ncfr:pretty-hints'),
     };
-    const showIssueHint = await shouldShowWorkspaceHint(manager.storage, 'ncfr:issue-hint');
 
     const delegatedTasks = manager.getActiveHandoffs(5)
       .map(handoff => {
@@ -304,7 +295,6 @@ export async function newchatfirstround(options = {}) {
         delegatedTasks: delegatedTasks.length > 0 ? delegatedTasks : undefined,
         focus: apiFirstContext?.currentContract ? 'contract-first' : (currentTask ? 'current-task' : (nextTask ? 'next-ready-task' : 'none')),
         ...(apiFirstContext ? formatApiFirstContextJSON(apiFirstContext) : {}),
-        issueHint: showIssueHint ? buildIssueHint() : undefined,
       });
 
       if (fullMode) {
@@ -344,15 +334,8 @@ export async function newchatfirstround(options = {}) {
     spinner?.stop();
     if (compactMode) {
       printCompactContext(contextData);
-      if (showIssueHint) {
-        console.log(`ISSUE_HINT | ${buildIssueHint().command}`);
-      }
     } else {
       printPrettyContext(contextData, chalk, options);
-      if (showIssueHint) {
-        console.log(chalk.blue('\nFeedback:'));
-        console.log(chalk.gray(`  ${buildIssueHint().command}`));
-      }
     }
   } catch (error) {
     spinner?.fail('Failed to load context');

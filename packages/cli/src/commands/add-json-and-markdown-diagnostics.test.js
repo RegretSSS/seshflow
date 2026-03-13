@@ -65,4 +65,39 @@ describe('add json and markdown diagnostics', () => {
     expect(result.stderr).toContain('fix: keep each [id:task_xxx] unique within the file');
     expect(result.stderr).toContain('Accepted task patterns:');
   });
+
+  test('validate accepts indented root tasks and warns about ambiguous indentation', async () => {
+    const { workspacePath } = await createWorkspace();
+    const markdownPath = path.join(workspacePath, 'indented-plan.md');
+    await fs.writeFile(markdownPath, [
+      '# Plan',
+      '',
+      '  - [ ] First task [id:task_first] [P1] [estimate: 2h]',
+      '',
+      '  - [ ] Second task [id:task_second] [P1] [dependency:task_first]',
+    ].join('\n'), 'utf8');
+
+    const result = runCLI(workspacePath, ['validate', 'indented-plan.md']);
+    expect(result.status).toBe(0);
+    expect(result.stdout).toContain('Tasks found: 2');
+    expect(result.stdout).toContain('top-level task is indented; parsed as a root task for compatibility');
+  });
+
+  test('import supports inline estimate metadata tokens', async () => {
+    const { workspacePath } = await createWorkspace();
+    const markdownPath = path.join(workspacePath, 'estimate-token-plan.md');
+    await fs.writeFile(markdownPath, [
+      '- [ ] Tokenized estimate [id:task_estimate] [P1] [estimate: 2h]',
+      '- [ ] Priority token variant [id:task_priority] [priority:P2] [dependency:task_estimate]',
+    ].join('\n'), 'utf8');
+
+    const result = runCLI(workspacePath, ['import', 'estimate-token-plan.md']);
+    expect(result.status).toBe(0);
+
+    const manager = new TaskManager(workspacePath);
+    await manager.init();
+    expect(manager.getTask('task_estimate').estimatedHours).toBe(2);
+    expect(manager.getTask('task_priority').priority).toBe('P2');
+    expect(manager.getTask('task_priority').dependencies).toEqual(['task_estimate']);
+  });
 });
