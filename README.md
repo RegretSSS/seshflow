@@ -12,7 +12,6 @@ What it gives you:
 
 - task state that survives across chats
 - explicit "what should I do now" context through `seshflow ncfr`
-- lightweight feedback capture back into the active Seshflow workspace through `seshflow issue`
 - recoverable runtime history: commands, logs, artifacts, background processes, transition events
 - contract-first planning when API, RPC, or message agreements must be established before implementation
 - contract bundles can be imported from a JSON array or JSONL file
@@ -117,11 +116,6 @@ Recommended sequence:
 1. run `seshflow init` once per workspace
 2. start each new AI conversation with `seshflow ncfr`
 3. follow the returned focus into planning, inspection, or execution
-4. if you discover a workflow issue from another directory, file it back with:
-
-```bash
-seshflow issue "<title>" --trigger "..." --actual "..." --expected "..." --impact "..."
-```
 
 AI-facing commands now default to structured JSON, so `ncfr` already returns the minimal workspace snapshot needed to decide what to do next.
 
@@ -130,16 +124,11 @@ What the three core commands return:
 - `seshflow init`
   - creates `.seshflow/config.json`, `.seshflow/tasks.json`, and starter planning templates
   - prints the resolved workspace location and the mode that was initialized
-  - remembers this workspace as the default `seshflow issue` target
 - `seshflow ncfr`
   - returns the current workspace snapshot
   - tells AI whether there is an active task, a next ready task, or no immediate focus
   - in `contractfirst`, it also returns `currentContract`, `contractReminderSummary`, and `contextPriority`
   - `currentContract` only includes non-empty fields
-- `seshflow issue`
-  - files a lightweight issue back into the remembered Seshflow workspace in one command
-  - requires `trigger`, `actual`, `expected`, and `impact`
-  - automatically includes source cwd, source workspace state, and source branch when available
 - `seshflow next`
   - returns the next actionable task, or the currently active task if one is already running
   - includes blocker information and workspace mode metadata
