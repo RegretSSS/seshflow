@@ -32,6 +32,8 @@ export function getDefaultTaskTemplate() {
 - Keep stable task ids in Markdown with \`[id:task_xxx]\`
 - Use \`[dependency:task_xxx]\` for stable dependency references
 - Planning fields live in Markdown: title, description, priority, tags, estimate, assignee, dependencies
+- Top-level tasks should start at column 1; indent child subtasks by 2 spaces
+- Estimates work as \`[2h]\`, \`[estimate:2h]\`, or an indented \`estimate: 2h\` line
 - Execution fields stay in \`.seshflow/tasks.json\`: status, sessions, runtime, artifacts, timestamps
 - To revise a plan, edit the Markdown file and run \`seshflow import <file> --update\`
 
@@ -57,7 +59,7 @@ export function getDefaultTaskTemplate() {
 - [ ] Build board UI [id:task_ui] [P1] [frontend] [8h] [dependency:task_api]
 \`\`\`
 
-Template version: 1.4.0
+Template version: 1.4.3
 Last updated: ${now}
 `;
 }
@@ -71,7 +73,9 @@ Use \`seshflow validate <file>\` before import.
 
 \`\`\`markdown
 - [ ] Task title [id:task_name] [P0] [tag1,tag2] [4h] [dependency:task_other,task_another]
+- [ ] Task title [id:task_name] [priority:P1] [estimate:2h]
 > Optional task description
+  estimate: 2h
   - [ ] Subtask A [1h]
   - [ ] Subtask B [2h]
 \`\`\`
@@ -85,9 +89,11 @@ Use \`seshflow validate <file>\` before import.
 
 ## Notes
 
-- Subtasks should be indented by 2 spaces.
+- Top-level tasks should not be indented.
+- Child subtasks should be indented by 2 spaces.
 - Stable ids use the \`task_\` prefix and should stay unchanged across plan edits.
 - Prefer dependencies by task id for durable updates.
+- Estimates can be written as \`[2h]\`, \`[estimate:2h]\`, or \`estimate: 2h\`.
 - \`seshflow import <file> --update\` updates planning fields by stable id.
 - Runtime state is not managed in Markdown.
 `;
@@ -99,10 +105,11 @@ function getMarkdownImportGuide() {
 1. Start from \`.seshflow/TASKS.template.md\`.
 2. Keep \`[id:task_xxx]\` on every task you want to revise later.
 3. Use \`[dependency:task_xxx]\` for stable dependencies.
-4. Run \`seshflow validate <file>\`.
-5. Run \`seshflow import <file>\` for first import.
-6. Edit the same Markdown file and run \`seshflow import <file> --update\` for planning updates.
-7. Use \`seshflow export <file>\` if you need to regenerate a managed planning file from JSON.
+4. Keep top-level task lines unindented; indent child subtasks by 2 spaces.
+5. Run \`seshflow validate <file>\`.
+6. Run \`seshflow import <file>\` for first import.
+7. Edit the same Markdown file and run \`seshflow import <file> --update\` for planning updates.
+8. Use \`seshflow export <file>\` if you need to regenerate a managed planning file from JSON.
 `;
 }
 

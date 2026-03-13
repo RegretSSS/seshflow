@@ -26,7 +26,7 @@ Seshflow 虽然 100% 面向 AI，但它依然支持人类使用。
 
 ## 当前状态
 
-- 当前发版主线：`v1.4.0`
+- 当前发版主线：`v1.4.3`
 - `v1.3.x` 在 `v1.2.0` 执行内核的基础上，建立了契约先行模式（`contractfirst`）、显式 AI 上下文优先级、hook/RPC 接缝、多工作区索引和边界最佳实践
 - `v1.4.0` 在此基础上新增了 delegated git worktree handoff，补上“把任务安全交给独立 worktree / subagent”的主链路
 - 契约先行的具体设计目标见 `docs/apifirst-mode.md` 与 `docs/apifirst-mode.zh-CN.md`
@@ -232,6 +232,14 @@ seshflow add "实现 runtime event 保留策略" --priority P1
 seshflow validate tasks.md
 seshflow import tasks.md
 seshflow import tasks.md --update
+```
+
+受控 Markdown 示例：
+
+```md
+- [ ] 设计数据模型 [id:task_design] [P1] [2h]
+- [ ] 构建 API [id:task_api] [priority:P1] [estimate:6h] [dependency:task_design]
+  - [ ] 增加列表接口
 ```
 
 受控 Markdown 是规划层，`.seshflow/tasks.json` 是执行层状态存储。

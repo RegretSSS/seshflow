@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [1.4.3] - 2026-03-14
+
+### Fixed
+
+- Unified Markdown task parsing between `seshflow validate` and `seshflow import` so both commands now accept the same task metadata patterns.
+- Added compatibility handling and explicit warnings for accidentally indented top-level task lines instead of failing with a misleading `no task lines found` error.
+- Accepted inline metadata tokens such as `[estimate:2h]` and `[priority:P1]`, and aligned templates and README examples with the actual parser behavior.
+
 ## [1.4.2] - 2026-03-11
 
 ### Fixed
