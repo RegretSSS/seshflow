@@ -1,6 +1,6 @@
 {
   "name": "@seshflow/cli",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "Seshflow CLI - Runtime control plane for AI-assisted development",
   "type": "module",
   "author": "Seshflow Contributors",

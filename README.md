@@ -22,7 +22,7 @@ Seshflow is 100% AI-oriented, but the documentation and command flow should stil
 
 ## Status
 
-- `v1.4.3` is the current release line.
+- `v1.4.4` is the current release line.
 - `v1.3.x` established the contract-first execution core: contract bindings, explicit AI context priority, hook/RPC seams, workspace index, and boundary best practices.
 - `v1.4.0` adds delegated git worktree handoff as the next completion layer on top of that core.
 - contract-first design details remain documented in `docs/apifirst-mode.md`.

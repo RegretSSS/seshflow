@@ -25,7 +25,7 @@ Seshflow 虽然 100% 面向 AI，但它依然支持人类使用。
 
 ## 当前状态
 
-- 当前发版主线：`v1.4.3`
+- 当前发版主线：`v1.4.4`
 - `v1.3.x` 在 `v1.2.0` 执行内核的基础上，建立了契约先行模式（`contractfirst`）、显式 AI 上下文优先级、hook/RPC 接缝、多工作区索引和边界最佳实践
 - `v1.4.0` 在此基础上新增了 delegated git worktree handoff，补上“把任务安全交给独立 worktree / subagent”的主链路
 - 契约先行的具体设计目标见 `docs/apifirst-mode.md` 与 `docs/apifirst-mode.zh-CN.md`
